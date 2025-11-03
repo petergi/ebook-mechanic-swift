@@ -1,0 +1,54 @@
+# Git
+.git/
+.gitignore
+
+# Build artifacts
+build/
+dist/
+coverage/
+*.prof
+ebook-mechanic
+ebook-mechanic-*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Test files
+*_test.go
+testdata/
+
+# Reports
+*.html
+ebook_mechanic_report_*.md
+
+# Dependencies (will be downloaded in container)
+vendor/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+.claude/
+.amazonq/
+.cursor/
+CLAUDE.md

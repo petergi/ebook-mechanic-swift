@@ -1,0 +1,28 @@
+# Build artifacts
+build/
+dist/
+coverage/
+*.prof
+ebook-mechanic
+ebook-mechanic-*
+*.test
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Reports
+*.html
+ebook_mechanic_report_*.md
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+.claude/
+.amazonq/
+.cursor/

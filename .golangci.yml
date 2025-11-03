@@ -1,0 +1,65 @@
+# golangci-lint configuration for EbookMechanic
+
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck
+    - gofmt
+    - goimports
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gosimple
+    - gocritic
+    - misspell
+    - unconvert
+    - unparam
+
+linters-settings:
+  errcheck:
+    # Don't check error in test files for these functions
+    exclude-functions:
+      - (io.Closer).Close
+      - (*os.File).Close
+      - (*archive/zip.Writer).Close
+
+  unparam:
+    # Don't report errors for methods that always return nil
+    # (keeping error returns for API consistency)
+    check-exported: false
+
+issues:
+  exclude-rules:
+    # Exclude errcheck for test files
+    - path: _test\.go
+      linters:
+        - errcheck
+
+    # Exclude some linters from specific files
+    - path: doc\.go
+      linters:
+        - goimports
+
+    # Exclude unparam for scanner methods (API consistency)
+    - path: scanner\.go
+      text: "result 0 \\(error\\) is always nil"
+      linters:
+        - unparam
+
+  # Maximum issues count per one linter
+  max-issues-per-linter: 0
+
+  # Maximum count of issues with the same text
+  max-same-issues: 0
+
+output:
+  formats:
+    - format: colored-line-number
+      path: stdout
+  print-issued-lines: true
+  print-linter-name: true
