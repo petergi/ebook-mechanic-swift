@@ -287,11 +287,17 @@ clean:
 	@rm -f *.prof
 	@echo "$(COLOR_GREEN)✓ Clean complete$(COLOR_RESET)"
 
-## clean-all: Clean everything including dependencies
+## clean-all: Deep clean of all build artifacts and caches
 clean-all: clean
-	@echo "$(COLOR_BLUE)Cleaning dependencies cache...$(COLOR_RESET)"
-	@go clean -modcache
-	@echo "$(COLOR_GREEN)✓ All cleaned$(COLOR_RESET)"
+	@echo "$(COLOR_GREEN)✓ All project artifacts cleaned$(COLOR_RESET)"
+	@echo "$(COLOR_YELLOW)Note: Use 'make clean-modcache' to clean global Go module cache$(COLOR_RESET)"
+
+## clean-modcache: Clean global Go module cache (WARNING: affects all Go projects)
+clean-modcache:
+	@echo "$(COLOR_YELLOW)⚠ WARNING: This will clean the global Go module cache used by all projects$(COLOR_RESET)"
+	@echo "$(COLOR_BLUE)Cleaning module cache...$(COLOR_RESET)"
+	@go clean -modcache || echo "$(COLOR_YELLOW)⚠ Module cache cleaning failed (may be in use by other projects)$(COLOR_RESET)"
+	@echo "$(COLOR_GREEN)✓ Module cache clean attempted$(COLOR_RESET)"
 
 # ==================== Release ====================
 
