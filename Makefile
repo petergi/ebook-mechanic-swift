@@ -5,7 +5,8 @@
         build-all build-linux build-darwin build-windows \
         test-unit test-integration test-coverage test-race \
         dev watch docker docker-build docker-run \
-        docs godoc release version benchmark profile
+        docs godoc release version benchmark profile \
+        sample-library
 
 # ==================== Configuration ====================
 
@@ -23,6 +24,9 @@ LDFLAGS_DEV=-ldflags="-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME)
 BUILD_DIR=build
 COVERAGE_DIR=coverage
 DIST_DIR=dist
+LIBRARY_DIR?=test-library
+LIBRARY_AUTHORS?=10
+LIBRARY_FORMATS?=pdf,epub,mobi,azw3,azw4
 
 # Colors for output
 COLOR_RESET=\033[0m
@@ -91,6 +95,14 @@ run-dry:
 ## run-no-tui: Run the application without TUI
 run-no-tui:
 	@go run . -no-tui
+
+# ==================== Test Fixtures ====================
+
+## sample-library: Generate sample ebook library with valid and corrupt files
+sample-library:
+	@echo "$(COLOR_BLUE)Generating sample library...$(COLOR_RESET)"
+	@python3 python/generate_test_library.py --output $(LIBRARY_DIR) --authors $(LIBRARY_AUTHORS) --formats $(LIBRARY_FORMATS) --force
+	@echo "$(COLOR_GREEN)✓ Sample library ready in $(LIBRARY_DIR)$(COLOR_RESET)"
 
 # ==================== Test Targets ====================
 

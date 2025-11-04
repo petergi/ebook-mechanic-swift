@@ -53,6 +53,7 @@ type Phase int
 const (
 	PhaseInit Phase = iota
 	PhaseScanning
+	PhaseRepairing
 	PhaseMoving
 	PhaseScanningFolders
 	PhaseDeleting
@@ -74,13 +75,21 @@ type model struct {
 	emptyFoldersOnly bool
 	dryRun           bool
 	noConfirm        bool
+	repair           bool
 	confirmed        bool
 	reportPath       string
 	startTime        time.Time
 	progressChan     chan progressMsg
+	repairResults    []RepairResult
+	repairedCount    int
+	repairAttempted  bool
 }
 
 type scanCompleteMsg struct{}
+type repairCompleteMsg struct {
+	results       []RepairResult
+	repairedCount int
+}
 type moveCompleteMsg struct{}
 type folderScanCompleteMsg struct{}
 type deleteCompleteMsg struct{}
@@ -91,7 +100,7 @@ type progressMsg struct {
 	item    string
 }
 
-func initialModel(scanner *FileScanner, corruptionOnly, emptyFoldersOnly, dryRun, noConfirm bool) model {
+func initialModel(scanner *FileScanner, corruptionOnly, emptyFoldersOnly, dryRun, noConfirm, repair bool) model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
@@ -107,6 +116,7 @@ func initialModel(scanner *FileScanner, corruptionOnly, emptyFoldersOnly, dryRun
 		emptyFoldersOnly: emptyFoldersOnly,
 		dryRun:           dryRun,
 		noConfirm:        noConfirm,
+		repair:           repair,
 		startTime:        time.Now(),
 		progressChan:     make(chan progressMsg, 100),
 	}
@@ -149,6 +159,38 @@ func doScan(scanner *FileScanner) tea.Cmd {
 	return func() tea.Msg {
 		_ = scanner.ScanForCorruption()
 		return scanCompleteMsg{}
+	}
+}
+
+func doRepair(scanner *FileScanner, progressChan chan progressMsg) tea.Cmd {
+	return func() tea.Msg {
+		results := []RepairResult{}
+		repairedCount := 0
+		totalFiles := len(scanner.Result.CorruptedFiles)
+
+		for i, corruptedFile := range scanner.Result.CorruptedFiles {
+			// Send progress update
+			select {
+			case progressChan <- progressMsg{
+				current: i + 1,
+				total:   totalFiles,
+				item:    filepath.Base(corruptedFile.Path),
+			}:
+			default:
+			}
+
+			// Attempt repair
+			result := RepairFile(corruptedFile.Path)
+			results = append(results, result)
+			if result.Fixed {
+				repairedCount++
+			}
+		}
+
+		return repairCompleteMsg{
+			results:       results,
+			repairedCount: repairedCount,
+		}
 	}
 }
 
@@ -224,7 +266,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.current = 0
 		m.total = 0
 		m.currentItem = ""
-		if m.dryRun || len(m.scanner.Result.CorruptedFiles) == 0 {
+		corruptedCount := len(m.scanner.Result.CorruptedFiles)
+		if m.dryRun || corruptedCount == 0 {
+			if corruptedCount == 0 {
+				m.repairAttempted = false
+			}
 			if m.corruptionOnly {
 				m.phase = PhaseGeneratingReport
 				return m, generateReport(m.scanner, m.scanner.RootDir, m.scanner.CorruptedDir)
@@ -241,6 +287,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				startFolderScan(m.scanner),
 			)
 		}
+		// If repair mode is enabled, attempt to repair corrupted files once before moving
+		if m.repair && !m.repairAttempted {
+			m.phase = PhaseRepairing
+			return m, tea.Batch(
+				listenForProgress(m.progressChan),
+				doRepair(m.scanner, m.progressChan),
+			)
+		}
+		// Either repairs are disabled, already attempted, or there was nothing to fix; move files
 		m.phase = PhaseMoving
 		m.scanner.SetProgressCallback(func(current, total int, item string) {
 			select {
@@ -251,6 +306,32 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(
 			listenForProgress(m.progressChan),
 			startMoving(m.scanner),
+		)
+
+	case repairCompleteMsg:
+		m.current = 0
+		m.total = 0
+		m.currentItem = ""
+		m.repairResults = msg.results
+		m.repairedCount = msg.repairedCount
+		m.repairAttempted = true
+
+		// Re-scan to update the list of corrupted files after repair
+		m.phase = PhaseScanning
+		m.scanner.Result = &ScanResult{
+			CorruptedFiles: []CorruptedFile{},
+			EmptyFolders:   []string{},
+		}
+		m.scanner.SetProgressCallback(func(current, total int, item string) {
+			select {
+			case m.progressChan <- progressMsg{current: current, total: total, item: item}:
+			default:
+			}
+		})
+		return m, tea.Batch(
+			m.spinner.Tick,
+			listenForProgress(m.progressChan),
+			doScan(m.scanner),
 		)
 
 	case moveCompleteMsg:
@@ -338,6 +419,15 @@ func (m model) View() string {
 		s.WriteString(fmt.Sprintf("%s Checking: %s\n", m.spinner.View(), m.currentItem))
 		s.WriteString(fmt.Sprintf("   Progress: %d/%d files\n", m.current, m.total))
 
+	case PhaseRepairing:
+		s.WriteString(headerStyle.Render("🔧 Repairing Corrupted Ebooks"))
+		s.WriteString("\n\n")
+		s.WriteString(fmt.Sprintf("%s Repairing: %s\n", m.spinner.View(), m.currentItem))
+		s.WriteString(fmt.Sprintf("   Progress: %d/%d files\n", m.current, m.total))
+		if m.repairedCount > 0 {
+			s.WriteString(fmt.Sprintf("   %s Repaired so far: %d\n", successStyle.Render("✓"), m.repairedCount))
+		}
+
 	case PhaseMoving:
 		s.WriteString(headerStyle.Render("📦 Moving Corrupted Files"))
 		s.WriteString("\n\n")
@@ -405,6 +495,13 @@ func (m model) buildStatsView() string {
 	// Corruption stats
 	s.WriteString(fmt.Sprintf("Files Scanned:     %d\n", result.TotalFiles))
 	s.WriteString(fmt.Sprintf("Corrupted Files:   %d\n", len(result.CorruptedFiles)))
+
+	// Repair stats
+	if m.repair && len(m.repairResults) > 0 {
+		s.WriteString(fmt.Sprintf("Repair Attempted:  %d\n", len(m.repairResults)))
+		s.WriteString(fmt.Sprintf("Successfully Fixed: %d %s\n", m.repairedCount,
+			successStyle.Render("✓")))
+	}
 	s.WriteString("\n")
 
 	// By file type
@@ -440,6 +537,7 @@ func main() {
 		dryRun           = flag.Bool("dry-run", false, "Scan only, don't modify anything")
 		noConfirm        = flag.Bool("no-confirm", false, "Skip confirmation prompts")
 		noTUI            = flag.Bool("no-tui", false, "Disable TUI, use simple output")
+		repair           = flag.Bool("repair", false, "Attempt to repair corrupted files before moving them")
 	)
 
 	flag.Parse()
@@ -462,12 +560,12 @@ func main() {
 
 	if *noTUI {
 		// Run in simple mode without TUI
-		runSimpleMode(scanner, *corruptionOnly, *emptyFoldersOnly, *dryRun, *noConfirm)
+		runSimpleMode(scanner, *corruptionOnly, *emptyFoldersOnly, *dryRun, *noConfirm, *repair)
 		return
 	}
 
 	// Run with TUI
-	m := initialModel(scanner, *corruptionOnly, *emptyFoldersOnly, *dryRun, *noConfirm)
+	m := initialModel(scanner, *corruptionOnly, *emptyFoldersOnly, *dryRun, *noConfirm, *repair)
 	p := tea.NewProgram(m)
 
 	if _, err := p.Run(); err != nil {
@@ -476,7 +574,7 @@ func main() {
 	}
 }
 
-func runSimpleMode(scanner *FileScanner, corruptionOnly, emptyFoldersOnly, dryRun, noConfirm bool) {
+func runSimpleMode(scanner *FileScanner, corruptionOnly, emptyFoldersOnly, dryRun, noConfirm, repair bool) {
 	fmt.Println("========================================")
 	fmt.Println("EBOOKMECHANIC")
 	fmt.Println("========================================")
@@ -484,12 +582,42 @@ func runSimpleMode(scanner *FileScanner, corruptionOnly, emptyFoldersOnly, dryRu
 	fmt.Printf("Corrupted files destination: %s\n\n", scanner.CorruptedDir)
 
 	startTime := time.Now()
+	repairedCount := 0
 
 	// Corruption scan
 	if !emptyFoldersOnly {
 		fmt.Println("Scanning for corrupted files...")
 		_ = scanner.ScanForCorruption()
 		fmt.Printf("Found %d corrupted file(s)\n\n", len(scanner.Result.CorruptedFiles))
+
+		// Repair corrupted files if repair mode is enabled
+		if repair && !dryRun && len(scanner.Result.CorruptedFiles) > 0 {
+			fmt.Println("Attempting to repair corrupted files...")
+			for i, corruptedFile := range scanner.Result.CorruptedFiles {
+				fmt.Printf("  [%d/%d] Repairing: %s\n", i+1, len(scanner.Result.CorruptedFiles),
+					filepath.Base(corruptedFile.Path))
+				result := RepairFile(corruptedFile.Path)
+				switch {
+				case result.Fixed:
+					repairedCount++
+					fmt.Printf("    ✓ Fixed: %s\n", result.Message)
+				case result.Success:
+					fmt.Printf("    ○ %s\n", result.Message)
+				default:
+					fmt.Printf("    ✗ Failed: %s\n", result.Message)
+				}
+			}
+			fmt.Printf("Successfully repaired: %d/%d files\n\n", repairedCount, len(scanner.Result.CorruptedFiles))
+
+			// Re-scan to update corrupted files list
+			fmt.Println("Re-scanning to verify repairs...")
+			scanner.Result = &ScanResult{
+				CorruptedFiles: []CorruptedFile{},
+				EmptyFolders:   []string{},
+			}
+			_ = scanner.ScanForCorruption()
+			fmt.Printf("Remaining corrupted files: %d\n\n", len(scanner.Result.CorruptedFiles))
+		}
 
 		if !dryRun && len(scanner.Result.CorruptedFiles) > 0 {
 			fmt.Println("Moving corrupted files...")
@@ -532,6 +660,9 @@ report:
 	fmt.Println("========================================")
 	fmt.Printf("Files scanned:     %d\n", scanner.Result.TotalFiles)
 	fmt.Printf("Corrupted files:   %d\n", len(scanner.Result.CorruptedFiles))
+	if repair && repairedCount > 0 {
+		fmt.Printf("Files repaired:    %d\n", repairedCount)
+	}
 	fmt.Printf("Folders scanned:   %d\n", scanner.Result.TotalFolders)
 	fmt.Printf("Empty folders:     %d\n", len(scanner.Result.EmptyFolders))
 	fmt.Printf("\nReport: %s\n", reportPath)

@@ -8,6 +8,7 @@ A blazing-fast command-line tool for managing ebook libraries with a beautiful T
 - 🎨 **Beautiful TUI**: Powered by Bubble Tea framework
 - 📊 **Real-time Progress**: Live progress bars and spinners
 - 🔍 **Corruption Detection**: Validates EPUB, MOBI, AZW3, AZW4, and PDF files
+- 🔧 **Auto-Repair**: Automatically fixes corrupted ebooks when possible
 - 🗑️ **Smart Cleanup**: Identifies and removes folders without ebooks
 - 📄 **Markdown Reports**: Generates detailed reports
 - 🔒 **Safe Operations**: Confirmation prompts and dry-run mode
@@ -47,6 +48,26 @@ go build -ldflags="-s -w" -o ebook-mechanic .
 
 ## Usage
 
+### Generate a Sample Library (for testing)
+
+Need quick fixtures with a mix of healthy and broken ebooks? Generate them on demand:
+
+```bash
+# Create 10 author folders with valid + corrupt EPUB/MOBI/AZW3/AZW4/PDF pairs
+make sample-library
+
+# Pick a different destination or author count
+make sample-library LIBRARY_DIR=my-fixtures LIBRARY_AUTHORS=5
+```
+
+Behind the scenes this runs `python/generate_test_library.py`, which accepts `--formats` if you want to trim formats:
+
+```bash
+python3 python/generate_test_library.py --output sandbox --authors 3 --formats pdf,epub --force
+```
+
+Point EbookMechanic at the generated directory with the usual flags, e.g. `go run . -dir test-library -repair`.
+
 ### Basic Usage
 
 ```bash
@@ -71,6 +92,8 @@ go build -ldflags="-s -w" -o ebook-mechanic .
         Only check for corrupted files
   -empty-folders-only
         Only check for empty folders
+  -repair
+        Attempt to repair corrupted files before moving them
   -dry-run
         Scan only, don't modify anything
   -no-confirm
@@ -88,8 +111,11 @@ go build -ldflags="-s -w" -o ebook-mechanic .
 # Dry run to preview changes
 ./ebook-mechanic -dry-run
 
-# Only check for corruption
-./ebook-mechanic -corruption-only
+# Automatically repair corrupted files
+./ebook-mechanic -repair
+
+# Only check for corruption with repair
+./ebook-mechanic -corruption-only -repair
 
 # Clean empty folders without confirmation
 ./ebook-mechanic -empty-folders-only -no-confirm
@@ -97,8 +123,8 @@ go build -ldflags="-s -w" -o ebook-mechanic .
 # Scan specific directory, custom corrupted dir
 ./ebook-mechanic -dir ~/Books -corrupted-dir BROKEN
 
-# Simple mode without TUI
-./ebook-mechanic -no-tui
+# Simple mode without TUI with repair
+./ebook-mechanic -no-tui -repair
 ```
 
 ## How It Works
