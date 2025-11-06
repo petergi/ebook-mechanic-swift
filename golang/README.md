@@ -1,4 +1,4 @@
-# 📚 EbookMechanic
+# 📚 EbookMechanic (Go Edition)
 
 A blazing-fast command-line tool for managing ebook libraries with a beautiful TUI powered by [Bubble Tea](https://github.com/charmbracelet/bubbletea).
 
@@ -9,16 +9,18 @@ A blazing-fast command-line tool for managing ebook libraries with a beautiful T
 - 📊 **Real-time Progress**: Live progress bars and spinners
 - 🔍 **Corruption Detection**: Validates EPUB, MOBI, AZW3, AZW4, and PDF files
 - 🔧 **Auto-Repair**: Automatically fixes corrupted ebooks when possible
-- 🗑️ **Smart Cleanup**: Identifies and removes folders without ebooks
+- � **EPUB Normalization**: Restructures EPUBs to Sigil standards with proper file extensions and manifest IDs
+- �🗑️ **Smart Cleanup**: Identifies and removes folders without ebooks
 - 📄 **Markdown Reports**: Generates detailed reports
 - 🔒 **Safe Operations**: Confirmation prompts and dry-run mode
 - ⚡ **Concurrent**: Fast multi-threaded file processing
+- 🧪 **Well Tested**: 48.2% test coverage with comprehensive unit tests
 
 ## Installation
 
 ### Prerequisites
 
-- Go 1.21 or higher
+- Go 1.24+ (tested with Go 1.25.3)
 
 ### Build from Source
 
@@ -39,11 +41,15 @@ go build -o ebook-mechanic .
 ### Quick Build & Run
 
 ```bash
-# Build and install to $GOPATH/bin
-go install
+# Using Makefile (recommended)
+make build          # Build optimized binary
+make run            # Run without building
+make test           # Run tests
+make check          # Run code quality checks
 
-# Or build with optimizations
+# Or manually
 go build -ldflags="-s -w" -o ebook-mechanic .
+go install
 ```
 
 ## Usage
@@ -60,13 +66,13 @@ make sample-library
 make sample-library LIBRARY_DIR=my-fixtures LIBRARY_AUTHORS=5
 ```
 
-Behind the scenes this runs `python/generate_test_library.py`, which accepts `--formats` if you want to trim formats:
+Behind the scenes this runs `../python/generate_test_library.py`, which accepts `--formats` if you want to trim formats:
 
 ```bash
-python3 python/generate_test_library.py --output sandbox --authors 3 --formats pdf,epub --force
+python3 ../python/generate_test_library.py --output sandbox --authors 3 --formats pdf,epub --force
 ```
 
-Point EbookMechanic at the generated directory with the usual flags, e.g. `go run . -dir test-library -repair`.
+Point EbookMechanic at the generated directory with the usual flags, e.g. `./ebook-mechanic -dir test-library -repair`.
 
 ### Basic Usage
 
@@ -94,6 +100,12 @@ Point EbookMechanic at the generated directory with the usual flags, e.g. `go ru
         Only check for empty folders
   -repair
         Attempt to repair corrupted files before moving them
+  -normalize-epub
+        Normalize EPUB files to Sigil standards (implies -repair)
+  -keep-backups
+        Keep .backup files after successful operations
+  -clean-backups
+        Remove existing .backup files in directory
   -dry-run
         Scan only, don't modify anything
   -no-confirm
@@ -114,6 +126,18 @@ Point EbookMechanic at the generated directory with the usual flags, e.g. `go ru
 # Automatically repair corrupted files
 ./ebook-mechanic -repair
 
+# Normalize EPUB files to Sigil standards
+./ebook-mechanic -normalize-epub
+
+# Normalize EPUB files and keep backup files
+./ebook-mechanic -normalize-epub -keep-backups
+
+# Clean existing backup files
+./ebook-mechanic -clean-backups
+
+# Clean backups then normalize (default removes new backups)
+./ebook-mechanic -clean-backups -normalize-epub
+
 # Only check for corruption with repair
 ./ebook-mechanic -corruption-only -repair
 
@@ -123,8 +147,8 @@ Point EbookMechanic at the generated directory with the usual flags, e.g. `go ru
 # Scan specific directory, custom corrupted dir
 ./ebook-mechanic -dir ~/Books -corrupted-dir BROKEN
 
-# Simple mode without TUI with repair
-./ebook-mechanic -no-tui -repair
+# Simple mode without TUI with repair and normalization
+./ebook-mechanic -no-tui -repair -normalize-epub
 ```
 
 ## How It Works
@@ -134,50 +158,119 @@ Point EbookMechanic at the generated directory with the usual flags, e.g. `go ru
 The tool validates ebook files by checking:
 
 **EPUB Files:**
+
 - Valid ZIP structure using Go's `archive/zip`
 - Required `mimetype` file
 - Correct mimetype content (`application/epub+zip`)
 - Required `META-INF/container.xml`
 
 **MOBI Files:**
+
 - Valid MOBI/PalmDB header
 - Correct identifier (`BOOKMOBI` or `TEXtREAd`) at offset 60
 - Valid header structure
 
 **PDF Files:**
+
 - Valid PDF header (`%PDF-`)
 - Minimum file size validation
 - EOF marker (`%%EOF`) in last 1KB
 
 **AZW3 Files (Kindle Format 8):**
+
 - Uses MOBI/PalmDB structure validation
 - Valid identifier at offset 60 (`BOOKMOBI` or `TEXtREAd`)
 
 **AZW4 Files (PDF wrapper):**
+
 - Validates as PDF format
 - PDF header and EOF markers required
 
-### 2. Empty Folder Detection
+### 2. EPUB Normalization
+
+When the `-normalize-epub` flag is used, the tool restructures EPUB files to follow Sigil standards:
+
+**File Extension Normalization:**
+
+- `.htm` → `.xhtml`
+- `.css` files retain proper extension
+- Image files normalized to standard extensions
+
+**OPF Manifest Rebasing:**
+
+- Generates new IDs based on actual filenames
+- Updates all references to use new IDs
+- Ensures manifest consistency
+
+**HTML Prettification:**
+
+- Properly formats all XHTML files
+- Maintains valid XML structure
+- Improves readability and consistency
+
+**CSS Formatting:**
+
+- Normalizes CSS formatting
+- Maintains styling functionality
+
+### 3. Backup Management
+
+The tool creates backup files (.backup extension) before making changes and provides flexible cleanup options:
+
+**Default Behavior:**
+
+- Backups are automatically removed after successful operations
+- Provides safety during operations without cluttering directories
+
+**Backup Control Flags:**
+
+- `-keep-backups`: Preserve backup files after successful operations
+- `-clean-backups`: Remove all existing .backup files in directory
+
+**Usage Examples:**
+
+```bash
+# Default: Auto-cleanup backups after success
+./ebook-mechanic -normalize-epub
+
+# Keep backups for extra safety
+./ebook-mechanic -normalize-epub -keep-backups
+
+# Clean existing backup files only
+./ebook-mechanic -clean-backups
+```
+
+### 4. Empty Folder Detection
 
 - Recursively scans all subdirectories
 - Bottom-up traversal for efficient processing
 - Identifies folders containing no ebook files (.epub, .mobi, .azw3, .azw4, .pdf)
 - Shows folder contents before deletion
 
-### 3. Operations Flow
+### 5. Operations Flow
 
-```
-1. Scan for corrupted files
+```text
+1. Clean existing backups (if -clean-backups flag)
    ↓
-2. Move corrupted files to CORRUPTED/
+2. Scan for corrupted files
    ↓
-3. Scan for empty folders
+3. Create backups before repairs/normalization
    ↓
-4. Delete empty folders (with confirmation)
+4. Repair corrupted files (if -repair flag)
    ↓
-5. Generate Markdown report
+5. Normalize EPUB files (if -normalize-epub flag)
    ↓
-6. Display summary statistics
+6. Remove/keep backups based on -keep-backups flag
+   ↓
+7. Move corrupted files to CORRUPTED/
+   ↓
+8. Scan for empty folders
+   ↓
+9. Delete empty folders (with confirmation)
+   ↓
+10. Generate Markdown report
+    ↓
+11. Display summary statistics
 ```
 
 ## TUI Features
@@ -197,15 +290,65 @@ The Bubble Tea TUI provides:
 
 ## Project Structure
 
-```
-EbookMechanic/
+```text
+EbookMechanic/golang/
+├── Makefile            # Comprehensive build system
+├── Dockerfile          # Multi-stage Docker build
 ├── go.mod              # Go module definition
+├── go.sum              # Dependency checksums
 ├── main.go             # Main entry point & Bubble Tea TUI
-├── validator.go        # EPUB/MOBI/PDF validation logic
+├── validator.go        # EPUB/MOBI/PDF/AZW validation logic
 ├── scanner.go          # File/folder scanning operations
 ├── report.go           # Markdown report generation
-└── README.md           # This file
+├── repair.go           # Automatic file repair functionality
+├── normalize.go        # EPUB normalization to Sigil standards
+├── doc.go              # Package documentation
+├── *_test.go           # Comprehensive test suite
+├── build/              # Build artifacts
+└── coverage/           # Test coverage reports
 ```
+
+## Makefile Commands
+
+The project includes a comprehensive Makefile with 30+ commands organized into categories:
+
+### Build Commands
+
+```bash
+make build          # Build optimized binary
+make build-dev      # Build with debug symbols
+make build-all      # Cross-platform builds
+make release        # Create release builds
+```
+
+### Development Commands  
+
+```bash
+make run            # Run without building
+make dev            # Auto-reload (requires air)
+make watch          # Watch and rebuild
+make sample-library # Generate test library
+```
+
+### Testing Commands
+
+```bash
+make test           # Run all tests
+make test-coverage  # Generate coverage report
+make test-race      # Run with race detector
+make benchmark      # Run benchmarks
+```
+
+### Quality Commands
+
+```bash
+make check          # Run all quality checks
+make fmt            # Format code
+make vet            # Run go vet
+make lint           # Run golangci-lint
+```
+
+Run `make help` for a complete list of available commands.
 
 ## Performance
 
@@ -217,59 +360,78 @@ Go's concurrency and compiled nature make this **significantly faster** than the
 - **Low Memory**: Minimal runtime footprint
 
 Typical performance on 10,000 files:
+
 - Python version: ~30-45 seconds
 - Go version: ~5-10 seconds
 
 ## Dependencies
 
 ```go
-github.com/charmbracelet/bubbletea  // TUI framework
-github.com/charmbracelet/lipgloss   // Styling
-github.com/charmbracelet/bubbles    // TUI components
+github.com/charmbracelet/bubbletea v1.3.10  // TUI framework
+github.com/charmbracelet/lipgloss v1.1.0    // Styling
+github.com/charmbracelet/bubbles v0.21.0    // TUI components
+golang.org/x/net v0.46.0                    // HTML parsing for EPUB normalization
 ```
 
-All dependencies are managed via `go.mod`.
+All dependencies are managed via `go.mod`. Use `make deps` to download and verify dependencies.
 
 ## Testing
 
 The project includes comprehensive unit tests covering all major functionality:
 
 ```bash
-# Run all tests
+# Run all tests (using Makefile - recommended)
 make test
-go test -v ./...
 
-# Run specific test
+# Run with coverage
+make test-coverage
+
+# Run specific tests
 go test -v -run TestValidateEPUB
 
-# Run tests with coverage
-go test -cover ./...
+# Run tests with race detection
+make test-race
 
-# Generate coverage report
-go test -coverprofile=coverage.out ./...
-go tool cover -html=coverage.out
+# Watch mode (requires entr)
+make test-watch
 ```
 
 ### Test Coverage
 
+Current coverage: **48.2%** of statements
+
 - **validator_test.go**: 45+ tests for EPUB, MOBI, AZW3, AZW4, and PDF validation
-- **scanner_test.go**: 15+ tests for file scanning, corruption detection, and folder operations
+- **scanner_test.go**: 15+ tests for file scanning, corruption detection, and folder operations  
 - **report_test.go**: 10+ tests for report generation and formatting
+- **repair_test.go**: Comprehensive tests for automatic file repair functionality
+
+### Makefile Test Commands
+
+```bash
+make test           # Run all tests
+make test-unit      # Run unit tests only  
+make test-race      # Run tests with race detector
+make test-coverage  # Generate HTML coverage report
+make benchmark      # Run performance benchmarks
+```
 
 ## Building for Different Platforms
 
 ```bash
-# Linux
+# Using Makefile (recommended)
+make build-all      # Build for all platforms
+make build-linux    # Linux amd64
+make build-darwin   # macOS (Intel + Apple Silicon)
+make build-windows  # Windows amd64
+
+# Manual builds
 GOOS=linux GOARCH=amd64 go build -o ebook-mechanic-linux .
-
-# macOS (Intel)
 GOOS=darwin GOARCH=amd64 go build -o ebook-mechanic-macos-intel .
-
-# macOS (Apple Silicon)
 GOOS=darwin GOARCH=arm64 go build -o ebook-mechanic-macos-arm .
-
-# Windows
 GOOS=windows GOARCH=amd64 go build -o ebook-mechanic.exe .
+
+# Release builds with optimizations
+make release
 ```
 
 ## Output Example
@@ -338,6 +500,7 @@ go mod tidy
 ### Permission Issues
 
 On Unix systems, make the binary executable:
+
 ```bash
 chmod +x ebook-mechanic
 ```
@@ -362,6 +525,7 @@ chmod +x ebook-mechanic
 ## Contributing
 
 Feel free to:
+
 - Report bugs
 - Suggest features
 - Submit pull requests

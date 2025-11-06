@@ -6,7 +6,9 @@
         test-unit test-integration test-coverage test-race \
         dev watch docker docker-build docker-run \
         docs godoc release version benchmark profile \
-        sample-library
+        sample-library demo-normalize demo-full deps-list \
+        run-normalize run-repair run-corruption-only \
+        run-clean-backups run-normalize-keep-backups
 
 # ==================== Configuration ====================
 
@@ -96,13 +98,45 @@ run-dry:
 run-no-tui:
 	@go run . -no-tui
 
+## run-normalize: Run with EPUB normalization enabled
+run-normalize:
+	@go run . -normalize-epub
+
+## run-repair: Run with repair functionality enabled
+run-repair:
+	@go run . -repair
+
+## run-corruption-only: Run corruption check only
+run-corruption-only:
+	@go run . -corruption-only
+
+## run-clean-backups: Remove existing backup files
+run-clean-backups:
+	@go run . -clean-backups
+
+## run-normalize-keep-backups: Run normalization and keep backup files
+run-normalize-keep-backups:
+	@go run . -normalize-epub -keep-backups
+
 # ==================== Test Fixtures ====================
 
 ## sample-library: Generate sample ebook library with valid and corrupt files
 sample-library:
 	@echo "$(COLOR_BLUE)Generating sample library...$(COLOR_RESET)"
-	@python3 python/generate_test_library.py --output $(LIBRARY_DIR) --authors $(LIBRARY_AUTHORS) --formats $(LIBRARY_FORMATS) --force
+	@python3 ../python/generate_test_library.py --output $(LIBRARY_DIR) --authors $(LIBRARY_AUTHORS) --formats $(LIBRARY_FORMATS) --force
 	@echo "$(COLOR_GREEN)✓ Sample library ready in $(LIBRARY_DIR)$(COLOR_RESET)"
+
+## demo-normalize: Demo EPUB normalization on sample library (creates sample lib first)
+demo-normalize: sample-library
+	@echo "$(COLOR_BLUE)Running EPUB normalization demo...$(COLOR_RESET)"
+	@./$(BUILD_DIR)/$(BINARY_NAME) -dir $(LIBRARY_DIR) -normalize-epub -dry-run || (make build && ./$(BUILD_DIR)/$(BINARY_NAME) -dir $(LIBRARY_DIR) -normalize-epub -dry-run)
+	@echo "$(COLOR_GREEN)✓ Demo complete! Check output for normalization details$(COLOR_RESET)"
+
+## demo-full: Demo complete workflow including normalization
+demo-full: sample-library
+	@echo "$(COLOR_BLUE)Running full feature demo...$(COLOR_RESET)"
+	@./$(BUILD_DIR)/$(BINARY_NAME) -dir $(LIBRARY_DIR) -normalize-epub || (make build && ./$(BUILD_DIR)/$(BINARY_NAME) -dir $(LIBRARY_DIR) -normalize-epub)
+	@echo "$(COLOR_GREEN)✓ Full demo complete!$(COLOR_RESET)"
 
 # ==================== Test Targets ====================
 
@@ -199,6 +233,14 @@ deps-upgrade:
 ## deps-graph: Show dependency graph (requires go-mod-graph-chart)
 deps-graph:
 	@go mod graph | go-mod-graph-chart
+
+## deps-list: List all dependencies
+deps-list:
+	@echo "$(COLOR_BLUE)Current dependencies:$(COLOR_RESET)"
+	@go list -m all
+	@echo ""
+	@echo "$(COLOR_BLUE)Direct dependencies:$(COLOR_RESET)"
+	@go list -m -json all | jq -r 'select(.Main != true) | select(.Indirect != true) | .Path + " " + .Version' 2>/dev/null || go list -m all | grep -v "$(shell go list -m)"
 
 # ==================== Installation ====================
 
@@ -340,11 +382,18 @@ info:
 	@echo "$(COLOR_BLUE)Go Version:$(COLOR_RESET)  $$(go version | cut -d' ' -f3)"
 	@echo ""
 	@echo "$(COLOR_BLUE)Supported Formats:$(COLOR_RESET)"
-	@echo "  📗 EPUB  - Electronic Publication"
+	@echo "  📗 EPUB  - Electronic Publication (with Sigil normalization)"
 	@echo "  📕 MOBI  - Mobipocket"
 	@echo "  📘 AZW3  - Kindle Format 8"
 	@echo "  📙 AZW4  - Kindle PDF Wrapper"
 	@echo "  📄 PDF   - Portable Document Format"
+	@echo ""
+	@echo "$(COLOR_BLUE)Features:$(COLOR_RESET)"
+	@echo "  🔍 Corruption Detection  - Validates file integrity"
+	@echo "  🔧 Auto-Repair          - Fixes damaged files"
+	@echo "  📚 EPUB Normalization   - Restructures to Sigil standards"
+	@echo "  🗑️  Smart Cleanup        - Removes empty directories"
+	@echo "  📄 Markdown Reports     - Detailed analysis reports"
 	@echo ""
 	@echo "$(COLOR_BLUE)Test Coverage:$(COLOR_RESET) $$(go test -cover ./... 2>&1 | grep coverage | cut -d':' -f2 | tr -d ' ')"
 	@echo "$(COLOR_BLUE)Binary Size:$(COLOR_RESET)   $$(if [ -f $(BUILD_DIR)/$(BINARY_NAME) ]; then ls -lh $(BUILD_DIR)/$(BINARY_NAME) | awk '{print $$5}'; else echo 'Not built'; fi)"
@@ -364,6 +413,8 @@ help:
 	@echo "  make build          # Build the application"
 	@echo "  make test           # Run tests"
 	@echo "  make run            # Run without building"
+	@echo "  make run-normalize  # Run with EPUB normalization"
+	@echo "  make demo-normalize # Demo normalization on sample library"
 	@echo "  make check          # Run all code quality checks"
 	@echo "  make info           # Show project information"
 	@echo ""

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-EbookMechanic is a command-line tool written in Go for managing ebook libraries. It validates ebook files (EPUB, MOBI, AZW3, AZW4, PDF), detects corruption, and cleans up empty folders. Features a beautiful Terminal User Interface (TUI) powered by Bubble Tea.
+EbookMechanic is a command-line tool written in Go for managing ebook libraries. It validates ebook files (EPUB, MOBI, AZW3, AZW4, PDF), detects corruption, repairs damaged files, normalizes EPUB files to Sigil standards, and cleans up empty folders. Features a beautiful Terminal User Interface (TUI) powered by Bubble Tea.
 
 ## Build Commands
 
@@ -45,6 +45,18 @@ go test -v ./...
 # Dry run mode (scan only, no modifications)
 ./ebook-mechanic -dry-run
 
+# Repair corrupted files before moving them
+./ebook-mechanic -repair
+
+# Normalize EPUB files to Sigil standards (implies -repair)
+./ebook-mechanic -normalize-epub
+
+# Keep backup files after operations
+./ebook-mechanic -normalize-epub -keep-backups
+
+# Clean existing backup files
+./ebook-mechanic -clean-backups
+
 # Check only for corruption
 ./ebook-mechanic -corruption-only
 
@@ -59,12 +71,12 @@ go test -v ./...
 
 ### File Organization
 
-The project follows a simple, flat structure with 4 main Go files:
+The project follows a simple, flat structure with 5 main Go files:
 
 1. **main.go** - Application entry point and Bubble Tea TUI implementation
    - Command-line flag parsing
    - Bubble Tea model, update, and view logic
-   - Phase-based state machine (Init → Scanning → Moving → ScanningFolders → Deleting → GeneratingReport → Done)
+   - Phase-based state machine (Init → Scanning → Moving → Normalizing → ScanningFolders → Deleting → GeneratingReport → Done)
    - Simple mode runner (non-TUI fallback)
 
 2. **validator.go** - File validation logic for all ebook formats
@@ -83,7 +95,15 @@ The project follows a simple, flat structure with 4 main Go files:
    - `DeleteEmptyFolders()` - Removes folders without ebooks
    - Progress callback support for TUI updates
 
-4. **report.go** - Markdown report generation
+4. **normalize.go** - EPUB normalization to Sigil standards
+   - `NormalizeEPUB()` - Main normalization function with backup creation
+   - `normalizeOPF()` - Rebases OPF manifest IDs on current filenames
+   - `normalizeHTML()` - Prettifies HTML/XHTML files using golang.org/x/net/html
+   - `normalizeCSS()` - Formats CSS files for consistency
+   - `generateIDFromFilename()` - Creates consistent IDs from filenames
+   - File extension normalization (.htm → .xhtml, etc.)
+
+5. **report.go** - Markdown report generation
    - Generates timestamped reports with format: `ebook_manager_report_YYYY-MM-DD_HH-MM-SS.md`
    - Groups corrupted files by extension
    - Lists empty folder contents (max 5 items shown)
@@ -91,12 +111,14 @@ The project follows a simple, flat structure with 4 main Go files:
 ### Key Design Patterns
 
 **Bubble Tea TUI Architecture**
+
 - Phase-based state machine controls application flow
 - Message passing between phases (scanCompleteMsg, moveCompleteMsg, etc.)
 - Spinner and progress components for visual feedback
 - Lipgloss styling with color-coded output (pink titles, green success, red errors, cyan info)
 
 **File Scanner Design**
+
 - Skip CORRUPTED directory to avoid scanning previously moved files
 - Two-pass scanning: first count for progress tracking, then process
 - Bottom-up folder traversal ensures child folders are checked before parents
@@ -104,6 +126,7 @@ The project follows a simple, flat structure with 4 main Go files:
 - Optional progress callbacks decouple TUI from core logic
 
 **Validation Strategy**
+
 - Format-specific validators check structural integrity, not content
 - EPUB: ZIP validation + required files (mimetype, META-INF/container.xml)
 - MOBI: Header signature at specific byte offset (60-68)
@@ -124,6 +147,7 @@ CLI Flags → FileScanner creation → Bubble Tea model initialization
 ### Important Implementation Details
 
 **File Validation**
+
 - EPUB files must have `application/epub+zip` as mimetype content (exact match)
 - MOBI identifier check: `BOOKMOBI` or `TEXtREAd` at bytes 60-68
 - AZW3 files use same validation as MOBI (based on MOBI/PalmDB structure)
@@ -132,12 +156,14 @@ CLI Flags → FileScanner creation → Bubble Tea model initialization
 - Minimum file size checks prevent false positives on stub files
 
 **Directory Operations**
+
 - Empty folder detection: `hasEbooks()` walks directory tree checking for .epub/.mobi/.azw3/.azw4/.pdf
 - CORRUPTED directory is always skipped (hardcoded path check with `filepath.SkipDir`)
 - Bottom-up folder processing ensures children are evaluated before parents
 - Directory hierarchy is preserved when moving corrupted files
 
 **TUI State Management**
+
 - Single in-progress phase at a time (enforced by state machine)
 - Confirmation prompt waits for 'y'/'n' input before deleting folders
 - `-no-confirm` flag bypasses confirmation, `-dry-run` prevents all modifications
@@ -152,6 +178,7 @@ CLI Flags → FileScanner creation → Bubble Tea model initialization
 github.com/charmbracelet/bubbletea  // TUI framework (v0.25.0)
 github.com/charmbracelet/lipgloss   // Styling library (v0.9.1)
 github.com/charmbracelet/bubbles    // TUI components (v0.18.0)
+golang.org/x/net/html               // HTML parsing for EPUB normalization
 ```
 
 All managed via `go.mod` - use `make deps` to download/tidy.
@@ -159,6 +186,7 @@ All managed via `go.mod` - use `make deps` to download/tidy.
 ## Common Patterns
 
 **Adding a New File Format**
+
 1. Add extension to `EbookExtensions` map in `NewFileScanner()` (scanner.go)
 2. Create `Validate[FORMAT]()` function in validator.go
 3. Add case to `ValidateFile()` switch statement
@@ -169,12 +197,14 @@ All managed via `go.mod` - use `make deps` to download/tidy.
 8. Add comprehensive unit tests in validator_test.go
 
 **Modifying the TUI**
+
 - Phases are defined in the `Phase` enum (main.go:50-61)
 - Add new phase transition messages as needed (e.g., `type newPhaseMsg struct{}`)
 - Update `Update()` to handle new messages and phase transitions
 - Modify `View()` to render new phase UI
 
 **Extending Scanner Operations**
+
 - Scanner operations should be async (return `tea.Cmd` in TUI mode)
 - Use `fs.mu.Lock()` when modifying shared `ScanResult` data
 - Progress callbacks are optional - check `if fs.progressCallback != nil`
