@@ -110,14 +110,14 @@ The project follows a simple, flat structure with 5 main Go files:
 
 ### Key Design Patterns
 
-**Bubble Tea TUI Architecture**
+#### Bubble Tea TUI Architecture
 
 - Phase-based state machine controls application flow
 - Message passing between phases (scanCompleteMsg, moveCompleteMsg, etc.)
 - Spinner and progress components for visual feedback
 - Lipgloss styling with color-coded output (pink titles, green success, red errors, cyan info)
 
-**File Scanner Design**
+#### File Scanner Design
 
 - Skip CORRUPTED directory to avoid scanning previously moved files
 - Two-pass scanning: first count for progress tracking, then process
@@ -125,7 +125,7 @@ The project follows a simple, flat structure with 5 main Go files:
 - Mutex-protected concurrent access to shared result data
 - Optional progress callbacks decouple TUI from core logic
 
-**Validation Strategy**
+#### Validation Strategy
 
 - Format-specific validators check structural integrity, not content
 - EPUB: ZIP validation + required files (mimetype, META-INF/container.xml)
@@ -134,7 +134,7 @@ The project follows a simple, flat structure with 5 main Go files:
 
 ### Data Flow
 
-```
+```text
 CLI Flags → FileScanner creation → Bubble Tea model initialization
           → Phase transitions drive operations:
              1. ScanForCorruption() validates all ebook files
@@ -146,7 +146,7 @@ CLI Flags → FileScanner creation → Bubble Tea model initialization
 
 ### Important Implementation Details
 
-**File Validation**
+#### File Validation
 
 - EPUB files must have `application/epub+zip` as mimetype content (exact match)
 - MOBI identifier check: `BOOKMOBI` or `TEXtREAd` at bytes 60-68
@@ -155,14 +155,14 @@ CLI Flags → FileScanner creation → Bubble Tea model initialization
 - PDF validation checks both header (`%PDF-`) and tail (`%%EOF` in last 1KB)
 - Minimum file size checks prevent false positives on stub files
 
-**Directory Operations**
+#### Directory Operations
 
 - Empty folder detection: `hasEbooks()` walks directory tree checking for .epub/.mobi/.azw3/.azw4/.pdf
 - CORRUPTED directory is always skipped (hardcoded path check with `filepath.SkipDir`)
 - Bottom-up folder processing ensures children are evaluated before parents
 - Directory hierarchy is preserved when moving corrupted files
 
-**TUI State Management**
+#### TUI State Management
 
 - Single in-progress phase at a time (enforced by state machine)
 - Confirmation prompt waits for 'y'/'n' input before deleting folders
@@ -185,7 +185,7 @@ All managed via `go.mod` - use `make deps` to download/tidy.
 
 ## Common Patterns
 
-**Adding a New File Format**
+### Adding a New File Format
 
 1. Add extension to `EbookExtensions` map in `NewFileScanner()` (scanner.go)
 2. Create `Validate[FORMAT]()` function in validator.go
@@ -196,14 +196,14 @@ All managed via `go.mod` - use `make deps` to download/tidy.
 7. Update main.go TUI statistics display to show the new format
 8. Add comprehensive unit tests in validator_test.go
 
-**Modifying the TUI**
+### Modifying the TUI
 
 - Phases are defined in the `Phase` enum (main.go:50-61)
 - Add new phase transition messages as needed (e.g., `type newPhaseMsg struct{}`)
 - Update `Update()` to handle new messages and phase transitions
 - Modify `View()` to render new phase UI
 
-**Extending Scanner Operations**
+### Extending Scanner Operations
 
 - Scanner operations should be async (return `tea.Cmd` in TUI mode)
 - Use `fs.mu.Lock()` when modifying shared `ScanResult` data

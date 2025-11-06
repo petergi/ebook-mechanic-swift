@@ -432,13 +432,13 @@ GOOS=windows GOARCH=amd64 go build -o ebook-mechanic.exe .
 
 # Release builds with optimizations
 make release
-```
+```text
 
 ## Output Example
 
 ### With TUI
 
-```
+```text
 📚 EBOOKMECHANIC
 
 🔍 Scanning for Corrupted Ebooks
@@ -449,7 +449,7 @@ make release
 
 ### Final Summary
 
-```
+```text
 📚 EBOOKMECHANIC
 
 ✅ ALL OPERATIONS COMPLETED!

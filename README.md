@@ -20,7 +20,7 @@ This repository contains three different implementations:
 
 ### 🚀 [Go Implementation](./golang/) (Recommended)
 
-**Status: ✅ Production Ready**
+**Production Ready Status**: ✅
 
 - **Performance**: Blazing fast (5-10x faster than Python)
 - **UI**: Beautiful Bubble Tea TUI with real-time progress
@@ -93,7 +93,7 @@ Each implementation has its own development workflow:
 
 ## Project Structure
 
-```
+```text
 EbookMechanic/
 ├── README.md           # This file
 ├── .github/            # GitHub configuration
