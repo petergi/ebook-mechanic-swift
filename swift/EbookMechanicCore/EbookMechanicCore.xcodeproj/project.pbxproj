@@ -1,0 +1,147 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 90;
+	objects = {
+
+/* Begin PBXFileReference section */
+		5C3B8E5C2AC4E0B100000010 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
+		5C3B8E5C2AC4E0B100000011 /* Sources */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Sources; sourceTree = "<group>"; };
+		5C3B8E5C2AC4E0B100000012 /* Tests */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Tests; sourceTree = "<group>"; };
+		5C3B8E5C2AC4E0B100000013 /* Makefile */ = {isa = PBXFileReference; lastKnownFileType = text; name = Makefile; path = ../Makefile; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		5C3B8E5C2AC4E0B100000002 = {
+			isa = PBXGroup;
+			children = (
+				5C3B8E5C2AC4E0B100000010 /* Package.swift */,
+				5C3B8E5C2AC4E0B100000011 /* Sources */,
+				5C3B8E5C2AC4E0B100000012 /* Tests */,
+				5C3B8E5C2AC4E0B100000013 /* Makefile */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXLegacyTarget section */
+		5C3B8E5C2AC4E0B100000004 /* EbookMechanicCore */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = "core-build";
+			buildConfigurationList = 5C3B8E5C2AC4E0B100000009 /* Build configuration list for PBXLegacyTarget "EbookMechanicCore" */;
+			buildToolPath = /usr/bin/make;
+			buildWorkingDirectory = "$(PROJECT_DIR)/..";
+			name = EbookMechanicCore;
+			passBuildSettingsInEnvironment = 1;
+			productName = EbookMechanicCore;
+		};
+		5C3B8E5C2AC4E0B100000014 /* EbookMechanicCoreTests */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = "core-test";
+			buildConfigurationList = 5C3B8E5C2AC4E0B100000019 /* Build configuration list for PBXLegacyTarget "EbookMechanicCoreTests" */;
+			buildToolPath = /usr/bin/make;
+			buildWorkingDirectory = "$(PROJECT_DIR)/..";
+			name = EbookMechanicCoreTests;
+			passBuildSettingsInEnvironment = 1;
+			productName = EbookMechanicCoreTests;
+		};
+/* End PBXLegacyTarget section */
+
+/* Begin PBXProject section */
+		5C3B8E5C2AC4E0B100000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1530;
+				ORGANIZATIONNAME = EbookMechanic;
+			};
+			buildConfigurationList = 5C3B8E5C2AC4E0B10000000C /* Build configuration list for PBXProject "EbookMechanicCore" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 5C3B8E5C2AC4E0B100000002;
+			preferredProjectObjectVersion = 90;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5C3B8E5C2AC4E0B100000004 /* EbookMechanicCore */,
+				5C3B8E5C2AC4E0B100000014 /* EbookMechanicCoreTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin XCBuildConfiguration section */
+		5C3B8E5C2AC4E0B10000000A /* Debug configuration for PBXLegacyTarget "EbookMechanicCore" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		5C3B8E5C2AC4E0B10000000B /* Release configuration for PBXLegacyTarget "EbookMechanicCore" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		5C3B8E5C2AC4E0B10000000D /* Debug configuration for PBXProject "EbookMechanicCore" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		5C3B8E5C2AC4E0B10000000E /* Release configuration for PBXProject "EbookMechanicCore" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		5C3B8E5C2AC4E0B100000016 /* Debug configuration for PBXLegacyTarget "EbookMechanicCoreTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		5C3B8E5C2AC4E0B100000017 /* Release configuration for PBXLegacyTarget "EbookMechanicCoreTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		5C3B8E5C2AC4E0B100000009 /* Build configuration list for PBXLegacyTarget "EbookMechanicCore" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5C3B8E5C2AC4E0B10000000A /* Debug configuration for PBXLegacyTarget "EbookMechanicCore" */,
+				5C3B8E5C2AC4E0B10000000B /* Release configuration for PBXLegacyTarget "EbookMechanicCore" */,
+			);
+			defaultConfigurationName = Debug;
+		};
+		5C3B8E5C2AC4E0B10000000C /* Build configuration list for PBXProject "EbookMechanicCore" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5C3B8E5C2AC4E0B10000000D /* Debug configuration for PBXProject "EbookMechanicCore" */,
+				5C3B8E5C2AC4E0B10000000E /* Release configuration for PBXProject "EbookMechanicCore" */,
+			);
+			defaultConfigurationName = Debug;
+		};
+		5C3B8E5C2AC4E0B100000019 /* Build configuration list for PBXLegacyTarget "EbookMechanicCoreTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5C3B8E5C2AC4E0B100000016 /* Debug configuration for PBXLegacyTarget "EbookMechanicCoreTests" */,
+				5C3B8E5C2AC4E0B100000017 /* Release configuration for PBXLegacyTarget "EbookMechanicCoreTests" */,
+			);
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 5C3B8E5C2AC4E0B100000001 /* Project object */;
+}

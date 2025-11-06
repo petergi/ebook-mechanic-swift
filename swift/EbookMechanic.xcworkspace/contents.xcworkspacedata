@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workspace
+   version = "1.0">
+   <FileRef
+      location = "group:EbookMechanicCore/EbookMechanicCore.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:EbookMechanicCLI/EbookMechanicCLI.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:EbookMechanicApp/EbookMechanicApp.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:README.md">
+   </FileRef>
+</Workspace>
