@@ -49,11 +49,12 @@ public struct PDFVerifier {
                 parts.append("TXT:")
                 parts.append(collapsed)
             } else {
-                // No text on the page — try rendering to an image (macOS/iOS) and hash the image bytes
+                // No text on the page — try rendering to an image (macOS/iOS) and hash image bytes
                 #if canImport(AppKit)
                 // Render a reasonably large thumbnail to capture visual content
                 let target = CGSize(width: 1024, height: 1024)
                 let image = page.thumbnail(of: target, for: .mediaBox)
+
                 // Try TIFF representation first
                 if let tiff = image.tiffRepresentation {
                     let imgHash = sha256Hex(tiff)
@@ -62,11 +63,14 @@ public struct PDFVerifier {
                 } else if let rep = image.representations.first, let data = rep.bitmapRepresentationData() {
                     parts.append("IMG:")
                     parts.append(sha256Hex(data))
-                } else if let altData = image.tiffRepresentation { // last-ditch (shouldn't be needed)
-                    parts.append("IMG:")
-                    parts.append(sha256Hex(altData))
                 } else {
-                    parts.append("IMG:empty")
+                    // Fallback: encode PNG representation from an NSBitmapImageRep if possible
+                    if let finalData = image.tiffRepresentation {
+                        parts.append("IMG:")
+                        parts.append(sha256Hex(finalData))
+                    } else {
+                        parts.append("IMG:empty")
+                    }
                 }
                 #else
                 // No AppKit — fallback to a page placeholder

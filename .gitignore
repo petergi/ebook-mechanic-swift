@@ -27,3 +27,6 @@ temp/
 .amazonq/
 .cursor/
 test-library/
+
+.fake.bench
+.bench/

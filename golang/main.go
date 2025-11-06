@@ -100,6 +100,11 @@ type progressMsg struct {
 	item    string
 }
 
+// initialModel returns a new model with the given configuration.
+// It initializes the spinner with a dot spinner and a foreground color of "205".
+// It initializes the progress model with a default gradient.
+// The returned model has its phase set to PhaseInit, and its startTime set to the current time.
+// The progress channel has a capacity of 100 progress messages.
 func initialModel(scanner *FileScanner, corruptionOnly, emptyFoldersOnly, dryRun, noConfirm, repair bool) model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
@@ -122,6 +127,10 @@ func initialModel(scanner *FileScanner, corruptionOnly, emptyFoldersOnly, dryRun
 	}
 }
 
+// Init initializes the model and returns a Batch command to start the scanning process.
+// If emptyFoldersOnly is true, it sets the phase to PhaseScanningFolders and starts scanning for empty folders.
+// If not, it sets the phase to PhaseScanning and starts scanning for corrupted files.
+// The returned command also includes a spinner tick and a progress listener.
 func (m model) Init() tea.Cmd {
 	if m.emptyFoldersOnly {
 		m.phase = PhaseScanningFolders
@@ -155,6 +164,7 @@ func (m model) Init() tea.Cmd {
 	)
 }
 
+// doScan starts the scanning process for corrupted files and returns a Batch command that will return a scanCompleteMsg{} when the scanning process is complete.
 func doScan(scanner *FileScanner) tea.Cmd {
 	return func() tea.Msg {
 		_ = scanner.ScanForCorruption()
@@ -162,6 +172,9 @@ func doScan(scanner *FileScanner) tea.Cmd {
 	}
 }
 
+// doRepair starts the repair process for corrupted files and returns a Batch command that will return a repairCompleteMsg{} when the repair process is complete.
+// The repair process will send progress updates to the given progress channel.
+// The returned command also includes a spinner tick and a progress listener.
 func doRepair(scanner *FileScanner, progressChan chan progressMsg) tea.Cmd {
 	return func() tea.Msg {
 		results := []RepairResult{}
@@ -194,12 +207,19 @@ func doRepair(scanner *FileScanner, progressChan chan progressMsg) tea.Cmd {
 	}
 }
 
+// listenForProgress creates a tea.Cmd that listens for progress updates on the given channel.
+// When a progress update is received, it is immediately sent back to the caller.
+// This can be used to forward progress updates from a subprocess to the main process.
 func listenForProgress(sub chan progressMsg) tea.Cmd {
 	return func() tea.Msg {
 		return <-sub
 	}
 }
 
+
+// startMoving starts the process of moving corrupted files to the corrupted directory.
+// It returns a Batch command that will return a moveCompleteMsg{} when the moving process is complete.
+// The returned command also includes a spinner tick and a progress listener.
 func startMoving(scanner *FileScanner) tea.Cmd {
 	return func() tea.Msg {
 		_ = scanner.MoveCorruptedFiles()
@@ -207,6 +227,9 @@ func startMoving(scanner *FileScanner) tea.Cmd {
 	}
 }
 
+// startFolderScan starts the process of scanning for empty folders.
+// It returns a Batch command that will return a folderScanCompleteMsg{} when the scanning process is complete.
+// The returned command also includes a spinner tick and a progress listener.
 func startFolderScan(scanner *FileScanner) tea.Cmd {
 	return func() tea.Msg {
 		_ = scanner.ScanForEmptyFolders()
@@ -214,6 +237,9 @@ func startFolderScan(scanner *FileScanner) tea.Cmd {
 	}
 }
 
+// startDeleting starts the process of deleting empty folders.
+// It returns a Batch command that will return a deleteCompleteMsg{} when the deletion process is complete.
+// The returned command also includes a spinner tick and a progress listener.
 func startDeleting(scanner *FileScanner) tea.Cmd {
 	return func() tea.Msg {
 		_ = scanner.DeleteEmptyFolders()
@@ -221,6 +247,10 @@ func startDeleting(scanner *FileScanner) tea.Cmd {
 	}
 }
 
+// generateReport generates a Markdown report based on the scan result and returns a Batch command that will return a reportCompleteMsg{} when the generation process is complete.
+// The returned command also includes a spinner tick and a progress listener.
+// The report will be saved to a file named "ebook_mechanic_report_<timestamp>.md" in the given root directory.
+// The timestamp is in the format "2006-01-02_15-04-05".
 func generateReport(scanner *FileScanner, rootDir, corruptedDir string) tea.Cmd {
 	return func() tea.Msg {
 		path, _ := GenerateMarkdownReport(scanner.Result, rootDir, corruptedDir)
@@ -228,6 +258,18 @@ func generateReport(scanner *FileScanner, rootDir, corruptedDir string) tea.Cmd 
 	}
 }
 
+// Update is the core update function for the model. It listens for messages such as:
+// - tea.KeyMsg for user input
+// - progressMsg for progress updates
+// - scanCompleteMsg for the completion of the file scanning phase
+// - folderScanCompleteMsg for the completion of the folder scanning phase
+// - moveCompleteMsg for the completion of the corrupted file moving phase
+// - repairCompleteMsg for the completion of the corrupted file repair phase
+// - deleteCompleteMsg for the completion of the empty folder deletion phase
+// - reportCompleteMsg for the completion of the report generation phase
+// - tea.Quit for the program to exit
+// - spinner.TickMsg for the spinner to tick
+// - progress.FrameMsg for the progress bar to update its frame
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -401,6 +443,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// View returns a string representation of the current application state, including the current phase,
+// progress, and any relevant statistics or errors.
 func (m model) View() string {
 	var s strings.Builder
 
@@ -484,6 +528,11 @@ func (m model) View() string {
 	return s.String()
 }
 
+// buildStatsView generates a markdown string containing statistics about the scan result.
+// It includes the total number of files scanned, the number of corrupted files, and the number of empty folders.
+// If the repair option is enabled, it also includes the number of files that were successfully repaired.
+// The statistics are grouped by file type (EPUB, MOBI, AZW3, AZW4, and PDF).
+// A status icon (✓ or ❌) is used to indicate whether a file type has corrupted files or not.
 func (m model) buildStatsView() string {
 	var s strings.Builder
 
@@ -527,6 +576,21 @@ func statusIcon(corrupted int) string {
 	return successStyle.Render("✅")
 }
 
+// main is the entry point of the program.
+//
+// It parses command-line flags and runs either in simple mode (without TUI)
+// or with a TUI. The TUI displays a progress bar and statistics about the scan.
+//
+// The program supports the following flags:
+//
+// -dir: specify the root directory to scan
+// -corrupted-dir: specify the directory for corrupted files
+// -corruption-only: only check for corrupted files
+// -empty-folders-only: only check for empty folders
+// -dry-run: scan only, don't modify anything
+// -no-confirm: skip confirmation prompts
+// -no-tui: disable TUI, use simple output
+// -repair: attempt to repair corrupted files before moving them
 func main() {
 	// Command-line flags
 	var (
