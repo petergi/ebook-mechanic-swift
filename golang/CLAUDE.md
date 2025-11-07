@@ -121,6 +121,7 @@ The project follows a simple, flat structure with 5 main Go files:
 
 - Skip CORRUPTED directory to avoid scanning previously moved files
 - Single-pass `WalkDir` streams jobs into a worker pool (parallel validation)
+- EPUB path cache stays warm between scans and is invalidated automatically after moves/normalization
 - Bottom-up folder traversal ensures child folders are checked before parents
 - Mutex-protected concurrent access to shared result data
 - Optional progress callbacks decouple TUI from core logic
@@ -212,3 +213,9 @@ All managed via `go.mod` - use `make deps` to download/tidy.
 - Set progress callback before starting async operations using `scanner.SetProgressCallback()`
 - Use `select` with `default` when sending to progress channel to avoid blocking
 - Batch progress listener command with operation command using `tea.Batch()`
+
+### Benchmarking
+
+- `scanner_bench_test.go` synthesizes large libraries for repeatable performance runs
+- Tune dataset size with `EBOOK_BENCH_AUTHORS`/`EBOOK_BENCH_BOOKS` (defaults 20/25)
+- Execute `go test -bench=BenchmarkScanForCorruption -benchmem` inside `golang/` to compare commits

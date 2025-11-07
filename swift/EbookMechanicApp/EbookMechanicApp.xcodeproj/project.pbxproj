@@ -12,6 +12,7 @@
 		7F8E12342B8847F600000012 /* Resources */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Resources; path = Sources/EbookMechanicApp/Resources; sourceTree = "<group>"; };
 		7F8E12342B8847F600000013 /* Makefile */ = {isa = PBXFileReference; lastKnownFileType = text; name = Makefile; path = ../Makefile; sourceTree = "<group>"; };
 		7F8E12342B8847F600000020 /* Tests */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Tests; sourceTree = "<group>"; };
+		A553C57B2EBDBBCF002A1E97 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -23,6 +24,7 @@
 				7F8E12342B8847F600000020 /* Tests */,
 				7F8E12342B8847F600000012 /* Resources */,
 				7F8E12342B8847F600000013 /* Makefile */,
+				A553C57B2EBDBBCF002A1E97 /* README.md */,
 			);
 			sourceTree = "<group>";
 		};

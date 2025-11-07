@@ -1,11 +1,24 @@
+/// The primary SwiftUI view for the EbookMechanic app.
+///
+/// `ContentView` presents controls to configure `ScanOptions`, triggers scans via
+/// callbacks, and renders progress and results from a bound `ScanViewModel`.
 import SwiftUI
 import EbookMechanicCore
 
+/// Main application UI for configuring and running scans.
+///
+/// Bindings allow `ContentView` to modify `ScanOptions` and the selected directory
+/// while delegating actions via `onSelectDirectory` and `onRunScan` closures.
 struct ContentView: View {
+    /// Source of truth for scan progress and results.
     @ObservedObject var viewModel: ScanViewModel
+    /// The currently selected root directory.
     @Binding var selectedDirectory: URL
+    /// The active scan configuration bound to UI controls.
     @Binding var options: ScanOptions
+    /// Action to present a directory picker.
     var onSelectDirectory: () -> Void
+    /// Action to start a scan with the current options.
     var onRunScan: () -> Void
 
     var body: some View {
@@ -230,4 +243,18 @@ struct ContentView: View {
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
+}
+
+#Preview("ContentView") {
+    let vm = ScanViewModel()
+    let home = FileManager.default.homeDirectoryForCurrentUser
+    let options = Binding.constant(ScanOptions(directory: home))
+    return ContentView(
+        viewModel: vm,
+        selectedDirectory: .constant(home),
+        options: options,
+        onSelectDirectory: {},
+        onRunScan: {}
+    )
+    .frame(width: 1000, height: 700)
 }

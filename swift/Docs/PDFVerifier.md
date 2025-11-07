@@ -1,8 +1,63 @@
-PDF Verifier
+add completion generation for the cli. suppport bash, zsh, fish, and powershell
 =============
+
+✅ **COMPLETED** — Shell completion generation is now available for the CLI.
 
 Overview
 --------
+The new PDF verifier computes a content-based fingerprint for PDFs instead of relying on raw file hashes. This makes verification stable across metadata-only changes (title/author/date) while still detecting content changes.
+
+Shell Completions
+-----------------
+The CLI now supports generating completion scripts for multiple shells:
+
+**Supported shells:**
+- Bash
+- Zsh
+- Fish
+- PowerShell
+
+**Generate completions:**
+```bash
+# Generate all completion scripts at once
+make cli-completions
+
+# Or generate individually
+ebook-mechanic --generate-completion bash > ebook-mechanic.bash
+ebook-mechanic --generate-completion zsh > _ebook-mechanic
+ebook-mechanic --generate-completion fish > ebook-mechanic.fish
+ebook-mechanic --generate-completion powershell > ebook-mechanic.ps1
+```
+
+**Install completions:**
+
+*Bash:*
+```bash
+cp completions/ebook-mechanic.bash /usr/local/etc/bash_completion.d/
+# or on Linux:
+cp completions/ebook-mechanic.bash /etc/bash_completion.d/
+```
+
+*Zsh:*
+```bash
+cp completions/_ebook-mechanic /usr/local/share/zsh/site-functions/
+# Then restart your shell or run: compinit
+```
+
+*Fish:*
+```bash
+cp completions/ebook-mechanic.fish ~/.config/fish/completions/
+# Completions are loaded automatically
+```
+
+*PowerShell:*
+```powershell
+# Add to your PowerShell profile
+. /path/to/completions/ebook-mechanic.ps1
+```
+
+PDF Verifier Overview
+--------------------
 The new PDF verifier computes a content-based fingerprint for PDFs instead of relying on raw file hashes. This makes verification stable across metadata-only changes (title/author/date) while still detecting content changes.
 
 Behavior
@@ -47,6 +102,12 @@ Or run only the verifier tests:
 
 ```bash
 swift test --package-path EbookMechanicCore --filter PDFVerifierTests
+```
+
+Generate shell completions:
+
+```bash
+make cli-completions
 ```
 
 Notes and next steps

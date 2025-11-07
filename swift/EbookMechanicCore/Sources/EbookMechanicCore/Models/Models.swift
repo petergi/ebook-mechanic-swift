@@ -1,6 +1,8 @@
 import Foundation
 
 /// Supported ebook formats that EbookMechanic can inspect.
+///
+/// Supported formats include EPUB, MOBI, AZW3/AZW4, and PDF.
 public enum EbookFileType: String, CaseIterable, Codable, Hashable, Sendable {
     case epub
     case mobi
@@ -27,7 +29,10 @@ public enum EbookFileType: String, CaseIterable, Codable, Hashable, Sendable {
     }
 }
 
-/// Summary statistics for a specific ebook format.
+/// Counts for a specific ebook format.
+///
+/// Used inside ``ScanResult`` to report totals and number of corrupted files
+/// per ``EbookFileType``.
 public struct FormatBreakdown: Sendable, Codable, Equatable {
     public var total: Int
     public var corrupted: Int
@@ -38,7 +43,9 @@ public struct FormatBreakdown: Sendable, Codable, Equatable {
     }
 }
 
-/// Represents a corrupt ebook discovered during a scan.
+/// A file that failed validation or integrity checks.
+///
+/// Contains the file URL, a human-readable reason, and the file size.
 public struct CorruptedFile: Sendable, Codable, Equatable {
     public var url: URL
     public var reason: String
@@ -51,7 +58,10 @@ public struct CorruptedFile: Sendable, Codable, Equatable {
     }
 }
 
-/// Contains the aggregated results of a full scan operation.
+/// Aggregated results from a scan operation.
+///
+/// Includes file totals, per-format breakdowns, empty folders, and folder counts.
+/// Use ``breakdown(for:)`` to fetch a format’s breakdown with sensible defaults.
 public struct ScanResult: Sendable, Codable, Equatable {
     public var totalFiles: Int
     public var corruptedFiles: [CorruptedFile]
@@ -82,7 +92,10 @@ public struct ScanResult: Sendable, Codable, Equatable {
     }
 }
 
-/// Result describing whether a file passed validation along with a human readable reason.
+/// Outcome of validating a single file.
+///
+/// Indicates whether the file is valid and may include a content fingerprint
+/// for supported formats.
 public struct ValidationResult: Sendable, Codable, Equatable {
     public var isValid: Bool
     public var reason: String
@@ -96,7 +109,10 @@ public struct ValidationResult: Sendable, Codable, Equatable {
     }
 }
 
-/// Represents the outcome of attempting to compute a content-based fingerprint for a file.
+/// Content fingerprinting outcomes for supported formats.
+///
+/// Prefer ``content(_:)`` when available; fall back to ``fileHash(_:)`` when
+/// content-based signatures cannot be produced.
 public enum FingerprintResult: Sendable, Equatable, Codable {
     case content(String)   // content-based fingerprint (stable across metadata changes)
     case fileHash(String)  // raw file hash fallback
@@ -148,7 +164,9 @@ public enum FingerprintResult: Sendable, Equatable, Codable {
     }
 }
 
-/// Lightweight event emitted during lengthy operations.
+/// Progress signal emitted during lengthy operations.
+///
+/// Use the nested ``Stage`` to understand the current phase and map it to UI.
 public struct ProgressEvent: Sendable, Equatable {
     public enum Stage: Sendable, Equatable {
         case scanningFiles
@@ -173,7 +191,9 @@ public struct ProgressEvent: Sendable, Equatable {
     }
 }
 
-/// Outcome of an attempted repair.
+/// Result of a repair attempt for a single file.
+///
+/// Indicates success, a human-readable message, and whether the file was fixed.
 public struct RepairResult: Sendable, Codable, Equatable {
     public var success: Bool
     public var message: String

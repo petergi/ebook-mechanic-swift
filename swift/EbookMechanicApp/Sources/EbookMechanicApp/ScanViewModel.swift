@@ -2,32 +2,72 @@ import Foundation
 import SwiftUI
 import EbookMechanicCore
 
+/// Options that control how a scan operates.
+///
+/// Use `ScanOptions` to configure the behavior of a scan, including the root
+/// directory to scan, whether to attempt repairs, whether the run is a dry-run,
+/// and automation flags for moving corrupted files or deleting empty folders.
+///
+/// Example:
+/// ```swift
+/// var options = ScanOptions(directory: URL(fileURLWithPath: "/ebooks"))
+/// options.dryRun = true
+/// options.repair = false
+/// options.generateReport = true
+/// ```
 struct ScanOptions {
+    /// Root directory to scan.
     var directory: URL
+    /// Name of the folder where corrupted files are moved when automation is enabled.
     var corruptedDirectoryName: String = "CORRUPTED"
+    /// Whether to attempt to repair corrupted files after scanning.
     var repair: Bool = false
+    /// If true, only performs corruption checks and skips empty-folder scanning.
     var corruptionOnly: Bool = false
+    /// If true, only scans for empty folders and skips corruption checks.
     var emptyFoldersOnly: Bool = false
+    /// When true, performs a simulation without writing changes to disk.
     var dryRun: Bool = true
+    /// Automatically move corrupted files into `corruptedDirectoryName` when not a dry run.
     var autoMoveCorrupted: Bool = false
+    /// Automatically delete empty folders when not a dry run.
     var autoDeleteEmptyFolders: Bool = false
+    /// Generate a Markdown report summarizing the scan.
     var generateReport: Bool = false
+    /// Normalize EPUB files into a canonical ZIP layout.
     var normalizeEPUBs: Bool = false
+    /// Re-normalize EPUBs even if they appear already normalized.
     var forceNormalize: Bool = false
 }
 
+/// View model that orchestrates scanning and exposes UI-facing state.
+///
+/// `ScanViewModel` performs scans using `EbookMechanicCore.FileScanner`, tracks
+/// progress and results, and publishes values suitable for binding in SwiftUI
+/// views like `ContentView`. Use `runScan(options:)` to start a scan and
+/// observe published properties for updates.
 @MainActor
 final class ScanViewModel: ObservableObject {
+    /// Indicates whether a scan is currently in progress.
     @Published var isScanning: Bool = false
+    /// High-level progress message (e.g., current phase).
     @Published var progressHeadline: String = ""
+    /// Detailed progress message (e.g., current file or counts).
     @Published var progressDetail: String = ""
+    /// List of corrupted files discovered during scanning.
     @Published var corruptedFiles: [CorruptedFile] = []
+    /// List of empty folders discovered during scanning.
     @Published var emptyFolders: [URL] = []
+    /// Summary of the scan, including totals and per-format breakdowns.
     @Published var summary: ScanResult?
+    /// Human-readable log of notable events during the scan.
     @Published var statusMessages: [String] = []
+    /// Location of the generated Markdown report, when `generateReport` is enabled.
     @Published var reportURL: URL?
+    /// User-presentable error message if a failure occurs.
     @Published var errorMessage: String?
 
+    /// Resets all published state to defaults in preparation for a new scan.
     func reset() {
         corruptedFiles = []
         emptyFolders = []
@@ -39,6 +79,14 @@ final class ScanViewModel: ObservableObject {
         progressDetail = ""
     }
 
+    /// Runs a scan with the provided options.
+    ///
+    /// This method coordinates file and folder scanning via `FileScanner`, updates
+    /// progress and results on the main actor, and conditionally performs repair,
+    /// normalization, and automation steps based on the given `options`.
+    ///
+    /// - Parameter options: The configuration that controls scanning behavior.
+    /// - Important: This method is `async` and should be awaited from an asynchronous context.
     func runScan(options: ScanOptions) async {
         guard !isScanning else { return }
         reset()

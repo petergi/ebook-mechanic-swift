@@ -43,6 +43,7 @@ type FileScanner struct {
 	EbookExtensions  map[string]bool
 	Result           *ScanResult
 	mu               sync.Mutex
+	epubCacheDirty   bool
 	progressCallback func(current, total int, item string)
 }
 
@@ -63,6 +64,7 @@ func NewFileScanner(rootDir, corruptedDir string) *FileScanner {
 			EmptyFolders:   make([]string, 0),
 			EPUBPaths:      make([]string, 0),
 		},
+		epubCacheDirty: true,
 	}
 }
 
@@ -78,6 +80,9 @@ func (fs *FileScanner) ScanForCorruption() error {
 		EmptyFolders:   make([]string, 0),
 		EPUBPaths:      make([]string, 0),
 	}
+	fs.mu.Lock()
+	fs.epubCacheDirty = true
+	fs.mu.Unlock()
 
 	type validationJob struct {
 		path string
@@ -191,6 +196,10 @@ func (fs *FileScanner) ScanForCorruption() error {
 	close(jobs)
 	wg.Wait()
 
+	fs.mu.Lock()
+	fs.epubCacheDirty = false
+	fs.mu.Unlock()
+
 	return walkErr
 }
 
@@ -298,6 +307,8 @@ func (fs *FileScanner) MoveCorruptedFiles() error {
 		}
 	}
 
+	fs.markEPUBCacheDirty()
+
 	return nil
 }
 
@@ -317,11 +328,7 @@ func (fs *FileScanner) DeleteEmptyFolders() error {
 
 // ScanForAllEPUBs finds all EPUB files in the directory tree for normalization
 func (fs *FileScanner) ScanForAllEPUBs() []string {
-	fs.mu.Lock()
-	cached := append([]string(nil), fs.Result.EPUBPaths...)
-	fs.mu.Unlock()
-
-	if len(cached) > 0 {
+	if cached := fs.snapshotEPUBCache(); cached != nil {
 		return cached
 	}
 
@@ -346,5 +353,28 @@ func (fs *FileScanner) ScanForAllEPUBs() []string {
 		return []string{}
 	}
 
+	fs.mu.Lock()
+	fs.Result.EPUBPaths = append(fs.Result.EPUBPaths[:0], epubFiles...)
+	fs.epubCacheDirty = false
+	fs.mu.Unlock()
+
 	return epubFiles
+}
+
+func (fs *FileScanner) snapshotEPUBCache() []string {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+	if fs.epubCacheDirty || fs.Result == nil || len(fs.Result.EPUBPaths) == 0 {
+		return nil
+	}
+	return append([]string(nil), fs.Result.EPUBPaths...)
+}
+
+func (fs *FileScanner) markEPUBCacheDirty() {
+	fs.mu.Lock()
+	fs.epubCacheDirty = true
+	if fs.Result != nil {
+		fs.Result.EPUBPaths = fs.Result.EPUBPaths[:0]
+	}
+	fs.mu.Unlock()
 }

@@ -350,6 +350,8 @@ func doNormalize(scanner *FileScanner, progressChan chan progressMsg, keepBackup
 		close(jobs)
 		wg.Wait()
 
+		scanner.markEPUBCacheDirty()
+
 		return normalizeCompleteMsg{
 			results:         results,
 			normalizedCount: int(normalizedCount.Load()),

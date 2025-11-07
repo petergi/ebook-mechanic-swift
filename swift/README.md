@@ -18,6 +18,19 @@ This directory contains a modular Swift rewrite of the Go-based EbookMechanic to
 - `EbookMechanicCLI` – a command-line application that wraps the core package, providing a fast text interface with progress feedback, optional repair/move/delete automation, Markdown report generation, and unit tests that exercise configuration parsing.
 - `EbookMechanicApp` – a macOS SwiftUI experience that lets you run scans visually, toggle behaviours, review summaries, and see corrupted files/empty folders in a polished, gradient-backed UI. View-model tests ensure the UI state behaves predictably.
 
+### EPUB Normalization Details (continued)
+- OPF (content.opf) normalization:
+  - Locate via META-INF/container.xml (rootfile@full-path)
+  - Canonicalize XML declaration, UTF-8 encoding, LF newlines
+  - Normalize metadata text (trim, collapse spaces, NFC)
+  - Sort <metadata> children deterministically
+  - Normalize <manifest> items:
+    - Sort by id (then href)
+    - Correct common media types (xhtml/css/images/opf)
+    - Normalize hrefs (remove leading ./, fix casing to match ZIP entries)
+    - Remove items for extraneous files
+  - Normalize <spine> order to follow manifest and remove invalid references
+
 ## Workspace Layout
 
 
@@ -28,3 +41,24 @@ $ ebookmechanic scan ~/ebooks
 $ ebookmechanic validate ~/ebooks/mybook.epub
 $ ebookmechanic normalize ~/ebooks/mybook.epub --dry-run
 $ ebookmechanic normalize ~/ebooks/mybook.epub --force-normalize
+```
+
+## Shell Completion
+
+The CLI supports shell completion for Bash, Zsh, Fish, and PowerShell. 
+
+Generate all completions at once:
+```bash
+make cli-completions
+```
+
+Or generate individually:
+```bash
+ebook-mechanic --generate-completion bash > ebook-mechanic.bash
+ebook-mechanic --generate-completion zsh > _ebook-mechanic
+ebook-mechanic --generate-completion fish > ebook-mechanic.fish
+ebook-mechanic --generate-completion powershell > ebook-mechanic.ps1
+```
+
+See [COMPLETIONS.md](COMPLETIONS.md) for detailed installation instructions.
+

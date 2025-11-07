@@ -17,6 +17,7 @@
 
 # Binary name
 BINARY_NAME=ebook-mechanic
+BINARY_PATH=$(BUILD_DIR)/$(BINARY_NAME)
 VERSION=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 BUILD_TIME=$(shell date -u '+%Y-%m-%d_%H:%M:%S')
 GIT_COMMIT=$(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -51,14 +52,14 @@ all: check build test
 build:
 	@echo "$(COLOR_BLUE)Building $(BINARY_NAME) $(VERSION)...$(COLOR_RESET)"
 	@mkdir -p $(BUILD_DIR)
-	@go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) .
+	@go build $(LDFLAGS) -o $(BINARY_PATH) .
 	@echo "$(COLOR_GREEN)✓ Build complete: $(BUILD_DIR)/$(BINARY_NAME)$(COLOR_RESET)"
 
 ## build-dev: Build binary with debug symbols
 build-dev:
 	@echo "$(COLOR_BLUE)Building $(BINARY_NAME) (development mode)...$(COLOR_RESET)"
 	@mkdir -p $(BUILD_DIR)
-	@go build $(LDFLAGS_DEV) -o $(BUILD_DIR)/$(BINARY_NAME) .
+	@go build $(LDFLAGS_DEV) -o $(BINARY_PATH) .
 	@echo "$(COLOR_GREEN)✓ Development build complete$(COLOR_RESET)"
 
 ## build-all: Build for all platforms (Linux, macOS, Windows)
@@ -294,7 +295,7 @@ completion-bash: build
 		COMPLETION_DIR="/etc/bash_completion.d"; \
 	fi; \
 	sudo mkdir -p "$$COMPLETION_DIR" && \
-	sudo ./$(BINARY_NAME) completion bash > "$$COMPLETION_DIR/$(BINARY_NAME)" && \
+	sudo $(BINARY_PATH) completion bash > "$$COMPLETION_DIR/$(BINARY_NAME)" && \
 	echo "$(COLOR_GREEN)✓ Bash completion installed to $$COMPLETION_DIR/$(BINARY_NAME)$(COLOR_RESET)" && \
 	echo "$(COLOR_YELLOW)  Restart your shell or run: source $$COMPLETION_DIR/$(BINARY_NAME)$(COLOR_RESET)"
 
@@ -303,7 +304,7 @@ completion-zsh: build
 	@echo "$(COLOR_BLUE)Installing zsh completion...$(COLOR_RESET)"
 	@COMPLETION_DIR="$${HOME}/.zsh/completions"; \
 	mkdir -p "$$COMPLETION_DIR" && \
-	./$(BINARY_NAME) completion zsh > "$$COMPLETION_DIR/_$(BINARY_NAME)" && \
+	$(BINARY_PATH) completion zsh > "$$COMPLETION_DIR/_$(BINARY_NAME)" && \
 	echo "$(COLOR_GREEN)✓ Zsh completion installed to $$COMPLETION_DIR/_$(BINARY_NAME)$(COLOR_RESET)" && \
 	echo "$(COLOR_YELLOW)  Make sure $$COMPLETION_DIR is in your fpath$(COLOR_RESET)" && \
 	echo "$(COLOR_YELLOW)  Add to ~/.zshrc: fpath=($$COMPLETION_DIR \$$fpath)$(COLOR_RESET)" && \
@@ -314,14 +315,14 @@ completion-fish: build
 	@echo "$(COLOR_BLUE)Installing fish completion...$(COLOR_RESET)"
 	@COMPLETION_DIR="$${HOME}/.config/fish/completions"; \
 	mkdir -p "$$COMPLETION_DIR" && \
-	./$(BINARY_NAME) completion fish > "$$COMPLETION_DIR/$(BINARY_NAME).fish" && \
+	$(BINARY_PATH) completion fish > "$$COMPLETION_DIR/$(BINARY_NAME).fish" && \
 	echo "$(COLOR_GREEN)✓ Fish completion installed to $$COMPLETION_DIR/$(BINARY_NAME).fish$(COLOR_RESET)" && \
 	echo "$(COLOR_YELLOW)  Restart your fish shell or run: source $$COMPLETION_DIR/$(BINARY_NAME).fish$(COLOR_RESET)"
 
 ## completion-powershell: Generate PowerShell completion script
 completion-powershell: build
 	@echo "$(COLOR_BLUE)Generating PowerShell completion...$(COLOR_RESET)"
-	@./$(BINARY_NAME) completion powershell > $(BINARY_NAME).ps1 && \
+	@$(BINARY_PATH) completion powershell > $(BINARY_NAME).ps1 && \
 	echo "$(COLOR_GREEN)✓ PowerShell completion script generated: $(BINARY_NAME).ps1$(COLOR_RESET)" && \
 	echo "$(COLOR_YELLOW)  To install, run in PowerShell: . ./$(BINARY_NAME).ps1$(COLOR_RESET)" && \
 	echo "$(COLOR_YELLOW)  Or add to your PowerShell profile$(COLOR_RESET)"
@@ -347,10 +348,11 @@ completion-install: build
 ## completion-generate: Generate all completion scripts to files
 completion-generate: build
 	@echo "$(COLOR_BLUE)Generating completion scripts...$(COLOR_RESET)"
-	@./$(BINARY_NAME) completion bash > completions/$(BINARY_NAME).bash && \
-	./$(BINARY_NAME) completion zsh > completions/$(BINARY_NAME).zsh && \
-	./$(BINARY_NAME) completion fish > completions/$(BINARY_NAME).fish && \
-	./$(BINARY_NAME) completion powershell > completions/$(BINARY_NAME).ps1 && \
+	@mkdir -p completions && \
+	$(BINARY_PATH) completion bash > completions/$(BINARY_NAME).bash && \
+	$(BINARY_PATH) completion zsh > completions/$(BINARY_NAME).zsh && \
+	$(BINARY_PATH) completion fish > completions/$(BINARY_NAME).fish && \
+	$(BINARY_PATH) completion powershell > completions/$(BINARY_NAME).ps1 && \
 	echo "$(COLOR_GREEN)✓ All completion scripts generated in completions/$(COLOR_RESET)"
 
 # ==================== Documentation ====================

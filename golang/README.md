@@ -23,6 +23,25 @@ A blazing-fast command-line tool for managing ebook libraries with a beautiful T
 - 🧠 **Cached EPUB Index** – normalization reuses paths collected during the corruption scan (no second disk sweep)
 - 💾 **Streaming Repairs** – PDF/MOBI fixers touch only the necessary file regions, keeping memory usage low
 
+### Benchmarking
+
+Measure scan throughput with the synthetic library harness in `scanner_bench_test.go`:
+
+```bash
+cd golang
+go test -bench=BenchmarkScanForCorruption -benchmem
+
+# scale the generated dataset
+EBOOK_BENCH_AUTHORS=40 EBOOK_BENCH_BOOKS=40 go test -bench=BenchmarkScanForCorruption -run '^$'
+```
+
+Environment knobs:
+
+- `EBOOK_BENCH_AUTHORS` – number of author folders (default: 20)
+- `EBOOK_BENCH_BOOKS` – ebooks per author (default: 25)
+
+The benchmark seeds the library once outside the timer, so you can compare commits without touching a real collection.
+
 ## Installation
 
 ### Prerequisites

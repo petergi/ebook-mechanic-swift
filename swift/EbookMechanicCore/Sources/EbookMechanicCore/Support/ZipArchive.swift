@@ -234,17 +234,16 @@ private extension Data {
     
     func compressDeflate(data: Data) throws -> Data {
         let dstCapacity = compression_encode_scratch_buffer_size(COMPRESSION_ZLIB)
-        let dstBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: max(64, data.count))
+        let dstBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: (data.count > 64 ? data.count : 64))
         let scratch = UnsafeMutableRawPointer.allocate(byteCount: dstCapacity, alignment: MemoryLayout<Int>.alignment)
         defer {
             dstBuffer.deallocate()
             scratch.deallocate()
         }
         var output = Data()
-        let chunkSize = max(1024, data.count)
         data.withUnsafeBytes { srcPtr in
             let src = srcPtr.baseAddress!.assumingMemoryBound(to: UInt8.self)
-            let compressedSize = compression_encode_buffer(dstBuffer, max(64, data.count), src, data.count, scratch, COMPRESSION_ZLIB)
+            let compressedSize = compression_encode_buffer(dstBuffer, (data.count > 64 ? data.count : 64), src, data.count, scratch, COMPRESSION_ZLIB)
             if compressedSize > 0 {
                 output.append(dstBuffer, count: compressedSize)
             }
@@ -255,7 +254,7 @@ private extension Data {
 
 private func _compressDeflate(_ data: Data) throws -> Data {
     // Allocate an output buffer that's reasonably larger than input to accommodate overhead.
-    let initialCapacity = max(256, data.count + data.count / 16 + 64)
+    let initialCapacity = Swift.max(256, data.count + data.count / 16 + 64)
     var capacity = initialCapacity
     while true {
         let dstBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: capacity)

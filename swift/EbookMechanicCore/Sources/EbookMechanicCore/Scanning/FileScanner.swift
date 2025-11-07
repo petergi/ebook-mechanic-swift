@@ -207,7 +207,8 @@ public actor FileScanner {
 
         var epubs: [URL] = []
         if let enumerator = fileManager.enumerator(at: rootDirectory, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles]) {
-            for case let fileURL as URL in enumerator {
+            while let next = enumerator.nextObject() as? URL {
+                let fileURL = next
                 if fileURL.standardizedFileURL.path.hasPrefix(corruptedDirURL.path) {
                     enumerator.skipDescendants()
                     continue

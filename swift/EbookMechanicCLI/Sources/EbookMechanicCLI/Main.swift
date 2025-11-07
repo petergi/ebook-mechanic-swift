@@ -65,6 +65,8 @@ struct EbookMechanicCLI {
                 CLIConfiguration.printHelp()
             case .userRequestedVersion:
                 print("EbookMechanicCLI 1.0.0")
+            case .userRequestedCompletion(let shell):
+                ShellCompletion.generate(for: shell)
             case .invalidArgument(let message):
                 fputs("Error: \(message)\n", stderr)
                 exit(EXIT_FAILURE)
@@ -135,6 +137,23 @@ enum CLIError: Error {
     case invalidArgument(String)
     case userRequestedHelp
     case userRequestedVersion
+    case userRequestedCompletion(ShellType)
+}
+
+enum ShellType: String, CaseIterable {
+    case bash
+    case zsh
+    case fish
+    case powershell
+    
+    var displayName: String {
+        switch self {
+        case .bash: return "bash"
+        case .zsh: return "zsh"
+        case .fish: return "fish"
+        case .powershell: return "PowerShell"
+        }
+    }
 }
 
 struct CLIConfiguration {
@@ -160,6 +179,14 @@ struct CLIConfiguration {
                 throw CLIError.userRequestedHelp
             case "-V", "--version":
                 throw CLIError.userRequestedVersion
+            case "--generate-completion":
+                guard let shellName = iterator.next()?.lowercased() else {
+                    throw CLIError.invalidArgument("Missing shell type. Available: bash, zsh, fish, powershell")
+                }
+                guard let shell = ShellType(rawValue: shellName) else {
+                    throw CLIError.invalidArgument("Unknown shell '\(shellName)'. Available: bash, zsh, fish, powershell")
+                }
+                throw CLIError.userRequestedCompletion(shell)
             case "-d", "--dir":
                 guard let value = iterator.next() else { throw CLIError.invalidArgument("Missing value for \(argument)") }
                 config.directory = value
@@ -204,19 +231,35 @@ struct CLIConfiguration {
             Usage: ebook-mechanic [options]
 
             Options:
-              -h, --help              Show this help message
-              -V, --version           Print version and exit
-              -d, --dir <path>        Directory to scan (default: current directory)
-              -c, --corrupted-dir     Destination for corrupted files (default: CORRUPTED)
-              --corruption-only       Skip empty folder analysis
-              --empty-folders-only    Only analyze empty folders
-              -r, --repair            Attempt to repair corrupted files
-              --dry-run               Perform analysis without modifying the filesystem
-              --no-confirm            Skip confirmation prompts and proceed automatically
-              --quiet                 Reduce console output
-              --report                Generate a Markdown report in the scan directory
-              --normalize-epubs      Normalize EPUB files into canonical form
-              --force-normalize      Force normalization even if already normalized
+              -h, --help                      Show this help message
+              -V, --version                   Print version and exit
+              --generate-completion <shell>   Generate shell completion script (bash, zsh, fish, powershell)
+              -d, --dir <path>                Directory to scan (default: current directory)
+              -c, --corrupted-dir             Destination for corrupted files (default: CORRUPTED)
+              --corruption-only               Skip empty folder analysis
+              --empty-folders-only            Only analyze empty folders
+              -r, --repair                    Attempt to repair corrupted files
+              --dry-run                       Perform analysis without modifying the filesystem
+              --no-confirm                    Skip confirmation prompts and proceed automatically
+              --quiet                         Reduce console output
+              --report                        Generate a Markdown report in the scan directory
+              --normalize-epubs               Normalize EPUB files into canonical form
+              --force-normalize               Force normalization even if already normalized
+            
+            Shell Completion:
+              To enable shell completion, run the appropriate command:
+              
+              Bash:
+                ebook-mechanic --generate-completion bash > /usr/local/etc/bash_completion.d/ebook-mechanic
+              
+              Zsh:
+                ebook-mechanic --generate-completion zsh > /usr/local/share/zsh/site-functions/_ebook-mechanic
+              
+              Fish:
+                ebook-mechanic --generate-completion fish > ~/.config/fish/completions/ebook-mechanic.fish
+              
+              PowerShell:
+                ebook-mechanic --generate-completion powershell > ebook-mechanic.ps1
             """
         )
     }
@@ -302,5 +345,169 @@ struct ProgressPrinter {
             print("  \(icon) [\(index + 1)] \(result.message)")
         }
     }
+}
+
+// MARK: - Shell Completion
+
+struct ShellCompletion {
+    static func generate(for shell: ShellType) {
+        switch shell {
+        case .bash:
+            print(bashCompletion)
+        case .zsh:
+            print(zshCompletion)
+        case .fish:
+            print(fishCompletion)
+        case .powershell:
+            print(powershellCompletion)
+        }
+    }
+    
+    private static let bashCompletion = """
+        # bash completion for ebook-mechanic
+        
+        _ebook_mechanic_completions() {
+            local cur prev opts
+            COMPREPLY=()
+            cur="${COMP_WORDS[COMP_CWORD]}"
+            prev="${COMP_WORDS[COMP_CWORD-1]}"
+            
+            opts="-h --help -V --version --generate-completion -d --dir -c --corrupted-dir --corruption-only --empty-folders-only -r --repair --dry-run --no-confirm --quiet --report --normalize-epubs --force-normalize"
+            
+            case "${prev}" in
+                -d|--dir|-c|--corrupted-dir)
+                    # Complete directory paths
+                    COMPREPLY=( $(compgen -d -- "${cur}") )
+                    return 0
+                    ;;
+                --generate-completion)
+                    # Complete shell types
+                    COMPREPLY=( $(compgen -W "bash zsh fish powershell" -- "${cur}") )
+                    return 0
+                    ;;
+                *)
+                    ;;
+            esac
+            
+            if [[ ${cur} == -* ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            
+            # Default to directory completion
+            COMPREPLY=( $(compgen -d -- "${cur}") )
+        }
+        
+        complete -F _ebook_mechanic_completions ebook-mechanic
+        """
+    
+    private static let zshCompletion = """
+        #compdef ebook-mechanic
+        
+        _ebook_mechanic() {
+            local -a options
+            options=(
+                '(- :)'{-h,--help}'[Show help message]'
+                '(- :)'{-V,--version}'[Print version and exit]'
+                '(- :)--generate-completion[Generate shell completion script]:shell:(bash zsh fish powershell)'
+                '(-d --dir)'{-d,--dir}'[Directory to scan]:directory:_directories'
+                '(-c --corrupted-dir)'{-c,--corrupted-dir}'[Destination for corrupted files]:directory:_directories'
+                '--corruption-only[Skip empty folder analysis]'
+                '--empty-folders-only[Only analyze empty folders]'
+                '(-r --repair)'{-r,--repair}'[Attempt to repair corrupted files]'
+                '--dry-run[Perform analysis without modifying the filesystem]'
+                '--no-confirm[Skip confirmation prompts]'
+                '--quiet[Reduce console output]'
+                '--report[Generate a Markdown report]'
+                '--normalize-epubs[Normalize EPUB files]'
+                '--force-normalize[Force normalization even if already normalized]'
+            )
+            
+            _arguments -s -S $options
+        }
+        
+        _ebook_mechanic "$@"
+        """
+    
+    private static let fishCompletion = """
+        # fish completion for ebook-mechanic
+        
+        # Help and version
+        complete -c ebook-mechanic -s h -l help -d 'Show help message'
+        complete -c ebook-mechanic -s V -l version -d 'Print version and exit'
+        
+        # Shell completion generation
+        complete -c ebook-mechanic -l generate-completion -d 'Generate shell completion script' -xa 'bash zsh fish powershell'
+        
+        # Directory options
+        complete -c ebook-mechanic -s d -l dir -d 'Directory to scan' -r -F
+        complete -c ebook-mechanic -s c -l corrupted-dir -d 'Destination for corrupted files' -r -F
+        
+        # Scanning modes
+        complete -c ebook-mechanic -l corruption-only -d 'Skip empty folder analysis'
+        complete -c ebook-mechanic -l empty-folders-only -d 'Only analyze empty folders'
+        
+        # Actions
+        complete -c ebook-mechanic -s r -l repair -d 'Attempt to repair corrupted files'
+        complete -c ebook-mechanic -l dry-run -d 'Perform analysis without modifying filesystem'
+        complete -c ebook-mechanic -l no-confirm -d 'Skip confirmation prompts'
+        complete -c ebook-mechanic -l quiet -d 'Reduce console output'
+        complete -c ebook-mechanic -l report -d 'Generate a Markdown report'
+        
+        # EPUB normalization
+        complete -c ebook-mechanic -l normalize-epubs -d 'Normalize EPUB files'
+        complete -c ebook-mechanic -l force-normalize -d 'Force normalization even if already normalized'
+        """
+    
+    private static let powershellCompletion = """
+        # PowerShell completion for ebook-mechanic
+        
+        Register-ArgumentCompleter -Native -CommandName ebook-mechanic -ScriptBlock {
+            param($wordToComplete, $commandAst, $cursorPosition)
+            
+            $commands = @(
+                @{ Name = '-h'; Description = 'Show help message' }
+                @{ Name = '--help'; Description = 'Show help message' }
+                @{ Name = '-V'; Description = 'Print version and exit' }
+                @{ Name = '--version'; Description = 'Print version and exit' }
+                @{ Name = '--generate-completion'; Description = 'Generate shell completion script' }
+                @{ Name = '-d'; Description = 'Directory to scan' }
+                @{ Name = '--dir'; Description = 'Directory to scan' }
+                @{ Name = '-c'; Description = 'Destination for corrupted files' }
+                @{ Name = '--corrupted-dir'; Description = 'Destination for corrupted files' }
+                @{ Name = '--corruption-only'; Description = 'Skip empty folder analysis' }
+                @{ Name = '--empty-folders-only'; Description = 'Only analyze empty folders' }
+                @{ Name = '-r'; Description = 'Attempt to repair corrupted files' }
+                @{ Name = '--repair'; Description = 'Attempt to repair corrupted files' }
+                @{ Name = '--dry-run'; Description = 'Perform analysis without modifying filesystem' }
+                @{ Name = '--no-confirm'; Description = 'Skip confirmation prompts' }
+                @{ Name = '--quiet'; Description = 'Reduce console output' }
+                @{ Name = '--report'; Description = 'Generate a Markdown report' }
+                @{ Name = '--normalize-epubs'; Description = 'Normalize EPUB files' }
+                @{ Name = '--force-normalize'; Description = 'Force normalization even if already normalized' }
+            )
+            
+            # Get previous token to provide context-aware completion
+            $tokens = $commandAst.ToString() -split '\\s+'
+            $previousToken = if ($tokens.Count -gt 1) { $tokens[-2] } else { '' }
+            
+            # Context-aware completions
+            if ($previousToken -eq '--generate-completion') {
+                @('bash', 'zsh', 'fish', 'powershell') | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+                    [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
+                }
+            }
+            elseif ($previousToken -in @('-d', '--dir', '-c', '--corrupted-dir')) {
+                # Directory completion (handled by PowerShell's native file completion)
+                return
+            }
+            else {
+                # Complete command options
+                $commands | Where-Object { $_.Name -like "$wordToComplete*" } | ForEach-Object {
+                    [System.Management.Automation.CompletionResult]::new($_.Name, $_.Name, 'ParameterName', $_.Description)
+                }
+            }
+        }
+        """
 }
 

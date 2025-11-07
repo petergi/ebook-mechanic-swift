@@ -13,4 +13,26 @@
    <FileRef
       location = "group:README.md">
    </FileRef>
+   <Group
+      location = "group:Docs"
+      name = "Docs">
+      <FileRef
+         location = "group:PDFVerifier.md">
+      </FileRef>
+      <FileRef
+         location = "group:TASKS.md">
+      </FileRef>
+      <FileRef
+         location = "group:PLAN.md">
+      </FileRef>
+      <FileRef
+         location = "group:ADR.md">
+      </FileRef>
+      <FileRef
+         location = "group:COMPLETIONS.md">
+      </FileRef>
+      <FileRef
+         location = "group:DOCC_SETUP.md">
+      </FileRef>
+   </Group>
 </Workspace>
