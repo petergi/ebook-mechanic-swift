@@ -10,12 +10,13 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../EbookMechanicCore"),
+        .package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.1.0"),
     ],
     targets: [
         .executableTarget(
             name: "EbookMechanicCLI",
             dependencies: [
-                .product(name: "EbookMechanicCore", package: "EbookMechanicCore"),
+                .product(name: "EbookMechanicCore", package: "EbookMechanicCore"),                
             ]
         ),
         .testTarget(

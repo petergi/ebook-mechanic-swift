@@ -1,370 +1,328 @@
-# Swift Workspace – EbookMechanic
+# 📱 EbookMechanic macOS App
 
-A modular Swift rewrite of the Go-based EbookMechanic toolchain. This project ships as an Xcode workspace with three components that share a common Swift package and expose comprehensive test suites.
+A beautiful native macOS application for ebook library management, built with SwiftUI and powered by the EbookMechanicCore library.
 
-## 📦 Components
+## Overview
 
-### EbookMechanicCore
-A Swift Package library with the scanning, validation, repair, and reporting engine. It exposes:
-- Actor-based `FileScanner` for concurrent file processing
-- Format-specific validators for EPUB and other ebook formats
-- Markdown report generator
-- Comprehensive XCTest coverage mirroring the Go implementation's behaviors
+The EbookMechanicApp provides a graphical interface for the EbookMechanic toolkit, offering the same powerful validation and repair capabilities in a polished, user-friendly macOS application. Built with SwiftUI and Swift's modern concurrency model, it delivers real-time progress updates and an intuitive workflow.
 
-### EbookMechanicCLI
-A command-line application providing:
-- Fast text interface with progress feedback
-- Optional repair/move/delete automation
-- Markdown report generation
-- Shell completion support (Bash, Zsh, Fish, PowerShell)
-- Unit tests for configuration parsing
+## Features
 
-### EbookMechanicApp
-A macOS SwiftUI application featuring:
-- Visual scan interface with real-time progress
-- Toggleable behavior options
-- Summary views for corrupted files and empty folders
-- Polished, gradient-backed UI
-- View-model tests for predictable state management
+- 🎨 **Beautiful SwiftUI Interface** - Gradient-backed design with modern aesthetics
+- 📂 **Native Directory Picker** - `NSOpenPanel` integration for file selection
+- 📊 **Real-Time Progress** - Live progress bars during scanning and operations
+- 🎚️ **Toggle Controls** - Easy switches for repair, dry-run, and confirmation settings
+- 📋 **Scrollable Results** - View lists of corrupted files and empty folders
+- 🔄 **Observable State** - Reactive updates using SwiftUI's state management
+- 📱 **iOS Ready** - Architecture prepared for iOS 16+ deployment
+- 🧪 **Tested** - View-model tests ensure predictable behavior
 
-## 🚀 Quick Start
+## Architecture
+
+### Components
+
+**EbookMechanicApp.swift**
+- App entry point
+- SwiftUI `App` protocol conformance
+- Window group configuration
+
+**ContentView.swift**
+- Main UI layout
+- Gradient background design
+- Control panels and result displays
+- Progress visualization
+
+**ScanViewModel.swift**
+- Observable view model (`ObservableObject`)
+- Business logic and state management
+- Integration with `FileScanner` from Core library
+- `@Published` properties for reactive updates
+
+**ScanOptions.swift**
+- Configuration model for scan operations
+- User preferences and settings
+- Codable for persistence (future enhancement)
+
+### Dependencies
+
+- **EbookMechanicCore** - Core library with scanning and validation logic
+- **SwiftUI** - Native UI framework (built-in)
+- **AppKit** - For `NSOpenPanel` directory picker
+
+## Installation
 
 ### Prerequisites
-- macOS with Xcode 15.0 or later
+
+- macOS 13.0 or later
+- Xcode 15.0 or later
 - Swift 5.9 or later
-- Python 3 (for serving documentation)
 
-### Building
-
-```bash
-# Build core library (default target)
-make build
-
-# Build all components (core + CLI + app)
-make build-all
-
-# Build optimized release binaries
-make build-release
-```
-
-### Testing
+### Build from Source
 
 ```bash
-# Run core library tests (default)
-make test
+# Navigate to swift directory
+cd swift
 
-# Run all test suites (core + CLI + app)
-make test-all
-```
+# Build the app
+make app-build
 
-### Installing the CLI
-
-```bash
-# Install optimized release version (recommended)
-make install-release
-
-# Or install debug version for development
-make install
-
-# Verify installation
-ebook-mechanic --help
-
-# Uninstall when needed
-make uninstall
-```
-
-## 📖 CLI Usage
-
-### Basic Commands
-
-```bash
-# Scan a directory for ebooks
-ebook-mechanic scan ~/ebooks
-
-# Validate a single EPUB file
-ebook-mechanic validate ~/ebooks/mybook.epub
-
-# Normalize an EPUB (dry-run mode)
-ebook-mechanic normalize ~/ebooks/mybook.epub --dry-run
-
-# Force normalize an EPUB (live mode)
-ebook-mechanic normalize ~/ebooks/mybook.epub --force-normalize
-```
-
-### Running Without Installation
-
-```bash
-# Run CLI directly via Make
-make cli-run ARGS="scan ~/ebooks"
-make cli-run ARGS="--help"
-
-# Or use Swift directly
-swift run --package-path EbookMechanicCLI EbookMechanicCLI --help
-```
-
-## 🔧 EPUB Normalization Details
-
-### ZIP Structure Normalization
-- Rebuilds EPUBs into a canonical ZIP layout:
-  - `mimetype` first and uncompressed, with exact contents `application/epub+zip`
-  - All other entries are deflated (compression method 8) for compact, deterministic output
-  - File names are UTF-8 with the language encoding flag set
-  - Timestamps/attributes are normalized to fixed values for reproducible builds
-- Ensures `META-INF/container.xml` exists and is correctly cased; synthesizes a minimal one if missing
-- Removes extraneous files (e.g. `__MACOSX/*`, `.DS_Store`, `Thumbs.db`, `desktop.ini`)
-- Performs light metadata normalization on text-based OPF files (UTF-8 re-encoding, normalized newlines)
-- Dry-run support reports what would change; `--force-normalize` re-normalizes even already normalized files
-
-### OPF (content.opf) Normalization
-- Locate via META-INF/container.xml (rootfile@full-path)
-- Canonicalize XML declaration, UTF-8 encoding, LF newlines
-- Normalize metadata text (trim, collapse spaces, NFC)
-- Sort `<metadata>` children deterministically
-- Normalize `<manifest>` items:
-  - Sort by id (then href)
-  - Correct common media types (xhtml/css/images/opf)
-  - Normalize hrefs (remove leading ./, fix casing to match ZIP entries)
-  - Remove items for extraneous files
-- Normalize `<spine>` order to follow manifest and remove invalid references
-
-## 🐚 Shell Completion
-
-The CLI supports shell completion for Bash, Zsh, Fish, and PowerShell.
-
-### Generate All Completions
-
-```bash
-make cli-completions
-```
-
-This creates completion scripts in `./completions/`:
-- `ebook-mechanic.bash` - Bash completion
-- `_ebook-mechanic` - Zsh completion
-- `ebook-mechanic.fish` - Fish completion
-- `ebook-mechanic.ps1` - PowerShell completion
-
-### Installation
-
-```bash
-# Bash
-cp completions/ebook-mechanic.bash /usr/local/etc/bash_completion.d/
-
-# Zsh
-cp completions/_ebook-mechanic /usr/local/share/zsh/site-functions/
-
-# Fish
-cp completions/ebook-mechanic.fish ~/.config/fish/completions/
-
-# PowerShell
-. completions/ebook-mechanic.ps1
-```
-
-See [COMPLETIONS.md](COMPLETIONS.md) for detailed installation instructions.
-
-## 📚 Documentation
-
-### Generating Documentation
-
-```bash
-# Generate all documentation (core + app)
-make docc-all
-
-# Generate documentation for specific components
-make docc-core    # Core library documentation
-make docc-app     # App documentation
-
-# Serve documentation locally at http://localhost:8080
-make docc-serve
-```
-
-### Updating All Artifacts
-
-```bash
-# Regenerate completions and documentation
-make update-all
-```
-
-## 🛠️ Development Workflow
-
-### Common Tasks
-
-```bash
-# View all available targets
-make help
-
-# Build and test everything
-make build-all test-all
-
-# Run the SwiftUI app
+# Run the app
 make app-run
 
-# Open in Xcode
+# Or build and run in one step
+make app-build app-run
+```
+
+### Using Xcode
+
+```bash
+# Open workspace in Xcode
 make workspace
 
-# Clean build artifacts
-make clean
+# Or open directly
+open ../EbookMechanic.xcworkspace
 
-# Deep clean (includes completions and docs)
-make clean-all
-
-# View build information
-make info
+# Select EbookMechanicApp scheme and run
 ```
 
-### Code Quality
+## Usage
+
+### Launching the App
 
 ```bash
-# Format Swift code (requires swift-format)
-make format
+# From swift directory
+make app-run
 
-# Check code formatting (CI-friendly)
-make check-format
-
-# Lint code (requires SwiftLint)
-make lint
+# Or directly from build directory
+open EbookMechanicApp/.build/debug/EbookMechanicApp.app
 ```
 
-### CI/CD
+### Using the Interface
+
+1. **Select Directory**
+   - Click "Select Directory" button
+   - Choose ebook library folder from picker
+   - Path displays below button
+
+2. **Configure Options**
+   - Toggle "Repair corrupted files" for auto-repair
+   - Toggle "Dry run" to preview without changes
+   - Toggle "Confirm actions" for interactive prompts
+
+3. **Start Scan**
+   - Click "Start Scan" button
+   - Watch real-time progress bar
+   - View status messages
+
+4. **Review Results**
+   - Scroll through "Corrupted Files" list
+   - Review "Empty Folders" list
+   - Check statistics panel
+
+### Features in Detail
+
+**Directory Selection:**
+- Native macOS file picker
+- Remembers last selected directory (session-based)
+- Validates directory accessibility
+
+**Progress Tracking:**
+- Real-time progress bar (0-100%)
+- Current operation status
+- File count updates
+
+**Results Display:**
+- Corrupted files with full paths
+- Empty folders identified for removal
+- Color-coded lists for easy identification
+
+**Configuration:**
+- Repair: Automatically fix corrupted files
+- Dry Run: Preview changes without modifications
+- Confirm: Prompt before deletion operations
+
+## Testing
+
+The app includes view-model tests to ensure predictable state management:
 
 ```bash
-# Run full CI pipeline
-make ci
-# This runs: build-all + test-all + check-format
+# Run app tests
+make app-test
+
+# Or use Swift directly
+swift test --package-path EbookMechanicApp
 ```
 
-## 📁 Project Structure
+### Test Coverage
+
+- **ScanOptionsTests.swift** - Configuration model tests (3 tests)
+- View-model behavior validation
+- State transition testing
+
+## Development
+
+### Project Structure
 
 ```
-EbookMechanic/
-├── Makefile                      # Build automation and common tasks
-├── EbookMechanic.xcworkspace     # Xcode workspace (optional)
-│
-├── EbookMechanicCore/            # Core library package
-│   ├── Package.swift
-│   ├── Sources/
-│   │   └── EbookMechanicCore/
-│   └── Tests/
-│       └── EbookMechanicCoreTests/
-│
-├── EbookMechanicCLI/             # Command-line interface package
-│   ├── Package.swift
-│   ├── Sources/
-│   │   └── EbookMechanicCLI/
-│   └── Tests/
-│       └── EbookMechanicCLITests/
-│
-├── EbookMechanicApp/             # macOS SwiftUI app package
-│   ├── Package.swift
-│   ├── Sources/
-│   │   └── EbookMechanicApp/
-│   └── Tests/
-│       └── EbookMechanicAppTests/
-│
-└── completions/                  # Generated shell completions
-    ├── ebook-mechanic.bash
-    ├── _ebook-mechanic
-    ├── ebook-mechanic.fish
-    └── ebook-mechanic.ps1
+EbookMechanicApp/
+├── Package.swift                 # Swift package manifest
+├── README.md                     # This file
+├── Sources/
+│   └── EbookMechanicApp/
+│       ├── EbookMechanicApp.swift     # App entry point
+│       ├── ContentView.swift          # Main UI view
+│       ├── ScanViewModel.swift        # Business logic
+│       └── ScanOptions.swift          # Configuration model
+└── Tests/
+    └── EbookMechanicAppTests/
+        └── ScanOptionsTests.swift     # Test suite
 ```
 
-## 🎯 Make Targets Reference
+### Adding Features
 
-### Build Targets
-- `make build` - Build core library only (default)
-- `make build-all` - Build everything (core + CLI + app)
-- `make build-release` - Build optimized release binaries
-- `make core-build` - Build the core library
-- `make cli-build` - Build the CLI executable
-- `make app-build` - Build the macOS SwiftUI app
+**To add a new toggle option:**
 
-### Test Targets
-- `make test` - Run core library tests (default)
-- `make test-all` - Run all test suites (core + CLI + app)
-- `make core-test` - Run the EbookMechanicCore test suite
-- `make cli-test` - Run the CLI test suite
-- `make app-test` - Run the app test suite
+1. Add property to `ScanOptions.swift`
+2. Add `@Published` property to `ScanViewModel`
+3. Add Toggle view in `ContentView.swift`
+4. Update scan logic to use new option
+5. Add tests in `ScanOptionsTests.swift`
 
-### Run Targets
-- `make cli-run ARGS=` - Run the CLI (default: --help)
-- `make cli-normalize` - Normalize EPUBs (dry-run mode)
-- `make cli-normalize-force` - Force normalize EPUBs (live mode)
-- `make app-run` - Launch the SwiftUI app
+**To modify the UI:**
 
-### Documentation Targets
-- `make docc-all` - Generate all documentation (core + app)
-- `make docc-core` - Generate DocC docs for EbookMechanicCore
-- `make docc-app` - Generate DocC docs for EbookMechanicApp
-- `make docc-serve` - Serve docs at http://localhost:8080
+1. Edit `ContentView.swift` for layout changes
+2. Update `ScanViewModel` for state management
+3. Test reactive updates with preview
 
-### Utility Targets
-- `make cli-completions` - Generate shell completion scripts
-- `make install` - Install CLI to /usr/local/bin (debug)
-- `make install-release` - Install optimized CLI to /usr/local/bin
-- `make uninstall` - Remove CLI from /usr/local/bin
-- `make format` - Format all Swift code with swift-format
-- `make lint` - Lint Swift code (requires SwiftLint)
-- `make check-format` - Check if code is formatted (CI-friendly)
-- `make workspace` - Open EbookMechanic.xcworkspace in Xcode
-- `make clean` - Remove build artifacts for all packages
-- `make clean-all` - Deep clean (includes completions & docs)
-- `make info` - Display build information and sizes
-- `make update-all` - Update completions and documentation
+### SwiftUI Previews
 
-### CI/CD Targets
-- `make ci` - Run full CI pipeline (build-all + test-all + check-format)
+Enable live previews in Xcode for rapid UI iteration:
 
-## 🔍 Troubleshooting
+```swift
+#Preview {
+    ContentView()
+}
+```
 
-### Build Issues
+## Design Philosophy
+
+### SwiftUI Best Practices
+
+- **Single Source of Truth** - ViewModel owns state
+- **Reactive Updates** - `@Published` properties drive UI
+- **Separation of Concerns** - UI vs business logic
+- **Reusable Components** - Modular view design
+
+### Color Scheme
+
+- **Background** - Blue to purple gradient
+- **Primary** - White text on gradient
+- **Secondary** - Light gray for secondary elements
+- **Accent** - System blue for interactive elements
+
+### Layout
+
+- **Vertical Stack** - Top-to-bottom flow
+- **Grouped Sections** - Related controls together
+- **Scrollable Lists** - For variable-length results
+- **Responsive** - Adapts to window resizing
+
+## Platform Support
+
+### Current
+
+- ✅ macOS 13.0+
+
+### Future
+
+- 📱 iOS 16.0+ (architecture ready)
+- 📱 iPadOS 16.0+ (architecture ready)
+- ⚙️ Configuration needed for iOS deployment
+
+The app architecture uses platform-agnostic SwiftUI, making iOS/iPadOS ports straightforward with minimal changes.
+
+## Performance
+
+### Responsiveness
+
+- **UI Updates** - Main thread via `@MainActor`
+- **Heavy Operations** - Background tasks via `FileScanner` actor
+- **Progress** - Smooth 60fps updates
+- **Memory** - Efficient with large file lists
+
+### Optimization
+
+- Actor-based concurrency prevents UI freezing
+- Lazy loading for large result lists
+- Efficient state updates with `@Published`
+
+## Troubleshooting
+
+### Build Errors
 
 ```bash
-# View build information and diagnostics
-make info
-
 # Clean and rebuild
 make clean-all
-make build-all
+make app-build
 ```
 
-### Documentation Generation Fails
-
-If `make docc-core` fails, see [DOCC_SETUP.md](DOCC_SETUP.md) for setup instructions.
-
-### Permission Errors During Clean
-
-The Makefile automatically fixes permissions before cleaning. If you still encounter issues:
+### App Won't Launch
 
 ```bash
-# Manually fix permissions
-chmod -R u+w EbookMechanicCore/.build
-chmod -R u+w EbookMechanicCLI/.build
-chmod -R u+w EbookMechanicApp/.build
+# Check build output
+make app-build
 
-# Then clean
-make clean-all
+# Verify binary exists
+ls -la EbookMechanicApp/.build/debug/
+
+# Run with verbose output
+swift run --package-path EbookMechanicApp EbookMechanicApp
 ```
 
-## 🤝 Contributing
+### UI Not Updating
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes and test thoroughly (`make test-all`)
-4. Format your code (`make format`)
-5. Run the CI pipeline locally (`make ci`)
-6. Commit your changes (`git commit -m 'Add amazing feature'`)
-7. Push to the branch (`git push origin feature/amazing-feature`)
-8. Open a Pull Request
+- Ensure `@Published` properties used in ViewModel
+- Verify `@StateObject` usage in views
+- Check `@MainActor` annotations for UI updates
 
-## 📝 License
+## Future Enhancements
+
+### Planned Features
+
+- [ ] Preferences panel for default settings
+- [ ] Persistent directory history
+- [ ] Drag-and-drop directory selection
+- [ ] Dark mode support
+- [ ] Menubar icon and status
+- [ ] Export reports as PDF
+- [ ] Batch operation queue
+- [ ] iOS/iPadOS versions
+
+### Contribution Ideas
+
+- Enhanced progress visualization
+- Multiple directory support
+- Custom color schemes
+- Keyboard shortcuts
+- AppleScript support
+- Notification center integration
+
+## Related Documentation
+
+- [Swift Implementation README](../README.md) - Full Swift implementation docs
+- [Core Library](../EbookMechanicCore/) - Underlying validation engine
+- [CLI Tool](../EbookMechanicCLI/) - Command-line interface
+
+## License
 
 This project maintains compatibility with the original Go-based EbookMechanic toolchain.
 
-## 🙏 Acknowledgments
+## Credits
 
+- Built with SwiftUI and Swift Concurrency
+- Powered by EbookMechanicCore library
 - Original Go implementation of EbookMechanic
-- Swift Package Manager and SwiftUI communities
-- Contributors to the project
 
 ---
 
-**Note**: This is a modular rewrite designed to maintain behavioral compatibility with the original Go implementation while leveraging Swift's modern concurrency features and native macOS integration.
+**Quick Links:** [Swift README](../README.md) | [Parent README](../../README.md) | [Core Library](../EbookMechanicCore/) | [CLI Tool](../EbookMechanicCLI/)

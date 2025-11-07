@@ -2,37 +2,37 @@
 <Workspace
    version = "1.0">
    <FileRef
-      location = "group:EbookMechanicCore/EbookMechanicCore.xcodeproj">
+      location = "group:EbookMechanicCore">
    </FileRef>
    <FileRef
-      location = "group:EbookMechanicCLI/EbookMechanicCLI.xcodeproj">
+      location = "group:EbookMechanicCLI">
    </FileRef>
    <FileRef
-      location = "group:EbookMechanicApp/EbookMechanicApp.xcodeproj">
+      location = "group:EbookMechanicApp">
    </FileRef>
    <FileRef
       location = "group:README.md">
    </FileRef>
    <Group
-      location = "group:Docs"
+      location = "container:"
       name = "Docs">
       <FileRef
-         location = "group:PDFVerifier.md">
+         location = "group:Docs/PDFVerifier.md">
       </FileRef>
       <FileRef
-         location = "group:TASKS.md">
+         location = "group:Docs/TASKS.md">
       </FileRef>
       <FileRef
-         location = "group:PLAN.md">
+         location = "group:Docs/PLAN.md">
       </FileRef>
       <FileRef
-         location = "group:ADR.md">
+         location = "group:Docs/ADR.md">
       </FileRef>
       <FileRef
-         location = "group:COMPLETIONS.md">
+         location = "group:Docs/COMPLETIONS.md">
       </FileRef>
       <FileRef
-         location = "group:DOCC_SETUP.md">
+         location = "group:Docs/DOCC_SETUP.md">
       </FileRef>
    </Group>
 </Workspace>

@@ -15,6 +15,10 @@ let package = Package(
             targets: ["EbookMechanicCore"]
         ),
     ],
+    dependencies: [
+        // other dependencies
+        .package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.1.0"),
+    ],
     targets: [
         .target(
             name: "EbookMechanicCore"

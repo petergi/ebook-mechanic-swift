@@ -2,7 +2,7 @@
 # Multi-language ebook library management toolkit
 # Consolidates Go, Swift, and Python implementations
 
-.PHONY: help info version clean clean-all \
+.PHONY: help info version tree clean clean-all \
         build build-all build-go build-swift build-go-all build-swift-release \
         test test-all test-go test-swift test-coverage \
         run run-go run-swift run-app \
@@ -113,6 +113,7 @@ help:
 	@echo "$(COLOR_CYAN)ℹ️  Information:$(COLOR_RESET)"
 	@echo "  $(COLOR_BLUE)info$(COLOR_RESET)                    Show comprehensive project information"
 	@echo "  $(COLOR_BLUE)version$(COLOR_RESET)                 Show version information"
+	@echo "  $(COLOR_BLUE)tree$(COLOR_RESET)                    Display project directory structure"
 	@echo ""
 	@echo "$(COLOR_CYAN)🎯 Language-Specific Targets:$(COLOR_RESET)"
 	@echo "  $(COLOR_BLUE)go-<target>$(COLOR_RESET)             Run any Go Makefile target (e.g., make go-build)"
@@ -199,6 +200,41 @@ version:
 	@echo "Git commit: $$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 	@echo "Branch:     $$(git branch --show-current 2>/dev/null || echo 'unknown')"
 	@echo "Build date: $$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+
+## tree: Display project directory structure
+tree:
+	@echo "$(COLOR_BOLD)╔════════════════════════════════════════════════════════════╗$(COLOR_RESET)"
+	@echo "$(COLOR_BOLD)║              EbookMechanic Project Tree                    ║$(COLOR_RESET)"
+	@echo "$(COLOR_BOLD)╚════════════════════════════════════════════════════════════╝$(COLOR_RESET)"
+	@echo ""
+	@if command -v tree >/dev/null 2>&1; then \
+		tree -L 3 -C --dirsfirst \
+			-I '.git|.build|build|dist|coverage|node_modules|__pycache__|*.pyc|.DS_Store|*.xcuserstate|*.xcworkspace|DerivedData|.specstory|completions|.bench|test-library|CORRUPTED' \
+			-a --prune; \
+	else \
+		echo "$(COLOR_YELLOW)⚠ 'tree' command not found. Install with: brew install tree (macOS) or apt install tree (Linux)$(COLOR_RESET)"; \
+		echo ""; \
+		echo "$(COLOR_CYAN)Showing basic directory structure:$(COLOR_RESET)"; \
+		echo ""; \
+		find . -type d \
+			-not -path '*/\.*' \
+			-not -path '*/build/*' \
+			-not -path '*/dist/*' \
+			-not -path '*/coverage/*' \
+			-not -path '*/__pycache__/*' \
+			-not -path '*/test-library/*' \
+			-not -path '*/CORRUPTED/*' \
+			-not -path '*/completions/*' \
+			-not -path '*/.bench/*' \
+			-not -path '*/.specstory/*' \
+			-maxdepth 4 \
+			| sed 's|^\./||' \
+			| sed 's|[^/]*/|  |g' \
+			| sed 's|^|  |' \
+			| sort; \
+	fi
+	@echo ""
+	@echo "$(COLOR_BLUE)Tip:$(COLOR_RESET) Install tree for better visualization: $(COLOR_CYAN)brew install tree$(COLOR_RESET)"
 
 # ==================== Build Targets ====================
 
