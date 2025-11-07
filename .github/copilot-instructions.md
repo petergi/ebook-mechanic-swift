@@ -40,12 +40,15 @@ This is a Go CLI tool for ebook library management with a Bubble Tea TUI. The ar
 
 **EPUB Normalization (normalize.go)**
 
+- Smart Processing: Scans ALL EPUBs (not just corrupted), pre-checks if already normalized
 - File Extension Normalization: `.htm` → `.xhtml`, standardize image extensions
 - OPF Manifest Rebasing: Generate new IDs based on actual filenames using `generateIDFromFilename()`
 - HTML Prettification: Use `golang.org/x/net/html` to parse and format XHTML files properly
 - CSS Formatting: Normalize CSS file formatting for consistency
 - Backup Creation: Always create backups before normalization (`.backup` extension)
 - Sigil Standards: Follows Sigil ebook editor conventions for file structure and naming
+- Performance Optimization: `isEPUBNormalized()` pre-check function prevents redundant work
+- Force Override: `-force-normalize` flag bypasses pre-checks when needed
 
 **Concurrent Safety (scanner.go:36)** The `FileScanner` uses `sync.Mutex` to protect shared `ScanResult` data. Always acquire `fs.mu.Lock()` before modifying statistics or result arrays.
 
@@ -105,6 +108,7 @@ The tool supports both TUI and simple modes via flags:
 - `-corrupted-dir` - Directory for corrupted files (default "CORRUPTED")
 - `-repair` - Attempt to repair corrupted files before moving them
 - `-normalize-epub` - Normalize EPUB files to Sigil standards (implies -repair)
+- `-force-normalize` - Force normalization even if EPUB appears already normalized
 - `-keep-backups` - Keep .backup files after successful operations
 - `-clean-backups` - Remove existing .backup files in directory
 - `-dry-run` - Scan only, no file modifications
@@ -113,10 +117,9 @@ The tool supports both TUI and simple modes via flags:
 - `-no-confirm` - Skip deletion confirmation prompts
 - `-no-tui` - Simple text output mode
 
-The tool supports both TUI and simple modes via flags:
+**Enhanced EPUB Normalization Features**
 
-- `-no-tui` - Simple text output mode
-- `-dry-run` - Scan only, no file modifications
-- `-corruption-only` - Skip empty folder operations
-- `-empty-folders-only` - Skip corruption detection
-- `-no-confirm` - Skip deletion confirmation prompts
+- Scans ALL EPUB files in directory (not just corrupted ones)
+- Pre-checks if EPUBs are already normalized to avoid unnecessary work
+- Use `-force-normalize` to bypass pre-checks and normalize everything
+- Significantly improves performance for large libraries with mixed normalized/unnormalized files

@@ -287,3 +287,32 @@ func (fs *FileScanner) DeleteEmptyFolders() error {
 
 	return nil
 }
+
+// ScanForAllEPUBs finds all EPUB files in the directory tree for normalization
+func (fs *FileScanner) ScanForAllEPUBs() []string {
+	var epubFiles []string
+
+	err := filepath.Walk(fs.RootDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+
+		// Skip corrupted directory
+		if info.IsDir() && filepath.Base(path) == fs.CorruptedDir {
+			return filepath.SkipDir
+		}
+
+		// Check if it's an EPUB file
+		if !info.IsDir() && strings.ToLower(filepath.Ext(path)) == ".epub" {
+			epubFiles = append(epubFiles, path)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return []string{}
+	}
+
+	return epubFiles
+}

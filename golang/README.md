@@ -102,6 +102,8 @@ Point EbookMechanic at the generated directory with the usual flags, e.g. `./ebo
         Attempt to repair corrupted files before moving them
   -normalize-epub
         Normalize EPUB files to Sigil standards (implies -repair)
+  -force-normalize
+        Force normalization even if EPUB appears already normalized
   -keep-backups
         Keep .backup files after successful operations
   -clean-backups
@@ -128,6 +130,9 @@ Point EbookMechanic at the generated directory with the usual flags, e.g. `./ebo
 
 # Normalize EPUB files to Sigil standards
 ./ebook-mechanic -normalize-epub
+
+# Force normalize all EPUBs (even if already normalized)
+./ebook-mechanic -normalize-epub -force-normalize
 
 # Normalize EPUB files and keep backup files
 ./ebook-mechanic -normalize-epub -keep-backups
@@ -189,6 +194,13 @@ The tool validates ebook files by checking:
 ### 2. EPUB Normalization
 
 When the `-normalize-epub` flag is used, the tool restructures EPUB files to follow Sigil standards:
+
+**Smart Processing:**
+
+- Scans ALL EPUB files in the directory (not just corrupted ones)
+- Pre-checks if EPUBs are already normalized to avoid unnecessary work
+- Use `-force-normalize` to bypass pre-checks and normalize everything
+- Significantly improves performance for large libraries with mixed normalized/unnormalized files
 
 **File Extension Normalization:**
 
@@ -328,6 +340,16 @@ make run            # Run without building
 make dev            # Auto-reload (requires air)
 make watch          # Watch and rebuild
 make sample-library # Generate test library
+```
+
+### EPUB Normalization Commands
+
+```bash
+make run-normalize-all       # Normalize ALL EPUBs (skips already normalized)
+make run-normalize-force     # Force normalize ALL EPUBs (even if normalized)
+make run-normalize-all-dry   # Show what would be normalized (dry-run)
+make run-normalize-force-dry # Show what would be force-normalized (dry-run)
+make demo-normalize          # Demo normalization on sample library
 ```
 
 ### Testing Commands

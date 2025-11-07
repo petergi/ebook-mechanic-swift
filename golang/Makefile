@@ -8,7 +8,8 @@
         docs godoc release version benchmark profile \
         sample-library demo-normalize demo-full deps-list \
         run-normalize run-repair run-corruption-only \
-        run-clean-backups run-normalize-keep-backups
+        run-clean-backups run-normalize-keep-backups run-normalize-all run-normalize-all-dry \
+        run-normalize-force run-normalize-force-dry
 
 # ==================== Configuration ====================
 
@@ -117,6 +118,26 @@ run-clean-backups:
 ## run-normalize-keep-backups: Run normalization and keep backup files
 run-normalize-keep-backups:
 	@go run . -normalize-epub -keep-backups
+
+## run-normalize-all: Normalize ALL EPUBs (not just corrupted ones)
+run-normalize-all:
+	@echo "$(COLOR_MAGENTA)Normalizing ALL EPUB files to Sigil standards...$(COLOR_RESET)"
+	@go run . -normalize-epub
+
+## run-normalize-all-dry: Show what would be normalized (dry-run)
+run-normalize-all-dry:
+	@echo "$(COLOR_YELLOW)Dry-run: Showing what EPUBs would be normalized...$(COLOR_RESET)"
+	@go run . -normalize-epub -dry-run -no-tui
+
+## run-normalize-force: Force normalization even if EPUBs appear already normalized
+run-normalize-force:
+	@echo "$(COLOR_MAGENTA)Force normalizing ALL EPUBs (ignoring already-normalized status)...$(COLOR_RESET)"
+	@go run . -normalize-epub -force-normalize
+
+## run-normalize-force-dry: Show what would be force-normalized (dry-run)
+run-normalize-force-dry:
+	@echo "$(COLOR_YELLOW)Dry-run: Force normalization check...$(COLOR_RESET)"
+	@go run . -normalize-epub -force-normalize -dry-run -no-tui
 
 # ==================== Test Fixtures ====================
 
@@ -390,10 +411,10 @@ info:
 	@echo ""
 	@echo "$(COLOR_BLUE)Features:$(COLOR_RESET)"
 	@echo "  🔍 Corruption Detection  - Validates file integrity"
-	@echo "  🔧 Auto-Repair          - Fixes damaged files"
-	@echo "  📚 EPUB Normalization   - Restructures to Sigil standards"
-	@echo "  🗑️  Smart Cleanup        - Removes empty directories"
-	@echo "  📄 Markdown Reports     - Detailed analysis reports"
+	@echo "  🔧 Auto-Repair           - Fixes damaged files"
+	@echo "  📚 EPUB Normalization    - Restructures to Sigil standards"
+	@echo "  🗑️ Smart Cleanup         - Removes empty directories"
+	@echo "  📄 Markdown Reports      - Detailed analysis reports"
 	@echo ""
 	@echo "$(COLOR_BLUE)Test Coverage:$(COLOR_RESET) $$(go test -cover ./... 2>&1 | grep coverage | cut -d':' -f2 | tr -d ' ')"
 	@echo "$(COLOR_BLUE)Binary Size:$(COLOR_RESET)   $$(if [ -f $(BUILD_DIR)/$(BINARY_NAME) ]; then ls -lh $(BUILD_DIR)/$(BINARY_NAME) | awk '{print $$5}'; else echo 'Not built'; fi)"
@@ -413,8 +434,10 @@ help:
 	@echo "  make build          # Build the application"
 	@echo "  make test           # Run tests"
 	@echo "  make run            # Run without building"
-	@echo "  make run-normalize  # Run with EPUB normalization"
-	@echo "  make demo-normalize # Demo normalization on sample library"
+	@echo "  make run-normalize-all       # Normalize ALL EPUBs (skips already normalized)"
+	@echo "  make run-normalize-force     # Force normalize ALL EPUBs (even if normalized)"
+	@echo "  make run-normalize-all-dry   # Show what would be normalized (dry-run)"
+	@echo "  make demo-normalize          # Demo normalization on sample library"
 	@echo "  make check          # Run all code quality checks"
 	@echo "  make info           # Show project information"
 	@echo ""

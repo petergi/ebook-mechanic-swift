@@ -78,6 +78,7 @@ type model struct {
 	noConfirm        bool
 	repair           bool
 	normalizeEPUB    bool
+	forceNormalize   bool
 	keepBackups      bool
 	confirmed        bool
 	reportPath       string
@@ -114,7 +115,7 @@ type progressMsg struct {
 // It initializes the progress model with a default gradient.
 // The returned model has its phase set to PhaseInit, and its startTime set to the current time.
 // The progress channel has a capacity of 100 progress messages.
-func initialModel(scanner *FileScanner, corruptionOnly, emptyFoldersOnly, dryRun, noConfirm, repair, normalizeEPUB, keepBackups bool) model {
+func initialModel(scanner *FileScanner, corruptionOnly, emptyFoldersOnly, dryRun, noConfirm, repair, normalizeEPUB, forceNormalize, keepBackups bool) model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
@@ -132,6 +133,7 @@ func initialModel(scanner *FileScanner, corruptionOnly, emptyFoldersOnly, dryRun
 		noConfirm:        noConfirm,
 		repair:           repair,
 		normalizeEPUB:    normalizeEPUB,
+		forceNormalize:   forceNormalize,
 		keepBackups:      keepBackups,
 		startTime:        time.Now(),
 		progressChan:     make(chan progressMsg, 100),
@@ -219,21 +221,22 @@ func doRepair(scanner *FileScanner, progressChan chan progressMsg) tea.Cmd {
 }
 
 // doNormalize starts the normalization process for EPUB files and returns a Batch command that will return a normalizeCompleteMsg{} when the normalization process is complete.
-func doNormalize(scanner *FileScanner, progressChan chan progressMsg, keepBackups bool) tea.Cmd {
+func doNormalize(scanner *FileScanner, progressChan chan progressMsg, keepBackups bool, forceNormalize bool) tea.Cmd {
 	return func() tea.Msg {
 		results := []NormalizeResult{}
 		normalizedCount := 0
 
-		// Filter for EPUB files only
-		epubFiles := []CorruptedFile{}
-		for _, file := range scanner.Result.CorruptedFiles {
-			if strings.ToLower(filepath.Ext(file.Path)) == ".epub" {
-				epubFiles = append(epubFiles, file)
-			}
-		}
+		// Find ALL EPUB files for normalization (not just corrupted ones)
+		epubPaths := scanner.ScanForAllEPUBs()
 
-		// Also check for valid EPUB files that might need normalization
-		// TODO: Add functionality to scan all EPUB files, not just corrupted ones
+		// Convert paths to CorruptedFile structs for compatibility with existing code
+		epubFiles := []CorruptedFile{}
+		for _, path := range epubPaths {
+			epubFiles = append(epubFiles, CorruptedFile{
+				Path:   path,
+				Reason: "Selected for normalization",
+			})
+		}
 
 		totalFiles := len(epubFiles)
 		for i, epubFile := range epubFiles {
@@ -247,8 +250,8 @@ func doNormalize(scanner *FileScanner, progressChan chan progressMsg, keepBackup
 			default:
 			}
 
-			// Attempt normalization
-			result := NormalizeEPUB(epubFile.Path, keepBackups)
+			// Attempt normalization (TUI mode is never dry-run)
+			result := NormalizeEPUBWithDryRun(epubFile.Path, keepBackups, false, forceNormalize)
 			results = append(results, result)
 			if result.Modified {
 				normalizedCount++
@@ -270,7 +273,6 @@ func listenForProgress(sub chan progressMsg) tea.Cmd {
 		return <-sub
 	}
 }
-
 
 // startMoving starts the process of moving corrupted files to the corrupted directory.
 // It returns a Batch command that will return a moveCompleteMsg{} when the moving process is complete.
@@ -389,7 +391,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.phase = PhaseNormalizing
 			return m, tea.Batch(
 				listenForProgress(m.progressChan),
-				doNormalize(m.scanner, m.progressChan, m.keepBackups),
+				doNormalize(m.scanner, m.progressChan, m.keepBackups, m.forceNormalize),
 			)
 		}
 		// If repair mode is enabled, attempt to repair corrupted files once before moving
@@ -711,6 +713,7 @@ func main() {
 		noTUI            = flag.Bool("no-tui", false, "Disable TUI, use simple output")
 		repair           = flag.Bool("repair", false, "Attempt to repair corrupted files before moving them")
 		normalizeEPUB    = flag.Bool("normalize-epub", false, "Normalize EPUB files to Sigil standards (implies -repair)")
+		forceNormalize   = flag.Bool("force-normalize", false, "Force normalization even if EPUB appears already normalized")
 		keepBackups      = flag.Bool("keep-backups", false, "Keep .backup files after successful operations")
 		cleanBackups     = flag.Bool("clean-backups", false, "Remove existing .backup files in directory")
 	)
@@ -727,7 +730,7 @@ func main() {
 		}
 
 		// Exit after cleanup if that's the only operation requested
-		if !*normalizeEPUB && !*repair && *corruptionOnly == false && *emptyFoldersOnly == false {
+		if !*normalizeEPUB && !*repair && !*corruptionOnly && !*emptyFoldersOnly {
 			return
 		}
 	}
@@ -750,12 +753,12 @@ func main() {
 
 	if *noTUI {
 		// Run in simple mode without TUI
-		runSimpleMode(scanner, *corruptionOnly, *emptyFoldersOnly, *dryRun, *noConfirm, *repair, *normalizeEPUB, *keepBackups)
+		runSimpleMode(scanner, *corruptionOnly, *emptyFoldersOnly, *dryRun, *noConfirm, *repair, *normalizeEPUB, *keepBackups, *forceNormalize)
 		return
 	}
 
 	// Run with TUI
-	m := initialModel(scanner, *corruptionOnly, *emptyFoldersOnly, *dryRun, *noConfirm, *repair, *normalizeEPUB, *keepBackups)
+	m := initialModel(scanner, *corruptionOnly, *emptyFoldersOnly, *dryRun, *noConfirm, *repair, *normalizeEPUB, *forceNormalize, *keepBackups)
 	p := tea.NewProgram(m)
 
 	if _, err := p.Run(); err != nil {
@@ -764,7 +767,7 @@ func main() {
 	}
 }
 
-func runSimpleMode(scanner *FileScanner, corruptionOnly, emptyFoldersOnly, dryRun, noConfirm, repair, normalizeEPUB, keepBackups bool) {
+func runSimpleMode(scanner *FileScanner, corruptionOnly, emptyFoldersOnly, dryRun, noConfirm, repair, normalizeEPUB, keepBackups, forceNormalize bool) {
 	fmt.Println("========================================")
 	fmt.Println("EBOOKMECHANIC")
 	fmt.Println("========================================")
@@ -782,24 +785,37 @@ func runSimpleMode(scanner *FileScanner, corruptionOnly, emptyFoldersOnly, dryRu
 		fmt.Printf("Found %d corrupted file(s)\n\n", len(scanner.Result.CorruptedFiles))
 
 		// Normalize EPUB files if normalize mode is enabled
-		if normalizeEPUB && !dryRun && len(scanner.Result.CorruptedFiles) > 0 {
+		if normalizeEPUB {
+			// Find ALL EPUB files for normalization (not just corrupted ones)
+			epubPaths := scanner.ScanForAllEPUBs()
 			epubFiles := []CorruptedFile{}
-			for _, file := range scanner.Result.CorruptedFiles {
-				if strings.ToLower(filepath.Ext(file.Path)) == ".epub" {
-					epubFiles = append(epubFiles, file)
-				}
+			for _, path := range epubPaths {
+				epubFiles = append(epubFiles, CorruptedFile{
+					Path:   path,
+					Reason: "Selected for normalization",
+				})
 			}
 
 			if len(epubFiles) > 0 {
 				fmt.Println("Normalizing EPUB files to Sigil standards...")
 				for i, epubFile := range epubFiles {
-					fmt.Printf("  [%d/%d] Normalizing: %s\n", i+1, len(epubFiles),
+					fmt.Printf("  [%d/%d] %s: %s\n", i+1, len(epubFiles),
+						func() string {
+							if dryRun {
+								return "Would normalize"
+							}
+							return "Normalizing"
+						}(),
 						filepath.Base(epubFile.Path))
-					result := NormalizeEPUB(epubFile.Path, keepBackups)
+					result := NormalizeEPUBWithDryRun(epubFile.Path, keepBackups, dryRun, forceNormalize)
 					switch {
 					case result.Modified:
 						normalizedCount++
-						fmt.Printf("    ✓ Normalized: %s (%d changes)\n", result.Message, result.ChangesCount)
+						status := "✓ Normalized"
+						if dryRun {
+							status = "✓ Would normalize"
+						}
+						fmt.Printf("    %s: %s (%d changes)\n", status, result.Message, result.ChangesCount)
 						for _, detail := range result.Details {
 							fmt.Printf("      - %s\n", detail)
 						}

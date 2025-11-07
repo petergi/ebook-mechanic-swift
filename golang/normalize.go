@@ -63,23 +63,41 @@ type EPUBSpineRef struct {
 
 // NormalizeEPUB applies Sigil-style normalization to an EPUB file
 func NormalizeEPUB(filePath string, keepBackups bool) NormalizeResult {
+	return NormalizeEPUBWithDryRun(filePath, keepBackups, false, false)
+}
+
+// NormalizeEPUBWithDryRun normalizes an EPUB file with optional dry-run mode
+func NormalizeEPUBWithDryRun(filePath string, keepBackups bool, dryRun bool, force bool) NormalizeResult {
 	// First validate the EPUB
 	validation := ValidateEPUB(filePath)
 	if !validation.IsValid {
 		return NormalizeResult{
-			Success: false,
-			Message: fmt.Sprintf("Cannot normalize invalid EPUB: %s", validation.Reason),
+			Success:  false,
+			Message:  fmt.Sprintf("Cannot normalize invalid EPUB: %s", validation.Reason),
 			Modified: false,
 		}
 	}
 
-	// Create backup
+	// Check if EPUB is already normalized (unless forced)
+	if !force {
+		if isAlreadyNormalized, reason := isEPUBNormalized(filePath); isAlreadyNormalized {
+			return NormalizeResult{
+				Success:  true,
+				Message:  reason,
+				Modified: false,
+			}
+		}
+	}
+
+	// Create backup (skip in dry-run mode)
 	backupPath := filePath + ".backup"
-	if err := copyFile(filePath, backupPath); err != nil {
-		return NormalizeResult{
-			Success: false,
-			Message: fmt.Sprintf("Failed to create backup: %v", err),
-			Modified: false,
+	if !dryRun {
+		if err := copyFile(filePath, backupPath); err != nil {
+			return NormalizeResult{
+				Success:  false,
+				Message:  fmt.Sprintf("Failed to create backup: %v", err),
+				Modified: false,
+			}
 		}
 	}
 
@@ -88,8 +106,8 @@ func NormalizeEPUB(filePath string, keepBackups bool) NormalizeResult {
 	if err != nil {
 		os.Remove(backupPath)
 		return NormalizeResult{
-			Success: false,
-			Message: fmt.Sprintf("Failed to open EPUB: %v", err),
+			Success:  false,
+			Message:  fmt.Sprintf("Failed to open EPUB: %v", err),
 			Modified: false,
 		}
 	}
@@ -101,8 +119,8 @@ func NormalizeEPUB(filePath string, keepBackups bool) NormalizeResult {
 		r.Close()
 		os.Remove(backupPath)
 		return NormalizeResult{
-			Success: false,
-			Message: fmt.Sprintf("Failed to create temp file: %v", err),
+			Success:  false,
+			Message:  fmt.Sprintf("Failed to create temp file: %v", err),
 			Modified: false,
 		}
 	}
@@ -180,7 +198,7 @@ func NormalizeEPUB(filePath string, keepBackups bool) NormalizeResult {
 
 		case strings.HasSuffix(f.Name, ".opf"):
 			// Normalize OPF file
-			newContent, fileChanges = normalizeOPF(originalContent, manifestItems, fileRenames)
+			newContent, fileChanges = normalizeOPF(originalContent, fileRenames)
 			modified = len(fileChanges) > 0
 
 		case strings.HasSuffix(f.Name, ".html") || strings.HasSuffix(f.Name, ".xhtml") || strings.HasSuffix(f.Name, ".htm"):
@@ -208,13 +226,17 @@ func NormalizeEPUB(filePath string, keepBackups bool) NormalizeResult {
 		}
 
 		if modified || shouldRename {
-			writer.Write(newContent)
+			if _, err := writer.Write(newContent); err != nil {
+				continue // Skip this file if write fails
+			}
 			for _, change := range fileChanges {
 				changes = append(changes, fmt.Sprintf("%s: %s", f.Name, change))
 			}
 			changesCount++
 		} else {
-			writer.Write(originalContent)
+			if _, err := writer.Write(originalContent); err != nil {
+				continue // Skip this file if write fails
+			}
 		}
 	}
 
@@ -223,8 +245,8 @@ func NormalizeEPUB(filePath string, keepBackups bool) NormalizeResult {
 		tempFile.Close()
 		os.Remove(backupPath)
 		return NormalizeResult{
-			Success: false,
-			Message: fmt.Sprintf("Failed to finalize normalized EPUB: %v", err),
+			Success:  false,
+			Message:  fmt.Sprintf("Failed to finalize normalized EPUB: %v", err),
 			Modified: false,
 		}
 	}
@@ -232,45 +254,77 @@ func NormalizeEPUB(filePath string, keepBackups bool) NormalizeResult {
 
 	// Replace original file with normalized version if changes were made
 	if changesCount > 0 {
-		if err := os.Rename(tempFile.Name(), filePath); err != nil {
-			os.Remove(backupPath)
-			return NormalizeResult{
-				Success: false,
-				Message: fmt.Sprintf("Failed to replace original file: %v", err),
-				Modified: false,
+		if !dryRun {
+			if err := os.Rename(tempFile.Name(), filePath); err != nil {
+				if !dryRun {
+					os.Remove(backupPath)
+				}
+				return NormalizeResult{
+					Success:  false,
+					Message:  fmt.Sprintf("Failed to replace original file: %v", err),
+					Modified: false,
+				}
 			}
+		} else {
+			// In dry-run mode, just remove the temp file
+			os.Remove(tempFile.Name())
 		}
 
 		result := NormalizeResult{
-			Success:      true,
-			Message:      "EPUB successfully normalized",
+			Success: true,
+			Message: func() string {
+				if dryRun {
+					return "EPUB would be normalized (dry-run)"
+				}
+				return "EPUB successfully normalized"
+			}(),
 			Modified:     true,
 			ChangesCount: changesCount,
 			Details:      changes,
 		}
 
-		// Handle backup cleanup based on keepBackups flag
-		if !keepBackups {
-			os.Remove(backupPath)
-			result.Details = append(result.Details, "Backup file removed after successful normalization")
+		// Handle backup cleanup based on keepBackups flag (only in non-dry-run mode)
+		if !dryRun {
+			if !keepBackups {
+				os.Remove(backupPath)
+				result.Details = append(result.Details, "Backup file removed after successful normalization")
+			} else {
+				result.Details = append(result.Details, fmt.Sprintf("Backup preserved at: %s", backupPath))
+			}
 		} else {
-			result.Details = append(result.Details, fmt.Sprintf("Backup preserved at: %s", backupPath))
+			// In dry-run mode, explain what would happen with backups
+			if !keepBackups {
+				result.Details = append(result.Details, "Backup would be removed after successful normalization")
+			} else {
+				result.Details = append(result.Details, fmt.Sprintf("Backup would be preserved at: %s", backupPath))
+			}
 		}
 
 		return result
 	}
 
-	// No changes needed, remove backup
-	os.Remove(backupPath)
+	// No changes needed, remove backup (only if not dry-run)
+	if !dryRun {
+		os.Remove(backupPath)
+	}
+
+	// Clean up temp file
+	os.Remove(tempFile.Name())
+
 	return NormalizeResult{
 		Success: true,
-		Message: "EPUB is already normalized",
+		Message: func() string {
+			if dryRun {
+				return "EPUB is already normalized (dry-run check)"
+			}
+			return "EPUB is already normalized"
+		}(),
 		Modified: false,
 	}
 }
 
 // normalizeOPF normalizes the OPF package file according to Sigil standards
-func normalizeOPF(content []byte, manifestItems map[string]EPUBManItem, fileRenames map[string]string) ([]byte, []string) {
+func normalizeOPF(content []byte, fileRenames map[string]string) ([]byte, []string) {
 	var changes []string
 
 	// Parse the OPF
@@ -360,8 +414,7 @@ func normalizeHTML(content []byte) ([]byte, []string) {
 				}
 
 				// Clean up common attribute values
-				switch attr.Key {
-				case "class":
+				if attr.Key == "class" {
 					// Remove extra whitespace in class attributes
 					cleanClass := strings.Join(strings.Fields(attr.Val), " ")
 					if attr.Val != cleanClass {
@@ -388,7 +441,10 @@ func normalizeHTML(content []byte) ([]byte, []string) {
 	if modified {
 		// Render the normalized HTML
 		var buf bytes.Buffer
-		html.Render(&buf, doc)
+		if err := html.Render(&buf, doc); err != nil {
+			// If render fails, return original content
+			return content, changes
+		}
 		changes = append(changes, "Prettified and normalized HTML structure")
 		return buf.Bytes(), changes
 	}
@@ -525,13 +581,13 @@ func normalizeFileName(fileName string) string {
 		if dir == "." {
 			return nameWithoutExt + ".xhtml"
 		}
-		return filepath.Join(dir, nameWithoutExt + ".xhtml")
+		return filepath.Join(dir, nameWithoutExt+".xhtml")
 	case ".jpeg":
 		// Convert .jpeg to .jpg for consistency
 		if dir == "." {
 			return nameWithoutExt + ".jpg"
 		}
-		return filepath.Join(dir, nameWithoutExt + ".jpg")
+		return filepath.Join(dir, nameWithoutExt+".jpg")
 	default:
 		// No change needed
 		return fileName
@@ -560,4 +616,68 @@ func cleanExistingBackups(directory string) error {
 
 		return nil
 	})
+}
+
+// isEPUBNormalized checks if an EPUB file appears to already be normalized
+// Returns (isNormalized, reason)
+func isEPUBNormalized(filePath string) (bool, string) {
+	// Open the EPUB for inspection
+	r, err := zip.OpenReader(filePath)
+	if err != nil {
+		return false, "Failed to read EPUB for normalization check"
+	}
+	defer r.Close()
+
+	needsNormalization := false
+	reasons := []string{}
+
+	// Check for common normalization issues
+	for _, f := range r.File {
+		// Check for non-standard file extensions
+		standardFileName := normalizeFileName(f.Name)
+		if standardFileName != f.Name {
+			needsNormalization = true
+			reasons = append(reasons, fmt.Sprintf("Non-standard filename: %s", f.Name))
+		}
+
+		// Check OPF files for manifest ID normalization
+		if strings.HasSuffix(f.Name, ".opf") {
+			rc, err := f.Open()
+			if err != nil {
+				continue
+			}
+			content, err := io.ReadAll(rc)
+			rc.Close()
+			if err != nil {
+				continue
+			}
+
+			var manifest EPUBManifest
+			if err := xml.Unmarshal(content, &manifest); err == nil {
+				for _, item := range manifest.Manifest.Items {
+					// Check if manifest ID follows normalized pattern
+					expectedID := generateIDFromFilename(item.Href)
+					if item.ID != expectedID {
+						needsNormalization = true
+						reasons = append(reasons, fmt.Sprintf("Non-normalized manifest ID: %s", item.ID))
+						// Only report the first few to avoid spam
+						if len(reasons) >= 3 {
+							break
+						}
+					}
+				}
+			}
+		}
+
+		// Stop checking if we already found issues
+		if len(reasons) >= 3 {
+			break
+		}
+	}
+
+	if needsNormalization {
+		return false, fmt.Sprintf("EPUB needs normalization: %s", strings.Join(reasons, ", "))
+	}
+
+	return true, "EPUB is already normalized"
 }
