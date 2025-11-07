@@ -9,6 +9,7 @@
         install install-go install-swift uninstall \
         check check-go check-swift lint \
         sample-library benchmark \
+        docs docs-all docs-go docs-swift docs-serve \
         go-% swift-% \
         completion-install
 
@@ -94,6 +95,13 @@ help:
 	@echo "  $(COLOR_BLUE)check-swift$(COLOR_RESET)             Run Swift checks (format lint)"
 	@echo "  $(COLOR_BLUE)lint$(COLOR_RESET)                    Run all linters"
 	@echo ""
+	@echo "$(COLOR_CYAN)📚 Documentation:$(COLOR_RESET)"
+	@echo "  $(COLOR_BLUE)docs$(COLOR_RESET)                    Generate documentation (Go + Swift)"
+	@echo "  $(COLOR_BLUE)docs-all$(COLOR_RESET)                Generate all documentation with details"
+	@echo "  $(COLOR_BLUE)docs-go$(COLOR_RESET)                 Generate Go documentation (godoc)"
+	@echo "  $(COLOR_BLUE)docs-swift$(COLOR_RESET)              Generate Swift DocC documentation"
+	@echo "  $(COLOR_BLUE)docs-serve$(COLOR_RESET)              Serve documentation at http://localhost:8080"
+	@echo ""
 	@echo "$(COLOR_CYAN)🧹 Maintenance:$(COLOR_RESET)"
 	@echo "  $(COLOR_BLUE)clean$(COLOR_RESET)                   Clean build artifacts (all languages)"
 	@echo "  $(COLOR_BLUE)clean-all$(COLOR_RESET)               Deep clean (includes caches and completions)"
@@ -114,6 +122,7 @@ help:
 	@echo "  make build                           # Build both implementations"
 	@echo "  make sample-library                  # Generate test library"
 	@echo "  make benchmark                       # Compare performance"
+	@echo "  make docs && make docs-serve         # Generate and serve documentation"
 	@echo "  make go-run-normalize                # Run Go with EPUB normalization"
 	@echo "  make swift-cli-normalize-force       # Run Swift with force normalization"
 	@echo ""
@@ -362,6 +371,57 @@ benchmark:
 		echo ""; \
 		echo "$(COLOR_CYAN)Swift implementation:$(COLOR_RESET)"; \
 		time $(MAKE) -C $(SWIFT_DIR) cli-run ARGS="--dir $(LIBRARY_DIR) --dry-run"; \
+	fi
+
+# ==================== Documentation ====================
+
+## docs: Generate documentation for both implementations
+docs: docs-go docs-swift
+	@echo ""
+	@echo "$(COLOR_GREEN)✓ All documentation generated!$(COLOR_RESET)"
+	@echo ""
+	@echo "$(COLOR_CYAN)To view documentation:$(COLOR_RESET)"
+	@echo "  $(COLOR_BLUE)Go:$(COLOR_RESET)    make go-godoc (opens browser)"
+	@echo "  $(COLOR_BLUE)Swift:$(COLOR_RESET) make docs-serve (http://localhost:8080)"
+
+## docs-all: Generate comprehensive documentation
+docs-all:
+	@echo "$(COLOR_BLUE)Generating comprehensive documentation...$(COLOR_RESET)"
+	@echo ""
+	@echo "$(COLOR_CYAN)Go documentation:$(COLOR_RESET)"
+	@$(MAKE) -C $(GO_DIR) docs
+	@echo ""
+	@echo "$(COLOR_CYAN)Swift DocC documentation:$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) docc-all
+	@echo ""
+	@echo "$(COLOR_GREEN)✓ All documentation generated!$(COLOR_RESET)"
+
+## docs-go: Generate Go documentation
+docs-go:
+	@echo "$(COLOR_BLUE)Generating Go documentation...$(COLOR_RESET)"
+	@$(MAKE) -C $(GO_DIR) docs
+	@echo "$(COLOR_GREEN)✓ Go documentation ready$(COLOR_RESET)"
+	@echo "$(COLOR_CYAN)To start godoc server:$(COLOR_RESET) make go-godoc"
+
+## docs-swift: Generate Swift DocC documentation
+docs-swift:
+	@echo "$(COLOR_BLUE)Generating Swift DocC documentation...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) docc-all
+	@echo "$(COLOR_GREEN)✓ Swift DocC documentation ready$(COLOR_RESET)"
+
+## docs-serve: Serve documentation (Swift DocC or Go godoc)
+docs-serve:
+	@echo "$(COLOR_BLUE)Starting documentation server...$(COLOR_RESET)"
+	@echo ""
+	@if [ -d "$(SWIFT_DIR)/EbookMechanicCore/.build/docc" ] || [ -d "$(SWIFT_DIR)/EbookMechanicApp/.build/docc" ]; then \
+		echo "$(COLOR_CYAN)Serving Swift DocC documentation at http://localhost:8080$(COLOR_RESET)"; \
+		echo "$(COLOR_YELLOW)Press Ctrl+C to stop$(COLOR_RESET)"; \
+		echo ""; \
+		$(MAKE) -C $(SWIFT_DIR) docc-serve; \
+	else \
+		echo "$(COLOR_YELLOW)⚠ No Swift documentation found. Generating...$(COLOR_RESET)"; \
+		echo ""; \
+		$(MAKE) docs-swift && $(MAKE) -C $(SWIFT_DIR) docc-serve; \
 	fi
 
 # ==================== Clean Targets ====================
