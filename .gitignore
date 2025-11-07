@@ -28,11 +28,18 @@ temp/
 .amazonq/
 .cursor/
 test-library/
+.specstory/
+project_file_tree_*.md
+
+# Swift
+Package.resolved
+xcuserdata/
+xcshareddata/
+
+# Go debug
+brk/
 
 .fake.bench
 .bench/
 
 .fake
-brk
-*.build/
-completions/
