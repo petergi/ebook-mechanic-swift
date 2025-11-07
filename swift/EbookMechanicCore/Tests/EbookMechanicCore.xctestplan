@@ -1,0 +1,30 @@
+{
+  "configurations" : [
+    {
+      "id" : "0B7955BA-4E23-45DE-BEF0-5C48CAC7AB99",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : false,
+    "commandLineArgumentEntries" : [
+      {
+        "argument" : "core-build"
+      }
+    ],
+    "performanceAntipatternCheckerEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:EbookMechanicCore.xcodeproj",
+        "identifier" : "5C3B8E5C2AC4E0B100000014",
+        "name" : "EbookMechanicCoreTests"
+      }
+    }
+  ],
+  "version" : 1
+}

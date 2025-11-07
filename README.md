@@ -55,7 +55,39 @@ make build
 
 ## Quick Start
 
-For most users, the **Go implementation** is recommended:
+### Master Makefile (Recommended)
+
+The project includes a **master Makefile** at the root that consolidates all implementations:
+
+```bash
+# Build both Go and Swift implementations
+make build
+
+# Run all tests
+make test
+
+# Run Go CLI (recommended)
+make run-go
+
+# Run Swift CLI
+make run-swift
+
+# Launch Swift macOS app
+make run-app
+
+# Generate test library for testing
+make sample-library
+
+# Compare Go vs Swift performance
+make benchmark
+
+# See all available commands
+make help
+```
+
+### Go Implementation (Direct)
+
+For direct access to the Go implementation:
 
 ```bash
 # Clone and build
@@ -85,30 +117,57 @@ make sample-library
 
 ## Development
 
-Each implementation has its own development workflow:
+### Unified Build System
 
-- **Go**: See [golang/README.md](./golang/README.md) for detailed instructions
+The **master Makefile** at the root provides a unified interface for all implementations:
+
+```bash
+# Build and test everything
+make build-all test-all
+
+# Code quality checks
+make check lint
+
+# Install both CLIs
+make install
+
+# Clean all artifacts
+make clean-all
+
+# Language-specific delegation
+make go-<target>     # Run any Go Makefile target
+make swift-<target>  # Run any Swift Makefile target
+```
+
+### Per-Implementation Workflows
+
+Each implementation also has its own development workflow:
+
+- **Go**: See [golang/README.md](./golang/README.md) or use `make go-help`
 - **Python**: Direct script execution with pip dependencies
-- **Swift**: Xcode project with Package.swift
+- **Swift**: See [swift/README.md](./swift/) or use `make swift-help`
 
 ## Project Structure
 
 ```text
 EbookMechanic/
+├── Makefile            # 🎯 Master build system (start here!)
 ├── README.md           # This file
 ├── .github/            # GitHub configuration
 │   └── copilot-instructions.md
 ├── golang/             # Go implementation (recommended)
-│   ├── Makefile        # Professional build system
+│   ├── Makefile        # Go-specific build system
 │   ├── *.go            # Source files
 │   └── *_test.go       # Test suite
 ├── python/             # Python implementation (legacy)
 │   └── *.py            # Python scripts
 ├── swift/              # Swift implementation (in development)
+│   ├── Makefile        # Swift-specific build system
 │   ├── EbookMechanicCore/    # Core library
 │   ├── EbookMechanicCLI/     # Command-line interface
 │   └── EbookMechanicApp/     # macOS SwiftUI app
 └── scripts/            # Utility scripts
+    └── benchmark.sh    # Cross-implementation benchmarking
 ```
 
 ## Performance Comparison

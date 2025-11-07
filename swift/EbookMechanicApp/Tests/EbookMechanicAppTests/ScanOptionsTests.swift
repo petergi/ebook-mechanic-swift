@@ -1,3 +1,5 @@
+import XCTest
+import Foundation
 @testable import EbookMechanicApp
 import EbookMechanicCore
 
