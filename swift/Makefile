@@ -1,4 +1,3 @@
-there is no default make target in this Makefile. Please specify a target.
 # EbookMechanic Swift workspace make targets
 
 # Environment setup for reproducible builds
