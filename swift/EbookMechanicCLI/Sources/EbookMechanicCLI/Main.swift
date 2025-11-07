@@ -35,6 +35,12 @@ struct EbookMechanicCLI {
                 printer.printRepairSummary(results: repairs, repairedCount: repairedCount)
             }
 
+            if configuration.normalizeEPUBs {
+                printer.printHeader("Normalizing EPUBs")
+                let (normalized, skipped) = await scanner.normalizeEPUBs(force: configuration.forceNormalize, dryRun: configuration.dryRun, progress: printer.handle)
+                printer.printInfo("EPUB normalization: normalized=\(normalized), skipped=\(skipped)")
+            }
+
             if !configuration.corruptionOnly {
                 let folders = try await scanner.scanForEmptyFolders(progress: printer.handle)
                 printer.printHeader("Folder Analysis")
@@ -141,6 +147,8 @@ struct CLIConfiguration {
     var autoConfirm: Bool = false
     var verbose: Bool = true
     var generateReport: Bool = false
+    var normalizeEPUBs: Bool = false
+    var forceNormalize: Bool = false
 
     static func parse(arguments: [String] = CommandLine.arguments) throws -> CLIConfiguration {
         var config = CLIConfiguration()
@@ -172,6 +180,10 @@ struct CLIConfiguration {
                 config.verbose = false
             case "--report":
                 config.generateReport = true
+            case "--normalize-epubs":
+                config.normalizeEPUBs = true
+            case "--force-normalize":
+                config.forceNormalize = true
             default:
                 throw CLIError.invalidArgument("Unknown argument: \(argument)")
             }
@@ -203,6 +215,8 @@ struct CLIConfiguration {
               --no-confirm            Skip confirmation prompts and proceed automatically
               --quiet                 Reduce console output
               --report                Generate a Markdown report in the scan directory
+              --normalize-epubs      Normalize EPUB files into canonical form
+              --force-normalize      Force normalization even if already normalized
             """
         )
     }
@@ -232,6 +246,8 @@ struct ProgressPrinter {
             print("🧹 Deleting folder: \(event.currentItem)")
         case .repairingFiles:
             print("🛠️ Repairing (\(event.completed)/\(event.total)): \(event.currentItem)")
+        case .normalizingFiles:
+            print("✨ Normalizing (\(event.completed)/\(event.total)) \(event.currentItem)")
         }
     }
 
@@ -287,3 +303,4 @@ struct ProgressPrinter {
         }
     }
 }
+

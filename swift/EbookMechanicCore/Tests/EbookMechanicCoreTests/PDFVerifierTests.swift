@@ -19,12 +19,18 @@ final class PDFVerifierTests: XCTestCase {
             .appendingPathExtension(suffix)
     }
 
-    func writeDocument(_ doc: PDFDocument, to url: URL) throws {
+    func writeDocument(_ doc: PDFDocument, to url: URL, options: [PDFDocumentWriteOption: Any]? = nil) throws {
         // Ensure parent exists
         let fm = FileManager.default
         let parent = url.deletingLastPathComponent()
         try fm.createDirectory(at: parent, withIntermediateDirectories: true)
-        guard doc.write(to: url) else {
+        let success: Bool
+        if let opts = options {
+            success = doc.write(to: url, withOptions: opts)
+        } else {
+            success = doc.write(to: url)
+        }
+        guard success else {
             throw NSError(domain: "PDFWrite", code: 1, userInfo: nil)
         }
     }
@@ -40,14 +46,14 @@ final class PDFVerifierTests: XCTestCase {
         let url1 = tempURL()
         try writeDocument(doc, to: url1)
 
-        let fp1 = try PDFVerifier.fingerprint(for: url1)
+        let fp1 = PDFVerifier.fingerprintResult(for: url1)
 
         // Change metadata
         doc.documentAttributes = [PDFDocumentAttribute.titleAttribute: "New Title"]
         let url2 = tempURL()
         try writeDocument(doc, to: url2)
 
-        let fp2 = try PDFVerifier.fingerprint(for: url2)
+        let fp2 = PDFVerifier.fingerprintResult(for: url2)
 
         XCTAssertEqual(fp1, fp2, "Fingerprint should not change when only metadata changes")
         #else
@@ -65,13 +71,13 @@ final class PDFVerifierTests: XCTestCase {
 
         let url1 = tempURL()
         try writeDocument(doc, to: url1)
-        let fp1 = try PDFVerifier.fingerprint(for: url1)
+        let fp1 = PDFVerifier.fingerprintResult(for: url1)
 
         // Change metadata
         doc.documentAttributes = [PDFDocumentAttribute.authorAttribute: "Someone Else"]
         let url2 = tempURL()
         try writeDocument(doc, to: url2)
-        let fp2 = try PDFVerifier.fingerprint(for: url2)
+        let fp2 = PDFVerifier.fingerprintResult(for: url2)
 
         XCTAssertEqual(fp1, fp2, "Image-only PDF fingerprint should be stable across metadata changes")
         #else
@@ -92,10 +98,51 @@ final class PDFVerifierTests: XCTestCase {
         let urlA = tempURL(); try writeDocument(docA, to: urlA)
         let urlB = tempURL(); try writeDocument(docB, to: urlB)
 
-        let fA = try PDFVerifier.fingerprint(for: urlA)
-        let fB = try PDFVerifier.fingerprint(for: urlB)
+        let fA = PDFVerifier.fingerprintResult(for: urlA)
+        let fB = PDFVerifier.fingerprintResult(for: urlB)
 
         XCTAssertNotEqual(fA, fB, "Fingerprints should differ when content changes")
+        #else
+        throw XCTSkip("PDFKit/AppKit not available on this platform")
+        #endif
+    }
+
+    func testEncryptedPDFFingerprint() throws {
+        #if canImport(PDFKit) && canImport(AppKit)
+        // Create a password-protected PDF
+        let image = sampleTestImage()
+        guard let page = PDFPage(image: image) else { throw XCTSkip("Couldn't create PDFPage from image") }
+        let doc = PDFDocument()
+        doc.insert(page, at: 0)
+
+        // Write unencrypted copy
+        let urlPlain = tempURL()
+        try writeDocument(doc, to: urlPlain)
+        let fpPlain = PDFVerifier.fingerprintResult(for: urlPlain)
+
+        // Write encrypted copy using PDFDocument write options
+        let urlEnc = tempURL()
+        #if canImport(PDFKit)
+        let options: [PDFDocumentWriteOption: Any] = [PDFDocumentWriteOption.userPasswordOption: "secret", PDFDocumentWriteOption.ownerPasswordOption: "owner"]
+        try writeDocument(doc, to: urlEnc, options: options)
+        let fpEnc = PDFVerifier.fingerprintResult(for: urlEnc)
+
+        switch fpEnc {
+        case .encrypted:
+            break
+        default:
+            XCTFail("Expected encrypted fingerprint result for protected PDF, got: \(fpEnc)")
+        }
+
+        switch fpPlain {
+        case .encrypted:
+            XCTFail("Unencrypted PDF should not be reported as encrypted")
+        default:
+            break
+        }
+        #else
+        throw XCTSkip("PDFKit not available for writing encrypted PDF")
+        #endif
         #else
         throw XCTSkip("PDFKit/AppKit not available on this platform")
         #endif

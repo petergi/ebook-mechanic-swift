@@ -9,7 +9,9 @@
         sample-library demo-normalize demo-full deps-list \
         run-normalize run-repair run-corruption-only \
         run-clean-backups run-normalize-keep-backups run-normalize-all run-normalize-all-dry \
-        run-normalize-force run-normalize-force-dry
+        run-normalize-force run-normalize-force-dry \
+        completion-bash completion-zsh completion-fish completion-powershell \
+        completion-install completion-generate
 
 # ==================== Configuration ====================
 
@@ -277,6 +279,80 @@ uninstall:
 	@rm -f $$GOPATH/bin/$(BINARY_NAME)
 	@echo "$(COLOR_GREEN)✓ Uninstalled$(COLOR_RESET)"
 
+# ==================== Shell Completion ====================
+
+## completion-bash: Install bash completion
+completion-bash: build
+	@echo "$(COLOR_BLUE)Installing bash completion...$(COLOR_RESET)"
+	@if [ "$(shell uname)" = "Darwin" ]; then \
+		if command -v brew >/dev/null 2>&1; then \
+			COMPLETION_DIR="$(shell brew --prefix)/etc/bash_completion.d"; \
+		else \
+			COMPLETION_DIR="/usr/local/etc/bash_completion.d"; \
+		fi; \
+	else \
+		COMPLETION_DIR="/etc/bash_completion.d"; \
+	fi; \
+	sudo mkdir -p "$$COMPLETION_DIR" && \
+	sudo ./$(BINARY_NAME) completion bash > "$$COMPLETION_DIR/$(BINARY_NAME)" && \
+	echo "$(COLOR_GREEN)✓ Bash completion installed to $$COMPLETION_DIR/$(BINARY_NAME)$(COLOR_RESET)" && \
+	echo "$(COLOR_YELLOW)  Restart your shell or run: source $$COMPLETION_DIR/$(BINARY_NAME)$(COLOR_RESET)"
+
+## completion-zsh: Install zsh completion
+completion-zsh: build
+	@echo "$(COLOR_BLUE)Installing zsh completion...$(COLOR_RESET)"
+	@COMPLETION_DIR="$${HOME}/.zsh/completions"; \
+	mkdir -p "$$COMPLETION_DIR" && \
+	./$(BINARY_NAME) completion zsh > "$$COMPLETION_DIR/_$(BINARY_NAME)" && \
+	echo "$(COLOR_GREEN)✓ Zsh completion installed to $$COMPLETION_DIR/_$(BINARY_NAME)$(COLOR_RESET)" && \
+	echo "$(COLOR_YELLOW)  Make sure $$COMPLETION_DIR is in your fpath$(COLOR_RESET)" && \
+	echo "$(COLOR_YELLOW)  Add to ~/.zshrc: fpath=($$COMPLETION_DIR \$$fpath)$(COLOR_RESET)" && \
+	echo "$(COLOR_YELLOW)  Then run: autoload -U compinit && compinit$(COLOR_RESET)"
+
+## completion-fish: Install fish completion
+completion-fish: build
+	@echo "$(COLOR_BLUE)Installing fish completion...$(COLOR_RESET)"
+	@COMPLETION_DIR="$${HOME}/.config/fish/completions"; \
+	mkdir -p "$$COMPLETION_DIR" && \
+	./$(BINARY_NAME) completion fish > "$$COMPLETION_DIR/$(BINARY_NAME).fish" && \
+	echo "$(COLOR_GREEN)✓ Fish completion installed to $$COMPLETION_DIR/$(BINARY_NAME).fish$(COLOR_RESET)" && \
+	echo "$(COLOR_YELLOW)  Restart your fish shell or run: source $$COMPLETION_DIR/$(BINARY_NAME).fish$(COLOR_RESET)"
+
+## completion-powershell: Generate PowerShell completion script
+completion-powershell: build
+	@echo "$(COLOR_BLUE)Generating PowerShell completion...$(COLOR_RESET)"
+	@./$(BINARY_NAME) completion powershell > $(BINARY_NAME).ps1 && \
+	echo "$(COLOR_GREEN)✓ PowerShell completion script generated: $(BINARY_NAME).ps1$(COLOR_RESET)" && \
+	echo "$(COLOR_YELLOW)  To install, run in PowerShell: . ./$(BINARY_NAME).ps1$(COLOR_RESET)" && \
+	echo "$(COLOR_YELLOW)  Or add to your PowerShell profile$(COLOR_RESET)"
+
+## completion-install: Install completion for current shell
+completion-install: build
+	@echo "$(COLOR_BLUE)Detecting shell and installing completion...$(COLOR_RESET)"
+	@if [ -n "$$ZSH_VERSION" ]; then \
+		$(MAKE) completion-zsh; \
+	elif [ -n "$$BASH_VERSION" ]; then \
+		$(MAKE) completion-bash; \
+	elif [ -n "$$FISH_VERSION" ]; then \
+		$(MAKE) completion-fish; \
+	else \
+		echo "$(COLOR_YELLOW)⚠ Could not detect shell type$(COLOR_RESET)"; \
+		echo "$(COLOR_BLUE)Available targets:$(COLOR_RESET)"; \
+		echo "  make completion-bash       # For bash"; \
+		echo "  make completion-zsh        # For zsh"; \
+		echo "  make completion-fish       # For fish"; \
+		echo "  make completion-powershell # For PowerShell"; \
+	fi
+
+## completion-generate: Generate all completion scripts to files
+completion-generate: build
+	@echo "$(COLOR_BLUE)Generating completion scripts...$(COLOR_RESET)"
+	@./$(BINARY_NAME) completion bash > completions/$(BINARY_NAME).bash && \
+	./$(BINARY_NAME) completion zsh > completions/$(BINARY_NAME).zsh && \
+	./$(BINARY_NAME) completion fish > completions/$(BINARY_NAME).fish && \
+	./$(BINARY_NAME) completion powershell > completions/$(BINARY_NAME).ps1 && \
+	echo "$(COLOR_GREEN)✓ All completion scripts generated in completions/$(COLOR_RESET)"
+
 # ==================== Documentation ====================
 
 ## docs: Generate and view documentation
@@ -438,6 +514,8 @@ help:
 	@echo "  make run-normalize-force     # Force normalize ALL EPUBs (even if normalized)"
 	@echo "  make run-normalize-all-dry   # Show what would be normalized (dry-run)"
 	@echo "  make demo-normalize          # Demo normalization on sample library"
+	@echo "  make completion-install      # Install shell completion (auto-detects shell)"
+	@echo "  make completion-generate     # Generate all completion scripts"
 	@echo "  make check          # Run all code quality checks"
 	@echo "  make info           # Show project information"
 	@echo ""

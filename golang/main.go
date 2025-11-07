@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/charmbracelet/bubbles/progress"
@@ -46,6 +49,43 @@ var (
 			Bold(true).
 			Foreground(lipgloss.Color("212"))
 )
+
+// handleCompletion handles the completion subcommand
+func handleCompletion(args []string) {
+	if len(args) == 0 {
+		fmt.Println("Usage: ebook-mechanic completion <shell>")
+		fmt.Println("Available shells: bash, zsh, fish, powershell")
+		fmt.Println()
+		fmt.Println("Examples:")
+		fmt.Println("  # Install bash completion")
+		fmt.Println("  ebook-mechanic completion bash > /etc/bash_completion.d/ebook-mechanic")
+		fmt.Println()
+		fmt.Println("  # Install zsh completion")
+		fmt.Println("  ebook-mechanic completion zsh > ~/.zsh_completion/_ebook-mechanic")
+		fmt.Println()
+		fmt.Println("  # Install fish completion")
+		fmt.Println("  ebook-mechanic completion fish > ~/.config/fish/completions/ebook-mechanic.fish")
+		fmt.Println()
+		fmt.Println("  # Install PowerShell completion")
+		fmt.Println("  ebook-mechanic completion powershell > ebook-mechanic.ps1")
+		os.Exit(0)
+	}
+
+	shell := strings.ToLower(args[0])
+	switch shell {
+	case "bash":
+		fmt.Print(bashCompletion())
+	case "zsh":
+		fmt.Print(zshCompletion())
+	case "fish":
+		fmt.Print(fishCompletion())
+	case "powershell", "pwsh":
+		fmt.Print(powershellCompletion())
+	default:
+		fmt.Fprintf(os.Stderr, "Error: Unsupported shell '%s'. Supported shells: bash, zsh, fish, powershell\n", shell)
+		os.Exit(1)
+	}
+}
 
 // Phase represents different stages of the application
 type Phase int
@@ -190,32 +230,64 @@ func doScan(scanner *FileScanner) tea.Cmd {
 // The returned command also includes a spinner tick and a progress listener.
 func doRepair(scanner *FileScanner, progressChan chan progressMsg) tea.Cmd {
 	return func() tea.Msg {
-		results := []RepairResult{}
-		repairedCount := 0
-		totalFiles := len(scanner.Result.CorruptedFiles)
-
-		for i, corruptedFile := range scanner.Result.CorruptedFiles {
-			// Send progress update
-			select {
-			case progressChan <- progressMsg{
-				current: i + 1,
-				total:   totalFiles,
-				item:    filepath.Base(corruptedFile.Path),
-			}:
-			default:
-			}
-
-			// Attempt repair
-			result := RepairFile(corruptedFile.Path)
-			results = append(results, result)
-			if result.Fixed {
-				repairedCount++
-			}
+		files := scanner.Result.CorruptedFiles
+		totalFiles := len(files)
+		if totalFiles == 0 {
+			return repairCompleteMsg{}
 		}
+
+		workerCount := runtime.NumCPU()
+		if workerCount > totalFiles {
+			workerCount = totalFiles
+		}
+		if workerCount < 1 {
+			workerCount = 1
+		}
+
+		jobs := make(chan CorruptedFile, workerCount)
+		results := make([]RepairResult, 0, totalFiles)
+		var resultsMu sync.Mutex
+		var repairedCount atomic.Int32
+		var processed atomic.Int32
+
+		var wg sync.WaitGroup
+		for i := 0; i < workerCount; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for job := range jobs {
+					result := RepairFile(job.Path)
+					if result.Fixed {
+						repairedCount.Add(1)
+					}
+					resultsMu.Lock()
+					results = append(results, result)
+					resultsMu.Unlock()
+
+					if progressChan != nil {
+						current := int(processed.Add(1))
+						select {
+						case progressChan <- progressMsg{
+							current: current,
+							total:   totalFiles,
+							item:    filepath.Base(job.Path),
+						}:
+						default:
+						}
+					}
+				}
+			}()
+		}
+
+		for _, corruptedFile := range files {
+			jobs <- corruptedFile
+		}
+		close(jobs)
+		wg.Wait()
 
 		return repairCompleteMsg{
 			results:       results,
-			repairedCount: repairedCount,
+			repairedCount: int(repairedCount.Load()),
 		}
 	}
 }
@@ -223,44 +295,64 @@ func doRepair(scanner *FileScanner, progressChan chan progressMsg) tea.Cmd {
 // doNormalize starts the normalization process for EPUB files and returns a Batch command that will return a normalizeCompleteMsg{} when the normalization process is complete.
 func doNormalize(scanner *FileScanner, progressChan chan progressMsg, keepBackups bool, forceNormalize bool) tea.Cmd {
 	return func() tea.Msg {
-		results := []NormalizeResult{}
-		normalizedCount := 0
-
-		// Find ALL EPUB files for normalization (not just corrupted ones)
 		epubPaths := scanner.ScanForAllEPUBs()
+		totalFiles := len(epubPaths)
+		if totalFiles == 0 {
+			return normalizeCompleteMsg{}
+		}
 
-		// Convert paths to CorruptedFile structs for compatibility with existing code
-		epubFiles := []CorruptedFile{}
+		workerCount := runtime.NumCPU()
+		if workerCount > totalFiles {
+			workerCount = totalFiles
+		}
+		if workerCount < 1 {
+			workerCount = 1
+		}
+
+		jobs := make(chan string, workerCount)
+		results := make([]NormalizeResult, 0, totalFiles)
+		var resultsMu sync.Mutex
+		var normalizedCount atomic.Int32
+		var processed atomic.Int32
+
+		var wg sync.WaitGroup
+		for i := 0; i < workerCount; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for path := range jobs {
+					result := NormalizeEPUBWithDryRun(path, keepBackups, false, forceNormalize)
+					if result.Modified {
+						normalizedCount.Add(1)
+					}
+					resultsMu.Lock()
+					results = append(results, result)
+					resultsMu.Unlock()
+
+					if progressChan != nil {
+						current := int(processed.Add(1))
+						select {
+						case progressChan <- progressMsg{
+							current: current,
+							total:   totalFiles,
+							item:    filepath.Base(path),
+						}:
+						default:
+						}
+					}
+				}
+			}()
+		}
+
 		for _, path := range epubPaths {
-			epubFiles = append(epubFiles, CorruptedFile{
-				Path:   path,
-				Reason: "Selected for normalization",
-			})
+			jobs <- path
 		}
-
-		totalFiles := len(epubFiles)
-		for i, epubFile := range epubFiles {
-			// Send progress update
-			select {
-			case progressChan <- progressMsg{
-				current: i + 1,
-				total:   totalFiles,
-				item:    filepath.Base(epubFile.Path),
-			}:
-			default:
-			}
-
-			// Attempt normalization (TUI mode is never dry-run)
-			result := NormalizeEPUBWithDryRun(epubFile.Path, keepBackups, false, forceNormalize)
-			results = append(results, result)
-			if result.Modified {
-				normalizedCount++
-			}
-		}
+		close(jobs)
+		wg.Wait()
 
 		return normalizeCompleteMsg{
 			results:         results,
-			normalizedCount: normalizedCount,
+			normalizedCount: int(normalizedCount.Load()),
 		}
 	}
 }
@@ -702,6 +794,12 @@ func statusIcon(corrupted int) string {
 // -no-tui: disable TUI, use simple output
 // -repair: attempt to repair corrupted files before moving them
 func main() {
+	// Check for completion command first
+	if len(os.Args) >= 2 && os.Args[1] == "completion" {
+		handleCompletion(os.Args[2:])
+		return
+	}
+
 	// Command-line flags
 	var (
 		directory        = flag.String("dir", ".", "Root directory to scan")
@@ -907,6 +1005,110 @@ report:
 	}
 	fmt.Printf("Folders scanned:   %d\n", scanner.Result.TotalFolders)
 	fmt.Printf("Empty folders:     %d\n", len(scanner.Result.EmptyFolders))
-	fmt.Printf("\nReport: %s\n", reportPath)
+	fmt.Printf("Report: %s\n", reportPath)
 	fmt.Printf("Completed in: %s\n", elapsed.Round(time.Second))
+}
+
+// bashCompletion returns the bash completion script
+func bashCompletion() string {
+	return `# ebook-mechanic bash completion
+_ebook_mechanic() {
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    opts="-dir -corrupted-dir -corruption-only -empty-folders-only -dry-run -no-confirm -no-tui -repair -normalize-epub -force-normalize -keep-backups -clean-backups"
+
+    case "${prev}" in
+        -dir|-corrupted-dir)
+            COMPREPLY=( $(compgen -d -- "${cur}") )
+            return 0
+            ;;
+    esac
+
+    COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+    return 0
+}
+
+complete -F _ebook_mechanic ebook-mechanic
+`
+}
+
+// zshCompletion returns the zsh completion script
+func zshCompletion() string {
+	return `#compdef ebook-mechanic
+
+_ebook_mechanic() {
+    local context state state_descr line
+    typeset -A opt_args
+
+    _arguments \
+        '-dir[Root directory to scan]:directory:_directories' \
+        '-corrupted-dir[Directory for corrupted files]:directory:_directories' \
+        '-corruption-only[Only check for corrupted files]' \
+        '-empty-folders-only[Only check for empty folders]' \
+        '-dry-run[Scan only, do not modify anything]' \
+        '-no-confirm[Skip confirmation prompts]' \
+        '-no-tui[Disable TUI, use simple output]' \
+        '-repair[Attempt to repair corrupted files before moving them]' \
+        '-normalize-epub[Normalize EPUB files to Sigil standards (implies -repair)]' \
+        '-force-normalize[Force normalization even if EPUB appears already normalized]' \
+        '-keep-backups[Keep .backup files after successful operations]' \
+        '-clean-backups[Remove existing .backup files in directory]'
+}
+
+_ebook_mechanic "$@"
+`
+}
+
+// fishCompletion returns the fish completion script
+func fishCompletion() string {
+	return `# ebook-mechanic fish completion
+complete -c ebook-mechanic -s h -l help -d 'Show help'
+complete -c ebook-mechanic -o dir -d 'Root directory to scan' -r -F
+complete -c ebook-mechanic -o corrupted-dir -d 'Directory for corrupted files' -r -F
+complete -c ebook-mechanic -o corruption-only -d 'Only check for corrupted files'
+complete -c ebook-mechanic -o empty-folders-only -d 'Only check for empty folders'
+complete -c ebook-mechanic -o dry-run -d 'Scan only, do not modify anything'
+complete -c ebook-mechanic -o no-confirm -d 'Skip confirmation prompts'
+complete -c ebook-mechanic -o no-tui -d 'Disable TUI, use simple output'
+complete -c ebook-mechanic -o repair -d 'Attempt to repair corrupted files before moving them'
+complete -c ebook-mechanic -o normalize-epub -d 'Normalize EPUB files to Sigil standards (implies -repair)'
+complete -c ebook-mechanic -o force-normalize -d 'Force normalization even if EPUB appears already normalized'
+complete -c ebook-mechanic -o keep-backups -d 'Keep .backup files after successful operations'
+complete -c ebook-mechanic -o clean-backups -d 'Remove existing .backup files in directory'
+
+# Completion subcommand
+complete -c ebook-mechanic -n '__fish_use_subcommand' -a completion -d 'Generate shell completion scripts'
+complete -c ebook-mechanic -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish powershell' -d 'Shell type'
+`
+}
+
+// powershellCompletion returns the PowerShell completion script
+func powershellCompletion() string {
+	return `# ebook-mechanic PowerShell completion
+Register-ArgumentCompleter -CommandName ebook-mechanic -ScriptBlock {
+    param($commandName, $wordToComplete, $cursorPosition)
+
+    $flags = @(
+        '-dir',
+        '-corrupted-dir',
+        '-corruption-only',
+        '-empty-folders-only',
+        '-dry-run',
+        '-no-confirm',
+        '-no-tui',
+        '-repair',
+        '-normalize-epub',
+        '-force-normalize',
+        '-keep-backups',
+        '-clean-backups'
+    )
+
+    $flags | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+        [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_)
+    }
+}
+`
 }

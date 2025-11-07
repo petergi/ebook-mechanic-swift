@@ -5,16 +5,23 @@ A blazing-fast command-line tool for managing ebook libraries with a beautiful T
 ## Features
 
 - ✅ **Lightning Fast**: Written in Go for maximum performance
-- 🎨 **Beautiful TUI**: Powered by Bubble Tea framework
+- 🎨 **Pretty TUI**: Powered by Bubble Tea framework
 - 📊 **Real-time Progress**: Live progress bars and spinners
 - 🔍 **Corruption Detection**: Validates EPUB, MOBI, AZW3, AZW4, and PDF files
 - 🔧 **Auto-Repair**: Automatically fixes corrupted ebooks when possible
-- � **EPUB Normalization**: Restructures EPUBs to Sigil standards with proper file extensions and manifest IDs
-- �🗑️ **Smart Cleanup**: Identifies and removes folders without ebooks
+- 📕 **EPUB Normalization**: Restructures EPUBs to Sigil standards with proper file extensions and manifest IDs
+- 🗑️ **Smart Cleanup**: Identifies and removes folders without ebooks
 - 📄 **Markdown Reports**: Generates detailed reports
 - 🔒 **Safe Operations**: Confirmation prompts and dry-run mode
 - ⚡ **Concurrent**: Fast multi-threaded file processing
 - 🧪 **Well Tested**: 48.2% test coverage with comprehensive unit tests
+
+### Performance Highlights (Go Edition)
+
+- 🔁 **Single-Pass Scanner** – streams files through a worker pool instead of walking the directory tree twice
+- 🧵 **Parallel Repairs/Normalization** – CPU-heavy ZIP/PDF work fans out across all cores
+- 🧠 **Cached EPUB Index** – normalization reuses paths collected during the corruption scan (no second disk sweep)
+- 💾 **Streaming Repairs** – PDF/MOBI fixers touch only the necessary file regions, keeping memory usage low
 
 ## Installation
 
@@ -154,6 +161,86 @@ Point EbookMechanic at the generated directory with the usual flags, e.g. `./ebo
 
 # Simple mode without TUI with repair and normalization
 ./ebook-mechanic -no-tui -repair -normalize-epub
+```
+
+## Shell Completion
+
+EbookMechanic supports tab completion for bash, zsh, fish, and PowerShell.
+
+### Quick Installation
+
+**Auto-detect and install for current shell:**
+
+```bash
+make completion-install
+```
+
+**Manual installation:**
+
+```bash
+# Bash completion
+make completion-bash
+
+# Zsh completion  
+make completion-zsh
+
+# Fish completion
+make completion-fish
+
+# PowerShell completion
+make completion-powershell
+```
+
+**Generate completion scripts to files:**
+
+```bash
+make completion-generate
+```
+
+This creates completion scripts in the `completions/` directory that you can source or install manually.
+
+### Manual Installation Instructions
+
+**Bash:**
+
+```bash
+# System-wide (requires sudo)
+sudo ebook-mechanic completion bash > /etc/bash_completion.d/ebook-mechanic
+
+# User-specific
+ebook-mechanic completion bash > ~/.bash_completions/ebook-mechanic
+echo "source ~/.bash_completions/ebook-mechanic" >> ~/.bashrc
+```
+
+**Zsh:**
+
+```bash
+# Create completions directory if it doesn't exist
+mkdir -p ~/.zsh/completions
+
+# Generate completion
+ebook-mechanic completion zsh > ~/.zsh/completions/_ebook-mechanic
+
+# Add to ~/.zshrc
+echo "fpath=(~/.zsh/completions \$fpath)" >> ~/.zshrc
+echo "autoload -U compinit && compinit" >> ~/.zshrc
+```
+
+**Fish:**
+
+```bash
+# Generate completion
+ebook-mechanic completion fish > ~/.config/fish/completions/ebook-mechanic.fish
+```
+
+**PowerShell:**
+
+```powershell
+# Generate completion script
+ebook-mechanic completion powershell > ebook-mechanic.ps1
+
+# Add to your PowerShell profile
+Add-Content $PROFILE ". $(PWD)/ebook-mechanic.ps1"
 ```
 
 ## How It Works
@@ -561,7 +648,7 @@ Free to use and modify.
 
 - Built with [Bubble Tea](https://github.com/charmbracelet/bubbletea)
 - Styled with [Lipgloss](https://github.com/charmbracelet/lipgloss)
-- Created with Claude Code
+- Created with ❤️ by the timidllama
 
 ---
 

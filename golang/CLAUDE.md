@@ -120,7 +120,7 @@ The project follows a simple, flat structure with 5 main Go files:
 #### File Scanner Design
 
 - Skip CORRUPTED directory to avoid scanning previously moved files
-- Two-pass scanning: first count for progress tracking, then process
+- Single-pass `WalkDir` streams jobs into a worker pool (parallel validation)
 - Bottom-up folder traversal ensures child folders are checked before parents
 - Mutex-protected concurrent access to shared result data
 - Optional progress callbacks decouple TUI from core logic
@@ -157,7 +157,7 @@ CLI Flags → FileScanner creation → Bubble Tea model initialization
 
 #### Directory Operations
 
-- Empty folder detection: `hasEbooks()` walks directory tree checking for .epub/.mobi/.azw3/.azw4/.pdf
+- Empty folder detection aggregates ebook presence per directory during a single walk
 - CORRUPTED directory is always skipped (hardcoded path check with `filepath.SkipDir`)
 - Bottom-up folder processing ensures children are evaluated before parents
 - Directory hierarchy is preserved when moving corrupted files

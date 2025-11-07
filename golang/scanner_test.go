@@ -110,45 +110,25 @@ func TestScanForCorruptionSkipsCorruptedDir(t *testing.T) {
 	}
 }
 
-// TestHasEbooks tests the hasEbooks function
-func TestHasEbooks(t *testing.T) {
+// TestScanForAllEPUBs ensures the EPUB discovery cache works before and after scanning
+func TestScanForAllEPUBs(t *testing.T) {
 	tempDir := t.TempDir()
+	createValidEPUB(t, filepath.Join(tempDir, "book.epub"))
+	scanner := NewFileScanner(tempDir, "CORRUPTED")
 
-	t.Run("Directory with ebooks", func(t *testing.T) {
-		dirWithEbooks := filepath.Join(tempDir, "with_ebooks")
-		os.Mkdir(dirWithEbooks, 0755)
+	paths := scanner.ScanForAllEPUBs()
+	if len(paths) != 1 {
+		t.Fatalf("Expected 1 EPUB path before scan, got %d", len(paths))
+	}
 
-		epubFile := filepath.Join(dirWithEbooks, "book.epub")
-		createValidEPUB(t, epubFile)
+	if err := scanner.ScanForCorruption(); err != nil {
+		t.Fatalf("ScanForCorruption failed: %v", err)
+	}
 
-		scanner := NewFileScanner(tempDir, "CORRUPTED")
-		if !scanner.hasEbooks(dirWithEbooks) {
-			t.Error("Expected directory to have ebooks")
-		}
-	})
-
-	t.Run("Directory without ebooks", func(t *testing.T) {
-		dirWithoutEbooks := filepath.Join(tempDir, "no_ebooks")
-		os.Mkdir(dirWithoutEbooks, 0755)
-
-		txtFile := filepath.Join(dirWithoutEbooks, "readme.txt")
-		os.WriteFile(txtFile, []byte("test"), 0644)
-
-		scanner := NewFileScanner(tempDir, "CORRUPTED")
-		if scanner.hasEbooks(dirWithoutEbooks) {
-			t.Error("Expected directory to not have ebooks")
-		}
-	})
-
-	t.Run("Empty directory", func(t *testing.T) {
-		emptyDir := filepath.Join(tempDir, "empty")
-		os.Mkdir(emptyDir, 0755)
-
-		scanner := NewFileScanner(tempDir, "CORRUPTED")
-		if scanner.hasEbooks(emptyDir) {
-			t.Error("Expected empty directory to not have ebooks")
-		}
-	})
+	cached := scanner.ScanForAllEPUBs()
+	if len(cached) != 1 {
+		t.Fatalf("Expected cached EPUB list to have 1 entry, got %d", len(cached))
+	}
 }
 
 // TestScanForEmptyFolders tests empty folder scanning

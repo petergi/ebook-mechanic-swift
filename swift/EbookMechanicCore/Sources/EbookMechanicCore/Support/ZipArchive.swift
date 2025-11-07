@@ -27,6 +27,13 @@ enum ZipError: Error, CustomStringConvertible {
 struct ZipEntry {
     var name: String
     var data: Data
+    var compressionMethod: UInt16
+
+    init(name: String, data: Data, compressionMethod: UInt16 = 0) {
+        self.name = name
+        self.data = data
+        self.compressionMethod = compressionMethod
+    }
 }
 
 struct ZipArchive {
@@ -64,33 +71,40 @@ struct ZipArchive {
                 throw ZipError.invalidUTF8
             }
 
+            let uncompressed = entry.data
+            let method: UInt16 = (entry.name == "mimetype") ? 0 : (entry.compressionMethod == 8 ? 8 : 0)
+            let compressed = (method == 8) ? (try _compressDeflate(uncompressed)) : uncompressed
+            let crc = CRC32.checksum(uncompressed)
+            let compSize = compressed.count
+            let uncompSize = uncompressed.count
+
             let offset = fileData.count
 
-            let crc = CRC32.checksum(entry.data)
             fileData.appendUInt32(0x04034b50)
             fileData.appendUInt16(20) // version needed to extract
             fileData.appendUInt16(0x0800) // general purpose bit flag (UTF-8)
-            fileData.appendUInt16(0) // compression method: stored
+            fileData.appendUInt16(method)
             fileData.appendUInt16(0)
             fileData.appendUInt16(0)
             fileData.appendUInt32(crc)
-            fileData.appendUInt32(UInt32(entry.data.count))
-            fileData.appendUInt32(UInt32(entry.data.count))
+            fileData.appendUInt32(UInt32(compSize))
+            fileData.appendUInt32(UInt32(uncompSize))
             fileData.appendUInt16(UInt16(nameData.count))
             fileData.appendUInt16(0) // extra field length
             fileData.append(nameData)
-            fileData.append(entry.data)
+            fileData.append(compressed)
 
             centralDirectory.appendUInt32(0x02014b50)
             centralDirectory.appendUInt16(0x031E) // version made by (arbitrary)
             centralDirectory.appendUInt16(20) // version needed to extract
             centralDirectory.appendUInt16(0x0800)
+            centralDirectory.appendUInt16(method)
             centralDirectory.appendUInt16(0)
             centralDirectory.appendUInt16(0)
             centralDirectory.appendUInt16(0)
             centralDirectory.appendUInt32(crc)
-            centralDirectory.appendUInt32(UInt32(entry.data.count))
-            centralDirectory.appendUInt32(UInt32(entry.data.count))
+            centralDirectory.appendUInt32(UInt32(compSize))
+            centralDirectory.appendUInt32(UInt32(uncompSize))
             centralDirectory.appendUInt16(UInt16(nameData.count))
             centralDirectory.appendUInt16(0) // extra field length
             centralDirectory.appendUInt16(0) // comment length
@@ -158,7 +172,7 @@ private extension Data {
             return nil
         }
 
-        let compressionMethod = readUInt16LE(at: offset + 8)
+        let compressionMethod: UInt16 = readUInt16LE(at: offset + 8)
         let compressedSize = Int(readUInt32LE(at: offset + 18))
         let uncompressedSize = Int(readUInt32LE(at: offset + 22))
         let nameLength = Int(readUInt16LE(at: offset + 26))
@@ -192,7 +206,7 @@ private extension Data {
         }
 
         offset = dataEnd
-        return ZipEntry(name: name, data: data)
+        return ZipEntry(name: name, data: data, compressionMethod: compressionMethod)
     }
 
     func decompressDeflate(data: Data, expectedSize: Int) throws -> Data {
@@ -216,6 +230,61 @@ private extension Data {
         }
 
         return destination
+    }
+    
+    func compressDeflate(data: Data) throws -> Data {
+        let dstCapacity = compression_encode_scratch_buffer_size(COMPRESSION_ZLIB)
+        let dstBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: max(64, data.count))
+        let scratch = UnsafeMutableRawPointer.allocate(byteCount: dstCapacity, alignment: MemoryLayout<Int>.alignment)
+        defer {
+            dstBuffer.deallocate()
+            scratch.deallocate()
+        }
+        var output = Data()
+        let chunkSize = max(1024, data.count)
+        data.withUnsafeBytes { srcPtr in
+            let src = srcPtr.baseAddress!.assumingMemoryBound(to: UInt8.self)
+            let compressedSize = compression_encode_buffer(dstBuffer, max(64, data.count), src, data.count, scratch, COMPRESSION_ZLIB)
+            if compressedSize > 0 {
+                output.append(dstBuffer, count: compressedSize)
+            }
+        }
+        return output
+    }
+}
+
+private func _compressDeflate(_ data: Data) throws -> Data {
+    // Allocate an output buffer that's reasonably larger than input to accommodate overhead.
+    let initialCapacity = max(256, data.count + data.count / 16 + 64)
+    var capacity = initialCapacity
+    while true {
+        let dstBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: capacity)
+        defer { dstBuffer.deallocate() }
+        let scratchSize = compression_encode_scratch_buffer_size(COMPRESSION_ZLIB)
+        let scratch = UnsafeMutableRawPointer.allocate(byteCount: scratchSize, alignment: MemoryLayout<UInt8>.alignment)
+        defer { scratch.deallocate() }
+        var written = 0
+        let result = data.withUnsafeBytes { srcPtr -> Int in
+            guard let srcBase = srcPtr.baseAddress else { return 0 }
+            return compression_encode_buffer(
+                dstBuffer,
+                capacity,
+                srcBase.assumingMemoryBound(to: UInt8.self),
+                data.count,
+                scratch,
+                COMPRESSION_ZLIB
+            )
+        }
+        written = result
+        if written > 0 && written <= capacity {
+            return Data(bytes: dstBuffer, count: written)
+        }
+        // Increase capacity and retry if buffer was insufficient.
+        capacity *= 2
+        if capacity > data.count * 8 + 1024 {
+            // Fallback: return original data if we somehow cannot compress sensibly.
+            return data
+        }
     }
 }
 

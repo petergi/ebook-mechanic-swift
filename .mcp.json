@@ -1,0 +1,59 @@
+{
+  "mcpServers": {
+    "fetch": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-fetch"
+      ]
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_TOKEN>"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/path/to/allowed/files"
+      ]
+    },
+    "markitdown": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "markitdown-mcp:latest"
+      ]
+    },
+    "@microsoft/clarity-mcp-server": {
+      "command": "npx",
+      "args": [
+        "@microsoft/clarity-mcp-server",
+        "--clarity_api_token=your-api-token-here"
+      ]
+    },
+    "DevBox": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@microsoft/devbox-mcp@latest"
+      ]
+    },
+    "aks": {
+      "command": "<path of binary aks-mcp>",
+      "args": [
+        "--transport",
+        "stdio"
+      ]
+    }
+  }
+}

@@ -194,17 +194,16 @@ func RepairPDF(filePath string) RepairResult {
 		}
 	}
 
-	// Read the file
-	data, err := os.ReadFile(filePath)
+	stat, err := os.Stat(filePath)
 	if err != nil {
 		return RepairResult{
 			Success: false,
-			Message: fmt.Sprintf("Failed to read file: %v", err),
+			Message: fmt.Sprintf("Failed to stat file: %v", err),
 			Fixed:   false,
 		}
 	}
 
-	if len(data) < 5 {
+	if stat.Size() < 5 {
 		return RepairResult{
 			Success: false,
 			Message: "File too small to repair",
@@ -212,8 +211,26 @@ func RepairPDF(filePath string) RepairResult {
 		}
 	}
 
-	// Check if PDF header is present
-	if !bytes.HasPrefix(data, []byte("%PDF-")) {
+	file, err := os.OpenFile(filePath, os.O_RDWR, 0644)
+	if err != nil {
+		return RepairResult{
+			Success: false,
+			Message: fmt.Sprintf("Failed to open file: %v", err),
+			Fixed:   false,
+		}
+	}
+	defer file.Close()
+
+	header := make([]byte, 5)
+	if _, err := file.ReadAt(header, 0); err != nil {
+		return RepairResult{
+			Success: false,
+			Message: fmt.Sprintf("Cannot read header: %v", err),
+			Fixed:   false,
+		}
+	}
+
+	if !bytes.HasPrefix(header, []byte("%PDF-")) {
 		return RepairResult{
 			Success: false,
 			Message: "Missing PDF header, cannot repair",
@@ -221,15 +238,20 @@ func RepairPDF(filePath string) RepairResult {
 		}
 	}
 
-	// Check for EOF marker in last 1KB
-	tailStart := len(data) - 1024
-	if tailStart < 0 {
-		tailStart = 0
+	tailSize := int64(1024)
+	if stat.Size() < tailSize {
+		tailSize = stat.Size()
 	}
-	tail := data[tailStart:]
+	tail := make([]byte, tailSize)
+	if _, err := file.ReadAt(tail, stat.Size()-tailSize); err != nil {
+		return RepairResult{
+			Success: false,
+			Message: fmt.Sprintf("Cannot read tail: %v", err),
+			Fixed:   false,
+		}
+	}
 
 	if !bytes.Contains(tail, []byte("%%EOF")) {
-		// Add missing EOF marker
 		backupPath := filePath + ".backup"
 		if err := copyFile(filePath, backupPath); err != nil {
 			return RepairResult{
@@ -239,9 +261,16 @@ func RepairPDF(filePath string) RepairResult {
 			}
 		}
 
-		// Append EOF marker
-		data = append(data, []byte("\n%%EOF\n")...)
-		if err := os.WriteFile(filePath, data, 0644); err != nil {
+		if _, err := file.Seek(0, io.SeekEnd); err != nil {
+			_ = os.Remove(backupPath)
+			return RepairResult{
+				Success: false,
+				Message: fmt.Sprintf("Failed to seek to end: %v", err),
+				Fixed:   false,
+			}
+		}
+
+		if _, err := file.Write([]byte("\n%%EOF\n")); err != nil {
 			_ = os.Remove(backupPath)
 			return RepairResult{
 				Success: false,
@@ -250,7 +279,15 @@ func RepairPDF(filePath string) RepairResult {
 			}
 		}
 
-		// Verify repair
+		if err := file.Sync(); err != nil {
+			_ = os.Remove(backupPath)
+			return RepairResult{
+				Success: false,
+				Message: fmt.Sprintf("Failed to flush repaired file: %v", err),
+				Fixed:   false,
+			}
+		}
+
 		newValidation := ValidatePDF(filePath)
 		if newValidation.IsValid {
 			_ = os.Remove(backupPath)
@@ -261,7 +298,6 @@ func RepairPDF(filePath string) RepairResult {
 			}
 		}
 
-		// Restore backup if repair didn't work
 		_ = os.Rename(backupPath, filePath)
 		return RepairResult{
 			Success: false,
@@ -290,16 +326,16 @@ func RepairMOBI(filePath string) RepairResult {
 
 	// MOBI format is complex and proprietary
 	// We can only do limited repairs
-	data, err := os.ReadFile(filePath)
+	stat, err := os.Stat(filePath)
 	if err != nil {
 		return RepairResult{
 			Success: false,
-			Message: fmt.Sprintf("Failed to read file: %v", err),
+			Message: fmt.Sprintf("Failed to stat file: %v", err),
 			Fixed:   false,
 		}
 	}
 
-	if len(data) < 68 {
+	if stat.Size() < 68 {
 		return RepairResult{
 			Success: false,
 			Message: "File too small to repair",

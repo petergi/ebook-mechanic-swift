@@ -2,6 +2,7 @@
 build/
 dist/
 coverage/
+completions/
 *.prof
 ebook-mechanic
 ebook-mechanic-*
@@ -30,3 +31,6 @@ test-library/
 
 .fake.bench
 .bench/
+
+.fake
+brk

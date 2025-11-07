@@ -12,6 +12,8 @@ struct ScanOptions {
     var autoMoveCorrupted: Bool = false
     var autoDeleteEmptyFolders: Bool = false
     var generateReport: Bool = false
+    var normalizeEPUBs: Bool = false
+    var forceNormalize: Bool = false
 }
 
 @MainActor
@@ -71,6 +73,9 @@ final class ScanViewModel: ObservableObject {
                     case .repairingFiles:
                         self.progressHeadline = "Repairing Files"
                         self.progressDetail = event.currentItem
+                    case .normalizingFiles:
+                        self.progressHeadline = "Normalizing EPUBs"
+                        self.progressDetail = event.currentItem
                     }
                 }
             }
@@ -111,6 +116,13 @@ final class ScanViewModel: ObservableObject {
                         self.statusMessages.append("Moved corrupted files to \(options.corruptedDirectoryName)")
                     }
                 }
+
+                if options.normalizeEPUBs {
+                    let (normalized, skipped) = await scanner.normalizeEPUBs(force: options.forceNormalize, dryRun: options.dryRun, progress: progressHandler)
+                    await MainActor.run {
+                        self.statusMessages.append("EPUB normalization: normalized=\(normalized), skipped=\(skipped)")
+                    }
+                }
             }
 
             if !options.corruptionOnly {
@@ -147,3 +159,4 @@ final class ScanViewModel: ObservableObject {
         }
     }
 }
+

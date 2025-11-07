@@ -307,10 +307,11 @@ func TestValidateFile(t *testing.T) {
 
 // Helper functions to create test files
 
-func createValidEPUB(t *testing.T, path string) {
+func createValidEPUB(tb testing.TB, path string) {
+	tb.Helper()
 	f, err := os.Create(path)
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	defer f.Close()
 
@@ -331,10 +332,11 @@ func createValidEPUB(t *testing.T, path string) {
 </container>`))
 }
 
-func createEPUBWithoutMimetype(t *testing.T, path string) {
+func createEPUBWithoutMimetype(tb testing.TB, path string) {
+	tb.Helper()
 	f, err := os.Create(path)
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	defer f.Close()
 
@@ -346,10 +348,11 @@ func createEPUBWithoutMimetype(t *testing.T, path string) {
 	containerFile.Write([]byte(`<?xml version="1.0"?><container></container>`))
 }
 
-func createEPUBWithWrongMimetype(t *testing.T, path string) {
+func createEPUBWithWrongMimetype(tb testing.TB, path string) {
+	tb.Helper()
 	f, err := os.Create(path)
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	defer f.Close()
 
@@ -365,10 +368,11 @@ func createEPUBWithWrongMimetype(t *testing.T, path string) {
 	containerFile.Write([]byte(`<?xml version="1.0"?><container></container>`))
 }
 
-func createEPUBWithoutContainer(t *testing.T, path string) {
+func createEPUBWithoutContainer(tb testing.TB, path string) {
+	tb.Helper()
 	f, err := os.Create(path)
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	defer f.Close()
 
@@ -380,7 +384,8 @@ func createEPUBWithoutContainer(t *testing.T, path string) {
 	mimeFile.Write([]byte("application/epub+zip"))
 }
 
-func createValidMOBI(t *testing.T, path string, identifier string) {
+func createValidMOBI(tb testing.TB, path string, identifier string) {
+	tb.Helper()
 	header := make([]byte, 100)
 	// Set some non-zero bytes in PalmDB name (first 32 bytes)
 	copy(header[0:], []byte("Test MOBI File"))
@@ -388,11 +393,12 @@ func createValidMOBI(t *testing.T, path string, identifier string) {
 	copy(header[60:], []byte(identifier))
 
 	if err := os.WriteFile(path, header, 0644); err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 }
 
-func createInvalidMOBI(t *testing.T, path string) {
+func createInvalidMOBI(tb testing.TB, path string) {
+	tb.Helper()
 	header := make([]byte, 100)
 	// Set some non-zero bytes in PalmDB name
 	copy(header[0:], []byte("Test File"))
@@ -400,22 +406,24 @@ func createInvalidMOBI(t *testing.T, path string) {
 	copy(header[60:], []byte("NOTMOBI!"))
 
 	if err := os.WriteFile(path, header, 0644); err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 }
 
-func createMOBIWithZeroHeader(t *testing.T, path string) {
+func createMOBIWithZeroHeader(tb testing.TB, path string) {
+	tb.Helper()
 	header := make([]byte, 100)
 	// Leave first 32 bytes as zeros
 	// Set valid identifier
 	copy(header[60:], []byte("BOOKMOBI"))
 
 	if err := os.WriteFile(path, header, 0644); err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 }
 
-func createValidPDF(t *testing.T, path string) {
+func createValidPDF(tb testing.TB, path string) {
+	tb.Helper()
 	content := []byte("%PDF-1.4\n")
 	// Add enough content to pass size check
 	for i := 0; i < 20; i++ {
@@ -424,11 +432,12 @@ func createValidPDF(t *testing.T, path string) {
 	content = append(content, []byte("%%EOF\n")...)
 
 	if err := os.WriteFile(path, content, 0644); err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 }
 
-func createPDFWithoutEOF(t *testing.T, path string) {
+func createPDFWithoutEOF(tb testing.TB, path string) {
+	tb.Helper()
 	content := []byte("%PDF-1.4\n")
 	// Add enough content to pass size check but no EOF marker
 	for i := 0; i < 20; i++ {
@@ -436,6 +445,6 @@ func createPDFWithoutEOF(t *testing.T, path string) {
 	}
 
 	if err := os.WriteFile(path, content, 0644); err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 }

@@ -86,10 +86,90 @@ public struct ScanResult: Sendable, Codable, Equatable {
 public struct ValidationResult: Sendable, Codable, Equatable {
     public var isValid: Bool
     public var reason: String
+    /// Optional fingerprint result for formats where a content fingerprint can be computed (PDF).
+    public var fingerprint: FingerprintResult?
 
-    public init(isValid: Bool, reason: String) {
+    public init(isValid: Bool, reason: String, fingerprint: FingerprintResult? = nil) {
         self.isValid = isValid
         self.reason = reason
+        self.fingerprint = fingerprint
+    }
+}
+
+/// Represents the outcome of attempting to compute a content-based fingerprint for a file.
+public enum FingerprintResult: Sendable, Equatable, Codable {
+    case content(String)   // content-based fingerprint (stable across metadata changes)
+    case fileHash(String)  // raw file hash fallback
+    case encrypted         // file is encrypted/password-protected
+    case unavailable(String) // reason why fingerprint couldn't be computed
+
+    private enum CodingKeys: String, CodingKey {
+        case type
+        case value
+    }
+
+    private enum Kind: String, Codable {
+        case content, fileHash, encrypted, unavailable
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let kind = try container.decode(Kind.self, forKey: .type)
+        switch kind {
+        case .content:
+            let v = try container.decode(String.self, forKey: .value)
+            self = .content(v)
+        case .fileHash:
+            let v = try container.decode(String.self, forKey: .value)
+            self = .fileHash(v)
+        case .encrypted:
+            self = .encrypted
+        case .unavailable:
+            let v = try container.decode(String.self, forKey: .value)
+            self = .unavailable(v)
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .content(let v):
+            try container.encode(Kind.content, forKey: .type)
+            try container.encode(v, forKey: .value)
+        case .fileHash(let v):
+            try container.encode(Kind.fileHash, forKey: .type)
+            try container.encode(v, forKey: .value)
+        case .encrypted:
+            try container.encode(Kind.encrypted, forKey: .type)
+        case .unavailable(let v):
+            try container.encode(Kind.unavailable, forKey: .type)
+            try container.encode(v, forKey: .value)
+        }
+    }
+}
+
+/// Lightweight event emitted during lengthy operations.
+public struct ProgressEvent: Sendable, Equatable {
+    public enum Stage: Sendable, Equatable {
+        case scanningFiles
+        case validatingFile(URL)
+        case scanningFolders
+        case movingCorruptedFiles
+        case deletingEmptyFolders
+        case repairingFiles
+        case normalizingFiles
+    }
+
+    public var stage: Stage
+    public var completed: Int
+    public var total: Int
+    public var currentItem: String
+
+    public init(stage: Stage, completed: Int, total: Int, currentItem: String) {
+        self.stage = stage
+        self.completed = completed
+        self.total = total
+        self.currentItem = currentItem
     }
 }
 
@@ -103,29 +183,5 @@ public struct RepairResult: Sendable, Codable, Equatable {
         self.success = success
         self.message = message
         self.fixed = fixed
-    }
-}
-
-/// Lightweight event emitted during lengthy operations.
-public struct ProgressEvent: Sendable, Equatable {
-    public enum Stage: Sendable, Equatable {
-        case scanningFiles
-        case validatingFile(URL)
-        case scanningFolders
-        case movingCorruptedFiles
-        case deletingEmptyFolders
-        case repairingFiles
-    }
-
-    public var stage: Stage
-    public var completed: Int
-    public var total: Int
-    public var currentItem: String
-
-    public init(stage: Stage, completed: Int, total: Int, currentItem: String) {
-        self.stage = stage
-        self.completed = completed
-        self.total = total
-        self.currentItem = currentItem
     }
 }

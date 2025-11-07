@@ -119,7 +119,19 @@ public struct FileValidator: @unchecked Sendable {
                 return ValidationResult(isValid: false, reason: "Missing %%EOF marker")
             }
 
-            return ValidationResult(isValid: true, reason: "Valid PDF")
+            // Compute content fingerprint (or fallback) and attach it to the validation result.
+            let fp = PDFVerifier.fingerprintResult(for: url)
+            switch fp {
+            case .content:
+                return ValidationResult(isValid: true, reason: "Valid PDF", fingerprint: fp)
+            case .fileHash:
+                return ValidationResult(isValid: true, reason: "Valid PDF (fingerprint fallback used)", fingerprint: fp)
+            case .encrypted:
+                return ValidationResult(isValid: true, reason: "Encrypted PDF - content fingerprint unavailable", fingerprint: fp)
+            case .unavailable(let reason):
+                return ValidationResult(isValid: true, reason: "Valid PDF - fingerprint unavailable: \(reason)", fingerprint: fp)
+            }
+
         } catch {
             return ValidationResult(isValid: false, reason: "Cannot read tail")
         }

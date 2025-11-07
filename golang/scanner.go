@@ -3,8 +3,10 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 // CorruptedFile represents a corrupted ebook file
@@ -18,6 +20,7 @@ type CorruptedFile struct {
 type ScanResult struct {
 	TotalFiles        int
 	CorruptedFiles    []CorruptedFile
+	EPUBPaths         []string
 	EPUBTotal         int
 	EPUBCorrupted     int
 	MOBITotal         int
@@ -58,6 +61,7 @@ func NewFileScanner(rootDir, corruptedDir string) *FileScanner {
 		Result: &ScanResult{
 			CorruptedFiles: make([]CorruptedFile, 0),
 			EmptyFolders:   make([]string, 0),
+			EPUBPaths:      make([]string, 0),
 		},
 	}
 }
@@ -69,138 +73,160 @@ func (fs *FileScanner) SetProgressCallback(callback func(current, total int, ite
 
 // ScanForCorruption scans for corrupted ebook files
 func (fs *FileScanner) ScanForCorruption() error {
-	// First pass: count files
-	var allFiles []string
-	corruptedDirAbs := filepath.Join(fs.RootDir, fs.CorruptedDir)
+	fs.Result = &ScanResult{
+		CorruptedFiles: make([]CorruptedFile, 0),
+		EmptyFolders:   make([]string, 0),
+		EPUBPaths:      make([]string, 0),
+	}
 
-	err := filepath.Walk(fs.RootDir, func(path string, info os.FileInfo, err error) error {
+	type validationJob struct {
+		path string
+		ext  string
+		size int64
+	}
+
+	corruptedDirAbs := filepath.Join(fs.RootDir, fs.CorruptedDir)
+	workerCount := runtime.NumCPU()
+	if workerCount < 1 {
+		workerCount = 1
+	}
+	jobs := make(chan validationJob, workerCount*4)
+	var discovered atomic.Int64
+	var processed atomic.Int64
+
+	var wg sync.WaitGroup
+	for i := 0; i < workerCount; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for job := range jobs {
+				fs.mu.Lock()
+				fs.Result.TotalFiles++
+				switch job.ext {
+				case ".epub":
+					fs.Result.EPUBTotal++
+				case ".mobi":
+					fs.Result.MOBITotal++
+				case ".azw3":
+					fs.Result.AZW3Total++
+				case ".azw4":
+					fs.Result.AZW4Total++
+				case ".pdf":
+					fs.Result.PDFTotal++
+				}
+				fs.mu.Unlock()
+
+				result := ValidateFile(job.path, job.ext)
+
+				if !result.IsValid {
+					corrupted := CorruptedFile{
+						Path:   job.path,
+						Reason: result.Reason,
+						Size:   job.size,
+					}
+
+					fs.mu.Lock()
+					fs.Result.CorruptedFiles = append(fs.Result.CorruptedFiles, corrupted)
+					switch job.ext {
+					case ".epub":
+						fs.Result.EPUBCorrupted++
+					case ".mobi":
+						fs.Result.MOBICorrupted++
+					case ".azw3":
+						fs.Result.AZW3Corrupted++
+					case ".azw4":
+						fs.Result.AZW4Corrupted++
+					case ".pdf":
+						fs.Result.PDFCorrupted++
+					}
+					fs.mu.Unlock()
+				}
+
+				if fs.progressCallback != nil {
+					current := int(processed.Add(1))
+					total := int(discovered.Load())
+					fs.progressCallback(current, total, filepath.Base(job.path))
+				}
+			}
+		}()
+	}
+
+	walkErr := filepath.WalkDir(fs.RootDir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
-			return nil // Skip errors
+			return nil
 		}
 
-		// Skip corrupted directory
 		if strings.HasPrefix(path, corruptedDirAbs) {
-			if info.IsDir() {
+			if d.IsDir() {
 				return filepath.SkipDir
 			}
 			return nil
 		}
 
-		if !info.IsDir() {
-			ext := strings.ToLower(filepath.Ext(path))
-			if fs.EbookExtensions[ext] {
-				allFiles = append(allFiles, path)
-			}
-		}
-		return nil
-	})
-
-	if err != nil {
-		return err
-	}
-
-	// Second pass: validate files
-	for i, filePath := range allFiles {
-		ext := strings.ToLower(filepath.Ext(filePath))
-
-		// Update statistics
-		fs.mu.Lock()
-		fs.Result.TotalFiles++
-		switch ext {
-		case ".epub":
-			fs.Result.EPUBTotal++
-		case ".mobi":
-			fs.Result.MOBITotal++
-		case ".azw3":
-			fs.Result.AZW3Total++
-		case ".azw4":
-			fs.Result.AZW4Total++
-		case ".pdf":
-			fs.Result.PDFTotal++
-		}
-		fs.mu.Unlock()
-
-		// Validate file
-		result := ValidateFile(filePath, ext)
-
-		if !result.IsValid {
-			stat, _ := os.Stat(filePath)
-			corrupted := CorruptedFile{
-				Path:   filePath,
-				Reason: result.Reason,
-				Size:   stat.Size(),
-			}
-
-			fs.mu.Lock()
-			fs.Result.CorruptedFiles = append(fs.Result.CorruptedFiles, corrupted)
-			switch ext {
-			case ".epub":
-				fs.Result.EPUBCorrupted++
-			case ".mobi":
-				fs.Result.MOBICorrupted++
-			case ".azw3":
-				fs.Result.AZW3Corrupted++
-			case ".azw4":
-				fs.Result.AZW4Corrupted++
-			case ".pdf":
-				fs.Result.PDFCorrupted++
-			}
-			fs.mu.Unlock()
-		}
-
-		// Progress callback
-		if fs.progressCallback != nil {
-			fs.progressCallback(i+1, len(allFiles), filepath.Base(filePath))
-		}
-	}
-
-	return nil
-}
-
-// hasEbooks checks if a directory contains any ebook files
-func (fs *FileScanner) hasEbooks(dirPath string) bool {
-	hasEbook := false
-
-	_ = filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
+		if d.IsDir() {
 			return nil
 		}
 
-		if !info.IsDir() {
-			ext := strings.ToLower(filepath.Ext(path))
-			if fs.EbookExtensions[ext] {
-				hasEbook = true
-				return filepath.SkipAll
-			}
+		ext := strings.ToLower(filepath.Ext(path))
+		if !fs.EbookExtensions[ext] {
+			return nil
 		}
+
+		info, infoErr := d.Info()
+		if infoErr != nil {
+			return nil
+		}
+
+		discovered.Add(1)
+		if ext == ".epub" {
+			fs.mu.Lock()
+			fs.Result.EPUBPaths = append(fs.Result.EPUBPaths, path)
+			fs.mu.Unlock()
+		}
+
+		jobs <- validationJob{path: path, ext: ext, size: info.Size()}
 		return nil
 	})
 
-	return hasEbook
+	close(jobs)
+	wg.Wait()
+
+	return walkErr
 }
 
 // ScanForEmptyFolders scans for folders without ebook files
 func (fs *FileScanner) ScanForEmptyFolders() error {
-	var allDirs []string
 	corruptedDirAbs := filepath.Join(fs.RootDir, fs.CorruptedDir)
+	dirs := make([]string, 0)
+	parents := make(map[string]string)
+	dirHasEbooks := make(map[string]bool)
 
-	// Collect all directories bottom-up
-	err := filepath.Walk(fs.RootDir, func(path string, info os.FileInfo, err error) error {
+	err := filepath.WalkDir(fs.RootDir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return nil
 		}
 
-		// Skip corrupted directory
 		if strings.HasPrefix(path, corruptedDirAbs) {
-			if info.IsDir() {
+			if d.IsDir() {
 				return filepath.SkipDir
 			}
 			return nil
 		}
 
-		if info.IsDir() && path != fs.RootDir {
-			allDirs = append(allDirs, path)
+		if d.IsDir() {
+			if path != fs.RootDir {
+				dirs = append(dirs, path)
+				parents[path] = filepath.Dir(path)
+			}
+			return nil
 		}
+
+		ext := strings.ToLower(filepath.Ext(path))
+		if fs.EbookExtensions[ext] {
+			dir := filepath.Dir(path)
+			dirHasEbooks[dir] = true
+		}
+
 		return nil
 	})
 
@@ -208,17 +234,18 @@ func (fs *FileScanner) ScanForEmptyFolders() error {
 		return err
 	}
 
-	// Reverse to process bottom-up
-	for i := len(allDirs)/2 - 1; i >= 0; i-- {
-		opp := len(allDirs) - 1 - i
-		allDirs[i], allDirs[opp] = allDirs[opp], allDirs[i]
-	}
+	fs.mu.Lock()
+	fs.Result.EmptyFolders = fs.Result.EmptyFolders[:0]
+	fs.Result.FoldersWithEbooks = 0
+	fs.Result.TotalFolders = len(dirs)
+	fs.mu.Unlock()
 
-	fs.Result.TotalFolders = len(allDirs)
-
-	// Check each directory
-	for i, dirPath := range allDirs {
-		if fs.hasEbooks(dirPath) {
+	for i := len(dirs) - 1; i >= 0; i-- {
+		dirPath := dirs[i]
+		if dirHasEbooks[dirPath] {
+			if parent, ok := parents[dirPath]; ok {
+				dirHasEbooks[parent] = true
+			}
 			fs.mu.Lock()
 			fs.Result.FoldersWithEbooks++
 			fs.mu.Unlock()
@@ -228,9 +255,9 @@ func (fs *FileScanner) ScanForEmptyFolders() error {
 			fs.mu.Unlock()
 		}
 
-		// Progress callback
 		if fs.progressCallback != nil {
-			fs.progressCallback(i+1, len(allDirs), filepath.Base(dirPath))
+			processed := len(dirs) - i
+			fs.progressCallback(processed, len(dirs), filepath.Base(dirPath))
 		}
 	}
 
@@ -290,20 +317,25 @@ func (fs *FileScanner) DeleteEmptyFolders() error {
 
 // ScanForAllEPUBs finds all EPUB files in the directory tree for normalization
 func (fs *FileScanner) ScanForAllEPUBs() []string {
-	var epubFiles []string
+	fs.mu.Lock()
+	cached := append([]string(nil), fs.Result.EPUBPaths...)
+	fs.mu.Unlock()
 
-	err := filepath.Walk(fs.RootDir, func(path string, info os.FileInfo, err error) error {
+	if len(cached) > 0 {
+		return cached
+	}
+
+	var epubFiles []string
+	err := filepath.WalkDir(fs.RootDir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return nil
 		}
 
-		// Skip corrupted directory
-		if info.IsDir() && filepath.Base(path) == fs.CorruptedDir {
+		if d.IsDir() && filepath.Base(path) == fs.CorruptedDir {
 			return filepath.SkipDir
 		}
 
-		// Check if it's an EPUB file
-		if !info.IsDir() && strings.ToLower(filepath.Ext(path)) == ".epub" {
+		if !d.IsDir() && strings.ToLower(filepath.Ext(path)) == ".epub" {
 			epubFiles = append(epubFiles, path)
 		}
 

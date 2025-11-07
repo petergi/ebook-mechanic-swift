@@ -1,4 +1,3 @@
-import XCTest
 @testable import EbookMechanicApp
 import EbookMechanicCore
 
@@ -14,6 +13,8 @@ final class ScanOptionsTests: XCTestCase {
         XCTAssertFalse(options.autoMoveCorrupted)
         XCTAssertFalse(options.autoDeleteEmptyFolders)
         XCTAssertFalse(options.generateReport)
+        XCTAssertFalse(options.normalizeEPUBs)
+        XCTAssertFalse(options.forceNormalize)
     }
 
     @MainActor
@@ -61,3 +62,4 @@ final class ScanOptionsTests: XCTestCase {
         try? FileManager.default.removeItem(at: tempDir)
     }
 }
+
