@@ -39,6 +39,16 @@ enum TestFixtures {
         try archive.write(to: url)
     }
 
+    static func createEPUBWithLateMimetype(at url: URL) throws {
+        let archive = ZipArchive(entries: [
+            ZipEntry(name: "content.xhtml", data: Data("<html></html>".utf8), compressionMethod: 8),
+            ZipEntry(name: "META-INF/container.xml", data: Data(validContainerXML.utf8), compressionMethod: 8),
+            ZipEntry(name: "mimetype", data: Data("application/epub+zip".utf8), compressionMethod: 8)
+        ])
+        try archive.write(to: url)
+    }
+
+
     static func createMOBI(with identifier: String, at url: URL) throws {
         var header = Data(count: 100)
         header.replaceSubrange(0..<identifier.count, with: Data("Test MOBI File".utf8))

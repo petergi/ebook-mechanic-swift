@@ -43,15 +43,42 @@ public struct FileRepairer: @unchecked Sendable {
             var archive = try ZipArchive.load(from: url)
             var fixed = false
 
-            if archive.entry(named: "mimetype") == nil {
-                archive.entries.append(ZipEntry(name: "mimetype", data: Data("application/epub+zip".utf8)))
-                fixed = true
+            let expectedMimeData = Data("application/epub+zip".utf8)
+            var entries = archive.entries
+
+            func ensureMimetypeIsFirstStored() {
+                var needsInsert = true
+                if let index = entries.firstIndex(where: { $0.name == "mimetype" }) {
+                    if index == 0, entries[index].compressionMethod == 0, entries[index].data == expectedMimeData {
+                        needsInsert = false
+                    } else {
+                        entries.remove(at: index)
+                    }
+                }
+
+                if needsInsert {
+                    entries.insert(ZipEntry(name: "mimetype", data: expectedMimeData, compressionMethod: 0), at: 0)
+                    fixed = true
+                }
             }
 
-            if archive.entry(named: "META-INF/container.xml") == nil {
-                archive.entries.append(ZipEntry(name: "META-INF/container.xml", data: Data(Self.defaultContainerXML.utf8)))
-                fixed = true
+            func ensureContainerExists() {
+                let normalizedName = "META-INF/container.xml"
+                if let idx = entries.firstIndex(where: { $0.name.caseInsensitiveCompare(normalizedName) == .orderedSame }) {
+                    if entries[idx].name != normalizedName {
+                        entries[idx].name = normalizedName
+                        fixed = true
+                    }
+                } else {
+                    entries.append(ZipEntry(name: normalizedName, data: Data(Self.defaultContainerXML.utf8), compressionMethod: 8))
+                    fixed = true
+                }
             }
+
+            ensureMimetypeIsFirstStored()
+            ensureContainerExists()
+
+            archive.entries = entries
 
             guard fixed else {
                 try? fileManager.removeItem(at: backupURL)

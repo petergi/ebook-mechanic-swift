@@ -29,7 +29,8 @@ final class RepairTests: XCTestCase {
         XCTAssertTrue(result.fixed)
 
         let archive = try ZipArchive.load(from: epubURL)
-        XCTAssertNotNil(archive.entry(named: "mimetype"))
+        XCTAssertEqual(archive.entries.first?.name, "mimetype")
+        XCTAssertEqual(archive.entries.first?.compressionMethod, 0)
         XCTAssertNotNil(archive.entry(named: "META-INF/container.xml"))
     }
 

@@ -44,6 +44,14 @@ public struct FileValidator: @unchecked Sendable {
                 return ValidationResult(isValid: false, reason: "Missing META-INF/container.xml")
             }
 
+            if let firstEntry = archive.entries.first, firstEntry.name != "mimetype" {
+                return ValidationResult(isValid: false, reason: "mimetype must be first entry")
+            }
+
+            if let firstEntry = archive.entries.first, firstEntry.compressionMethod != 0 {
+                return ValidationResult(isValid: false, reason: "mimetype must be stored uncompressed")
+            }
+
             let mimetypeValue = String(data: mimetype.data, encoding: .utf8) ?? ""
             guard mimetypeValue == "application/epub+zip" else {
                 return ValidationResult(isValid: false, reason: "Invalid mimetype: \(mimetypeValue)")
