@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/zip"
 	"os"
 	"path/filepath"
 	"testing"
@@ -74,6 +75,40 @@ func TestRepairEPUB(t *testing.T) {
 		}
 		if result.Fixed {
 			t.Error("Expected file not to be fixed")
+		}
+	})
+
+	t.Run("Reorders mimetype to first uncompressed entry", func(t *testing.T) {
+		tempFile := filepath.Join(os.TempDir(), "reorder.epub")
+		createEPUBWithLateMimetype(t, tempFile)
+		defer os.Remove(tempFile)
+		defer os.Remove(tempFile + ".backup")
+
+		result := RepairEPUB(tempFile)
+		if !result.Success || !result.Fixed {
+			t.Fatalf("expected successful repair, got %+v", result)
+		}
+
+		validation := ValidateEPUB(tempFile)
+		if !validation.IsValid {
+			t.Fatalf("expected valid epub, got %+v", validation)
+		}
+	})
+
+	t.Run("Reorders mimetype to first uncompressed entry", func(t *testing.T) {
+		tempFile := filepath.Join(os.TempDir(), "reorder.epub")
+		createEPUBWithLateMimetype(t, tempFile)
+		defer os.Remove(tempFile)
+		defer os.Remove(tempFile + ".backup")
+
+		result := RepairEPUB(tempFile)
+		if !result.Success || !result.Fixed {
+			t.Fatalf("expected successful repair, got %+v", result)
+		}
+
+		validation := ValidateEPUB(tempFile)
+		if !validation.IsValid {
+			t.Fatalf("expected valid epub, got %+v", validation)
 		}
 	})
 }
@@ -254,4 +289,25 @@ func TestRepairFile(t *testing.T) {
 			t.Error("Expected failure for unknown file type")
 		}
 	})
+}
+
+func createEPUBWithLateMimetype(tb testing.TB, path string) {
+	tb.Helper()
+	f, err := os.Create(path)
+	if err != nil {
+		tb.Fatal(err)
+	}
+	defer f.Close()
+
+	w := zip.NewWriter(f)
+	defer w.Close()
+
+	content, _ := w.Create("content.xhtml")
+	content.Write([]byte("<html></html>"))
+	container, _ := w.Create("META-INF/container.xml")
+	container.Write([]byte(defaultContainerXML))
+	mimeHeader := &zip.FileHeader{Name: "mimetype", Method: zip.Deflate}
+	mimeHeader.SetMode(0644)
+	mime, _ := w.CreateHeader(mimeHeader)
+	mime.Write([]byte("application/epub+zip"))
 }

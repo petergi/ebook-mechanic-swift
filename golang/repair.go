@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // RepairResult represents the result of a repair attempt
@@ -16,6 +17,14 @@ type RepairResult struct {
 	Message string
 	Fixed   bool // Whether the file was actually modified
 }
+
+const defaultContainerXML = `<?xml version="1.0"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="content.opf" media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>
+`
 
 // RepairFile attempts to repair a corrupted ebook file
 func RepairFile(filePath string) RepairResult {
@@ -87,58 +96,76 @@ func RepairEPUB(filePath string) RepairResult {
 	zipWriter := zip.NewWriter(tempFile)
 	defer zipWriter.Close()
 
-	hasMimetype := false
 	hasContainer := false
-
-	// Copy existing files
-	for _, file := range r.File {
-		if file.Name == "mimetype" {
-			hasMimetype = true
-		}
-		if file.Name == "META-INF/container.xml" {
-			hasContainer = true
-		}
-
-		// Copy file to new ZIP
-		if err := copyZipFile(zipWriter, file); err != nil {
-			tempFile.Close()
-			_ = os.Remove(backupPath)
-			return RepairResult{
-				Success: false,
-				Message: fmt.Sprintf("Failed to copy file %s: %v", file.Name, err),
-				Fixed:   false,
-			}
-		}
-	}
-
 	fixed := false
-
-	// Add missing mimetype if needed
-	if !hasMimetype {
-		if err := addMimetypeToZip(zipWriter); err != nil {
-			tempFile.Close()
-			_ = os.Remove(backupPath)
-			return RepairResult{
-				Success: false,
-				Message: fmt.Sprintf("Failed to add mimetype: %v", err),
-				Fixed:   false,
+	var entries []zip.FileHeader
+	var contents [][]byte
+	for _, file := range r.File {
+		fh := file.FileHeader
+		if strings.EqualFold(fh.Name, "META-INF/container.xml") {
+			hasContainer = true
+			if fh.Name != "META-INF/container.xml" {
+				fh.Name = "META-INF/container.xml"
+				fixed = true
 			}
 		}
+		entries = append(entries, fh)
+		data, err := readZipFile(file)
+		if err != nil {
+			tempFile.Close()
+			_ = os.Remove(backupPath)
+			return RepairResult{Success: false, Message: fmt.Sprintf("Failed to read %s: %v", file.Name, err)}
+		}
+		contents = append(contents, data)
+	}
+
+	// rebuild entries ensuring mimetype first & stored
+	var rebuilt []zip.FileHeader
+	var rebuiltData [][]byte
+	for i, header := range entries {
+		if header.Name == "mimetype" {
+			continue
+		}
+		rebuilt = append(rebuilt, header)
+		rebuiltData = append(rebuiltData, contents[i])
+	}
+
+	if len(rebuilt) == len(entries) { // no mimetype
+		head := zip.FileHeader{Name: "mimetype", Method: zip.Store}
+		head.SetMode(0644)
+		rebuilt = append([]zip.FileHeader{head}, rebuilt...)
+		rebuiltData = append([][]byte{[]byte("application/epub+zip")}, rebuiltData...)
+		fixed = true
+	} else {
+		// ensure first entry is stored mimetype
+		if len(rebuilt) == len(entries)-1 {
+			head := zip.FileHeader{Name: "mimetype", Method: zip.Store}
+			head.SetMode(0644)
+			rebuilt = append([]zip.FileHeader{head}, rebuilt...)
+			rebuiltData = append([][]byte{[]byte("application/epub+zip")}, rebuiltData...)
+			fixed = true
+		}
+	}
+
+	// ensure container
+	if !hasContainer {
+		head := zip.FileHeader{Name: "META-INF/container.xml", Method: zip.Deflate}
+		head.SetMode(0644)
+		head.SetModTime(time.Now())
+		rebuilt = append(rebuilt, head)
+		rebuiltData = append(rebuiltData, []byte(defaultContainerXML))
 		fixed = true
 	}
 
-	// Add missing container.xml if needed
-	if !hasContainer {
-		if err := addContainerXMLToZip(zipWriter); err != nil {
-			tempFile.Close()
-			_ = os.Remove(backupPath)
-			return RepairResult{
-				Success: false,
-				Message: fmt.Sprintf("Failed to add container.xml: %v", err),
-				Fixed:   false,
-			}
+	// write rebuilt entries
+	for i, header := range rebuilt {
+		writer, err := zipWriter.CreateHeader(&header)
+		if err != nil {
+			return RepairResult{Success: false, Message: fmt.Sprintf("Failed writing %s: %v", header.Name, err)}
 		}
-		fixed = true
+		if _, err := writer.Write(rebuiltData[i]); err != nil {
+			return RepairResult{Success: false, Message: fmt.Sprintf("Failed writing %s: %v", header.Name, err)}
+		}
 	}
 
 	zipWriter.Close()
@@ -181,6 +208,15 @@ func RepairEPUB(filePath string) RepairResult {
 		Message: "No repairable issues found",
 		Fixed:   false,
 	}
+}
+
+func readZipFile(f *zip.File) ([]byte, error) {
+	rc, err := f.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer rc.Close()
+	return io.ReadAll(rc)
 }
 
 // RepairPDF attempts to fix corrupted PDF files

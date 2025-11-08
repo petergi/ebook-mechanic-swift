@@ -26,9 +26,15 @@ func ValidateEPUB(filePath string) ValidationResult {
 	var hasMimetype bool
 	var hasContainer bool
 	var mimetypeContent string
+	var firstEntry string
+	var firstCompression uint16
 
 	// Check for required files
-	for _, f := range r.File {
+	for idx, f := range r.File {
+		if idx == 0 {
+			firstEntry = f.Name
+			firstCompression = f.Method
+		}
 		switch f.Name {
 		case "mimetype":
 			hasMimetype = true
@@ -48,6 +54,14 @@ func ValidateEPUB(filePath string) ValidationResult {
 
 	if !hasMimetype {
 		return ValidationResult{IsValid: false, Reason: "Missing mimetype file"}
+	}
+
+	if firstEntry != "mimetype" {
+		return ValidationResult{IsValid: false, Reason: "mimetype must be first entry"}
+	}
+
+	if firstCompression != zip.Store {
+		return ValidationResult{IsValid: false, Reason: "mimetype must be stored uncompressed"}
 	}
 
 	if mimetypeContent != "application/epub+zip" {

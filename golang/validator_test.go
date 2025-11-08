@@ -318,9 +318,7 @@ func createValidEPUB(tb testing.TB, path string) {
 	w := zip.NewWriter(f)
 	defer w.Close()
 
-	// Add mimetype
-	mimeFile, _ := w.Create("mimetype")
-	mimeFile.Write([]byte("application/epub+zip"))
+	addStoredMimetype(tb, w, "application/epub+zip")
 
 	// Add container.xml
 	containerFile, _ := w.Create("META-INF/container.xml")
@@ -359,9 +357,7 @@ func createEPUBWithWrongMimetype(tb testing.TB, path string) {
 	w := zip.NewWriter(f)
 	defer w.Close()
 
-	// Add wrong mimetype
-	mimeFile, _ := w.Create("mimetype")
-	mimeFile.Write([]byte("text/plain"))
+	addStoredMimetype(tb, w, "text/plain")
 
 	// Add container.xml
 	containerFile, _ := w.Create("META-INF/container.xml")
@@ -378,10 +374,7 @@ func createEPUBWithoutContainer(tb testing.TB, path string) {
 
 	w := zip.NewWriter(f)
 	defer w.Close()
-
-	// Add mimetype but no container.xml
-	mimeFile, _ := w.Create("mimetype")
-	mimeFile.Write([]byte("application/epub+zip"))
+	addStoredMimetype(tb, w, "application/epub+zip")
 }
 
 func createValidMOBI(tb testing.TB, path string, identifier string) {
@@ -418,6 +411,19 @@ func createMOBIWithZeroHeader(tb testing.TB, path string) {
 	copy(header[60:], []byte("BOOKMOBI"))
 
 	if err := os.WriteFile(path, header, 0644); err != nil {
+		tb.Fatal(err)
+	}
+}
+
+func addStoredMimetype(tb testing.TB, w *zip.Writer, value string) {
+	tb.Helper()
+	head := &zip.FileHeader{Name: "mimetype", Method: zip.Store}
+	head.SetMode(0644)
+	fw, err := w.CreateHeader(head)
+	if err != nil {
+		tb.Fatal(err)
+	}
+	if _, err := fw.Write([]byte(value)); err != nil {
 		tb.Fatal(err)
 	}
 }
