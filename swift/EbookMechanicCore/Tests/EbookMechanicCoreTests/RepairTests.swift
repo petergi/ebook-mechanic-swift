@@ -21,7 +21,7 @@ final class RepairTests: XCTestCase {
 
     func testRepairEPUBAddsMissingFiles() throws {
         let epubURL = tempDirectory.appendingPathComponent("broken.epub")
-        try TestFixtures.createEPUBWithoutContainer(at: epubURL)
+        try TestFixtures.createEPUBWithOnlyContent(at: epubURL)
 
         let result = repairer.repair(url: epubURL)
 

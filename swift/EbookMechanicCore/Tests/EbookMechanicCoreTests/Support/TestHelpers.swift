@@ -32,6 +32,13 @@ enum TestFixtures {
         try archive.write(to: url)
     }
 
+    static func createEPUBWithOnlyContent(at url: URL) throws {
+        let archive = ZipArchive(entries: [
+            ZipEntry(name: "content.txt", data: Data("Placeholder".utf8))
+        ])
+        try archive.write(to: url)
+    }
+
     static func createMOBI(with identifier: String, at url: URL) throws {
         var header = Data(count: 100)
         header.replaceSubrange(0..<identifier.count, with: Data("Test MOBI File".utf8))

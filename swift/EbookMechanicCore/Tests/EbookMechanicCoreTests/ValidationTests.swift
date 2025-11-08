@@ -31,6 +31,12 @@ final class ValidationTests: XCTestCase {
         XCTAssertFalse(missingContainer.isValid)
         XCTAssertEqual(missingContainer.reason, "Missing META-INF/container.xml")
 
+        let onlyContent = tempDir.appendingPathComponent("only_content.epub")
+        try TestFixtures.createEPUBWithOnlyContent(at: onlyContent)
+        let onlyContentResult = validator.validate(url: onlyContent, as: .epub)
+        XCTAssertFalse(onlyContentResult.isValid)
+        XCTAssertEqual(onlyContentResult.reason, "Missing mimetype file")
+
         let notZip = tempDir.appendingPathComponent("not_zip.epub")
         try "This is not a ZIP file".data(using: .utf8)!.write(to: notZip)
         let invalidZip = validator.validate(url: notZip, as: .epub)
