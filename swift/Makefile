@@ -6,6 +6,7 @@ SPM_ENV := SWIFT_MODULE_CACHE_PATH=.build/module-cache CLANG_MODULE_CACHE_PATH=.
 # Default shell configuration for better error handling
 SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
+.ONESHELL:
 
 # Phony targets (targets that don't represent files)
 .PHONY: help build build-all build-release test test-all core-test core-build cli-build cli-run cli-normalize cli-normalize-force cli-test cli-completions app-build app-run app-test app-install app-uninstall workspace clean clean-all docc-core docc-app docc-serve docc-all install install-release uninstall format check-format lint ci info update-all
@@ -304,32 +305,32 @@ app-install:
 	 BIN="EbookMechanicApp/.build/release/EbookMechanicApp"; \
 	 APP_DIR="$$BUNDLE_ROOT/$(APP_BUNDLE_NAME)"; \
 	 mkdir -p "$$APP_DIR/Contents/MacOS" "$$APP_DIR/Contents/Resources"; \
-	 cat <<'PLIST' > "$$APP_DIR/Contents/Info.plist"; \
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>CFBundleDevelopmentRegion</key>
-	<string>en</string>
-	<key>CFBundleExecutable</key>
-	<string>EbookMechanicApp</string>
-	<key>CFBundleIdentifier</key>
-	<string>com.ebookmechanic.app</string>
-	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
-	<key>CFBundleName</key>
-	<string>EbookMechanic</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
-	<key>CFBundleVersion</key>
-	<string>1</string>
-	<key>LSMinimumSystemVersion</key>
-	<string>13.0</string>
-</dict>
-</plist>
-PLIST
+	 printf '%s\n' \
+		'<?xml version="1.0" encoding="UTF-8"?>' \
+		'<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+		'<plist version="1.0">' \
+		'<dict>' \
+		'  <key>CFBundleDevelopmentRegion</key>' \
+		'  <string>en</string>' \
+		'  <key>CFBundleExecutable</key>' \
+		'  <string>EbookMechanicApp</string>' \
+		'  <key>CFBundleIdentifier</key>' \
+		'  <string>com.ebookmechanic.app</string>' \
+		'  <key>CFBundleInfoDictionaryVersion</key>' \
+		'  <string>6.0</string>' \
+		'  <key>CFBundleName</key>' \
+		'  <string>EbookMechanic</string>' \
+		'  <key>CFBundlePackageType</key>' \
+		'  <string>APPL</string>' \
+		'  <key>CFBundleShortVersionString</key>' \
+		'  <string>1.0</string>' \
+		'  <key>CFBundleVersion</key>' \
+		'  <string>1</string>' \
+		'  <key>LSMinimumSystemVersion</key>' \
+		'  <string>13.0</string>' \
+		'</dict>' \
+		'</plist>' \
+		> "$$APP_DIR/Contents/Info.plist"
 	 cp "$$BIN" "$$APP_DIR/Contents/MacOS/EbookMechanicApp"; \
 	 chmod +x "$$APP_DIR/Contents/MacOS/EbookMechanicApp"; \
 	 TARGET="$(APP_INSTALL_PATH)"; \

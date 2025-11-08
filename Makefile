@@ -30,6 +30,7 @@ SWIFT_DIR=swift
 PYTHON_DIR=python
 SCRIPTS_DIR=scripts
 APP_INSTALL_PATH?=/Applications/EbookMechanic.app
+APP_BUNDLE_NAME?=EbookMechanic.app
 
 # Default test library settings
 LIBRARY_DIR?=test-library
