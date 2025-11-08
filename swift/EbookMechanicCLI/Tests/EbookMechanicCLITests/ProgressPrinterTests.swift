@@ -20,7 +20,7 @@ final class ProgressPrinterTests: XCTestCase {
     // MARK: - Progress Event Handling Tests
 
     func testHandleValidatingFileEvent() {
-        let printer = ProgressPrinter(verbose: true)
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
         let url = URL(fileURLWithPath: "/test/book.epub")
         let event = ProgressEvent(
             stage: .validatingFile(url),
@@ -29,12 +29,12 @@ final class ProgressPrinterTests: XCTestCase {
             currentItem: "book.epub"
         )
 
-        // Should not crash
-        XCTAssertNoThrow(printer.handle(event))
+        printer.handle(event)
+        XCTAssertTrue(hooks.contains("book.epub"))
     }
 
     func testHandleScanningFilesEvent() {
-        let printer = ProgressPrinter(verbose: true)
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
         let event = ProgressEvent(
             stage: .scanningFiles,
             completed: 50,
@@ -42,11 +42,12 @@ final class ProgressPrinterTests: XCTestCase {
             currentItem: ""
         )
 
-        XCTAssertNoThrow(printer.handle(event))
+        printer.handle(event)
+        XCTAssertTrue(hooks.contains("Progress: 50/100"))
     }
 
     func testHandleScanningFoldersEvent() {
-        let printer = ProgressPrinter(verbose: true)
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
         let event = ProgressEvent(
             stage: .scanningFolders,
             completed: 10,
@@ -54,11 +55,12 @@ final class ProgressPrinterTests: XCTestCase {
             currentItem: "/test/folder"
         )
 
-        XCTAssertNoThrow(printer.handle(event))
+        printer.handle(event)
+        XCTAssertTrue(hooks.contains("Checking folders (10/20)"))
     }
 
     func testHandleMovingCorruptedFilesEvent() {
-        let printer = ProgressPrinter(verbose: true)
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
         let event = ProgressEvent(
             stage: .movingCorruptedFiles,
             completed: 3,
@@ -66,11 +68,12 @@ final class ProgressPrinterTests: XCTestCase {
             currentItem: "corrupted.epub"
         )
 
-        XCTAssertNoThrow(printer.handle(event))
+        printer.handle(event)
+        XCTAssertTrue(hooks.contains("corrupted.epub"))
     }
 
     func testHandleDeletingEmptyFoldersEvent() {
-        let printer = ProgressPrinter(verbose: true)
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
         let event = ProgressEvent(
             stage: .deletingEmptyFolders,
             completed: 1,
@@ -78,11 +81,12 @@ final class ProgressPrinterTests: XCTestCase {
             currentItem: "/empty/folder"
         )
 
-        XCTAssertNoThrow(printer.handle(event))
+        printer.handle(event)
+        XCTAssertTrue(hooks.contains("/empty/folder"))
     }
 
     func testHandleRepairingFilesEvent() {
-        let printer = ProgressPrinter(verbose: true)
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
         let event = ProgressEvent(
             stage: .repairingFiles,
             completed: 2,
@@ -90,11 +94,12 @@ final class ProgressPrinterTests: XCTestCase {
             currentItem: "broken.pdf"
         )
 
-        XCTAssertNoThrow(printer.handle(event))
+        printer.handle(event)
+        XCTAssertTrue(hooks.contains("broken.pdf"))
     }
 
     func testHandleNormalizingFilesEvent() {
-        let printer = ProgressPrinter(verbose: true)
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
         let event = ProgressEvent(
             stage: .normalizingFiles,
             completed: 15,
@@ -102,11 +107,12 @@ final class ProgressPrinterTests: XCTestCase {
             currentItem: "book.epub"
         )
 
-        XCTAssertNoThrow(printer.handle(event))
+        printer.handle(event)
+        XCTAssertTrue(hooks.contains("Normalizing (15/30) book.epub"))
     }
 
     func testHandleEventWhenNotVerbose() {
-        let printer = ProgressPrinter(verbose: false)
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: false)
         let url = URL(fileURLWithPath: "/test/book.epub")
         let event = ProgressEvent(
             stage: .validatingFile(url),
@@ -115,48 +121,55 @@ final class ProgressPrinterTests: XCTestCase {
             currentItem: "book.epub"
         )
 
-        // Should silently do nothing when not verbose
-        XCTAssertNoThrow(printer.handle(event))
+        printer.handle(event)
+        XCTAssertTrue(hooks.messages.isEmpty)
     }
 
     // MARK: - Print Method Tests
 
     func testPrintHeader() {
-        let printer = ProgressPrinter(verbose: true)
-        XCTAssertNoThrow(printer.printHeader("Test Header"))
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
+        printer.printHeader("Test Header")
+        XCTAssertEqual(hooks.messages.last, "\n=== Test Header ===")
     }
 
     func testPrintFooter() {
-        let printer = ProgressPrinter(verbose: true)
-        XCTAssertNoThrow(printer.printFooter("Test Footer"))
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
+        printer.printFooter("Test Footer")
+        XCTAssertEqual(hooks.messages.last, "\n✅ Test Footer\n")
     }
 
     func testPrintInfo() {
-        let printer = ProgressPrinter(verbose: true)
-        XCTAssertNoThrow(printer.printInfo("Test info message"))
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
+        printer.printInfo("Test info message")
+        XCTAssertEqual(hooks.messages.last, "• Test info message")
     }
 
     func testPrintSuccess() {
-        let printer = ProgressPrinter(verbose: true)
-        XCTAssertNoThrow(printer.printSuccess("Test success message"))
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
+        printer.printSuccess("Test success message")
+        XCTAssertEqual(hooks.messages.last, "✅ Test success message")
     }
 
     func testPrintBullet() {
-        let printer = ProgressPrinter(verbose: true)
-        XCTAssertNoThrow(printer.printBullet("Test bullet point"))
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
+        printer.printBullet("Test bullet point")
+        XCTAssertEqual(hooks.messages.last, "  - Test bullet point")
     }
 
     // MARK: - Scan Result Printing Tests
 
     func testPrintScanResultEmpty() {
-        let printer = ProgressPrinter(verbose: true)
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
         let result = ScanResult(totalFiles: 0)
 
-        XCTAssertNoThrow(printer.printScanResult(result))
+        printer.printScanResult(result)
+        XCTAssertTrue(hooks.contains("Files scanned: 0"))
+        XCTAssertTrue(hooks.contains("Corrupted files: 0"))
     }
 
     func testPrintScanResultWithCorruptedFiles() {
-        let printer = ProgressPrinter(verbose: true)
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
         var result = ScanResult(totalFiles: 100)
 
         // Add some corrupted files
@@ -165,11 +178,13 @@ final class ProgressPrinterTests: XCTestCase {
         result.corruptedFiles.append(CorruptedFile(url: url1, reason: "Invalid ZIP structure", size: 1024))
         result.corruptedFiles.append(CorruptedFile(url: url2, reason: "Missing EOF marker", size: 2048))
 
-        XCTAssertNoThrow(printer.printScanResult(result))
+        printer.printScanResult(result)
+        XCTAssertTrue(hooks.contains("/test/corrupted1.epub"))
+        XCTAssertTrue(hooks.contains("/test/corrupted2.pdf"))
     }
 
     func testPrintScanResultWithManyCorruptedFiles() {
-        let printer = ProgressPrinter(verbose: true)
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
         var result = ScanResult(totalFiles: 100)
 
         // Add more than 10 corrupted files to test truncation
@@ -178,11 +193,12 @@ final class ProgressPrinterTests: XCTestCase {
             result.corruptedFiles.append(CorruptedFile(url: url, reason: "Test reason \(i)", size: Int64(i * 1024)))
         }
 
-        XCTAssertNoThrow(printer.printScanResult(result))
+        printer.printScanResult(result)
+        XCTAssertTrue(hooks.contains("… and 5 more"))
     }
 
     func testPrintScanResultWithBreakdownByType() {
-        let printer = ProgressPrinter(verbose: true)
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
         var result = ScanResult(totalFiles: 100)
 
         // Add corrupted files of different types
@@ -190,51 +206,62 @@ final class ProgressPrinterTests: XCTestCase {
         result.corruptedFiles.append(CorruptedFile(url: URL(fileURLWithPath: "/test/file2.pdf"), reason: "Bad PDF", size: 2048))
         result.corruptedFiles.append(CorruptedFile(url: URL(fileURLWithPath: "/test/file3.mobi"), reason: "Bad MOBI", size: 3072))
 
-        XCTAssertNoThrow(printer.printScanResult(result))
+        printer.printScanResult(result)
+        XCTAssertTrue(hooks.contains("EPUB"))
+        XCTAssertTrue(hooks.contains("PDF"))
+        XCTAssertTrue(hooks.contains("MOBI"))
     }
 
     // MARK: - Repair Summary Tests
 
     func testPrintRepairSummaryEmpty() {
-        let printer = ProgressPrinter(verbose: true)
-        XCTAssertNoThrow(printer.printRepairSummary(results: [], repairedCount: 0))
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
+        printer.printRepairSummary(results: [], repairedCount: 0)
+        XCTAssertTrue(hooks.contains("No corrupted files required repair."))
     }
 
     func testPrintRepairSummaryWithSuccessfulRepairs() {
-        let printer = ProgressPrinter(verbose: true)
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
         let results = [
             RepairResult(success: true, message: "Added EOF marker", fixed: true),
             RepairResult(success: true, message: "Fixed mimetype", fixed: true)
         ]
 
-        XCTAssertNoThrow(printer.printRepairSummary(results: results, repairedCount: 2))
+        printer.printRepairSummary(results: results, repairedCount: 2)
+        XCTAssertTrue(hooks.contains("Repair attempts: 2 – fixed: 2"))
+        XCTAssertTrue(hooks.contains("Added EOF marker"))
+        XCTAssertTrue(hooks.contains("Fixed mimetype"))
     }
 
     func testPrintRepairSummaryWithMixedResults() {
-        let printer = ProgressPrinter(verbose: true)
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
         let results = [
             RepairResult(success: true, message: "Repaired", fixed: true),
             RepairResult(success: true, message: "Already valid", fixed: false),
             RepairResult(success: false, message: "Cannot repair MOBI", fixed: false)
         ]
 
-        XCTAssertNoThrow(printer.printRepairSummary(results: results, repairedCount: 1))
+        printer.printRepairSummary(results: results, repairedCount: 1)
+        XCTAssertTrue(hooks.contains("Repair attempts: 3 – fixed: 1"))
+        XCTAssertTrue(hooks.contains("Repaired"))
+        XCTAssertTrue(hooks.contains("Already valid"))
+        XCTAssertTrue(hooks.contains("Cannot repair MOBI"))
     }
 
     func testPrintRepairSummaryNonVerbose() {
-        let printer = ProgressPrinter(verbose: false)
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: false)
         let results = [
             RepairResult(success: true, message: "Repaired", fixed: true)
         ]
 
-        // Should still print summary info even when not verbose
-        XCTAssertNoThrow(printer.printRepairSummary(results: results, repairedCount: 1))
+        printer.printRepairSummary(results: results, repairedCount: 1)
+        XCTAssertTrue(hooks.contains("Repair attempts: 1 – fixed: 1"))
     }
 
     // MARK: - Edge Case Tests
 
     func testHandleEventWithZeroTotal() {
-        let printer = ProgressPrinter(verbose: true)
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
         let event = ProgressEvent(
             stage: .scanningFiles,
             completed: 0,
@@ -242,11 +269,12 @@ final class ProgressPrinterTests: XCTestCase {
             currentItem: ""
         )
 
-        XCTAssertNoThrow(printer.handle(event))
+        printer.handle(event)
+        XCTAssertTrue(hooks.contains("Progress: 0/0"))
     }
 
     func testHandleEventWithCompletedGreaterThanTotal() {
-        let printer = ProgressPrinter(verbose: true)
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
         let event = ProgressEvent(
             stage: .scanningFiles,
             completed: 150,
@@ -254,11 +282,12 @@ final class ProgressPrinterTests: XCTestCase {
             currentItem: ""
         )
 
-        XCTAssertNoThrow(printer.handle(event))
+        printer.handle(event)
+        XCTAssertTrue(hooks.contains("Progress: 150/100"))
     }
 
     func testPrintScanResultWithAllFileTypes() {
-        let printer = ProgressPrinter(verbose: true)
+        let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
         var result = ScanResult(totalFiles: 100)
 
         // Add at least one file of each type
@@ -273,6 +302,9 @@ final class ProgressPrinterTests: XCTestCase {
             )
         }
 
-        XCTAssertNoThrow(printer.printScanResult(result))
+        printer.printScanResult(result)
+        for fileType in EbookFileType.allCases {
+            XCTAssertTrue(hooks.contains(fileType.fileExtension.dropFirst().uppercased()))
+        }
     }
 }

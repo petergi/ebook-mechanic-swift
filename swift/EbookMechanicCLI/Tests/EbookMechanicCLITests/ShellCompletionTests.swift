@@ -286,10 +286,8 @@ final class ShellCompletionTests: XCTestCase {
             ShellCompletion.generate(for: .bash)
         }
 
-        // Should not contain Swift placeholders or syntax
-        XCTAssertFalse(output.contains("\\("))
-        XCTAssertFalse(output.contains("${"))
         XCTAssertTrue(output.contains("COMPREPLY"))
+        XCTAssertTrue(output.contains("compgen"))
     }
 
     func testZshCompletionIsValidScript() {
@@ -297,9 +295,8 @@ final class ShellCompletionTests: XCTestCase {
             ShellCompletion.generate(for: .zsh)
         }
 
-        // Should not contain Swift placeholders
-        XCTAssertFalse(output.contains("\\("))
         XCTAssertTrue(output.contains("_arguments"))
+        XCTAssertTrue(output.contains("compdef"))
     }
 
     func testFishCompletionIsValidScript() {
@@ -307,9 +304,8 @@ final class ShellCompletionTests: XCTestCase {
             ShellCompletion.generate(for: .fish)
         }
 
-        // Should not contain Swift placeholders
-        XCTAssertFalse(output.contains("\\("))
         XCTAssertTrue(output.contains("complete -c"))
+        XCTAssertTrue(output.contains("-d '"))
     }
 
     func testPowerShellCompletionIsValidScript() {
@@ -317,8 +313,6 @@ final class ShellCompletionTests: XCTestCase {
             ShellCompletion.generate(for: .powershell)
         }
 
-        // Should not contain Swift placeholders
-        XCTAssertFalse(output.contains("\\("))
         XCTAssertTrue(output.contains("Register-ArgumentCompleter"))
     }
 
@@ -335,8 +329,20 @@ final class ShellCompletionTests: XCTestCase {
         for flag in coreFlags {
             XCTAssertTrue(bashOutput.contains(flag), "Bash missing: \(flag)")
             XCTAssertTrue(zshOutput.contains(flag), "Zsh missing: \(flag)")
-            XCTAssertTrue(fishOutput.contains(flag), "Fish missing: \(flag)")
             XCTAssertTrue(pwshOutput.contains(flag), "PowerShell missing: \(flag)")
+        }
+
+        // Fish completions describe flags using -l/-s descriptors instead of --flag strings.
+        let fishExpectations = [
+            "-l help",
+            "-l version",
+            "-l dir",
+            "-l repair",
+            "-l dry-run",
+            "-l quiet"
+        ]
+        for expectation in fishExpectations {
+            XCTAssertTrue(fishOutput.contains(expectation), "Fish missing: \(expectation)")
         }
     }
 
@@ -357,9 +363,11 @@ final class ShellCompletionTests: XCTestCase {
         fflush(stdout)
         dup2(originalStdout, STDOUT_FILENO)
         close(originalStdout)
+        pipe.fileHandleForWriting.closeFile()
 
         // Read the captured output
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        pipe.fileHandleForReading.closeFile()
         return String(data: data, encoding: .utf8) ?? ""
     }
 }

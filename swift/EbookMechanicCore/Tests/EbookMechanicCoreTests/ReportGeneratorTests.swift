@@ -46,8 +46,9 @@ final class ReportGeneratorTests: XCTestCase {
 
         XCTAssertTrue(FileManager.default.fileExists(atPath: reportURL.path))
         let contents = try String(contentsOf: reportURL)
-        XCTAssertTrue(contents.contains("No corrupted files found"))
-        XCTAssertTrue(contents.contains("No empty folders found"))
+        XCTAssertTrue(contents.contains("## ✅ No Corrupted Files Found"))
+        XCTAssertTrue(contents.contains("## Empty Folders Summary"))
+        XCTAssertTrue(contents.contains("**Total folders scanned:** 0"))
     }
 
     func testReportWithNoCorruptedFiles() throws {
@@ -63,7 +64,7 @@ final class ReportGeneratorTests: XCTestCase {
         let reportURL = try generator.generate(from: result, rootDirectory: tempDir, corruptedDirectoryName: "CORRUPTED", into: tempDir, fileName: "no_corruption.md")
 
         let contents = try String(contentsOf: reportURL)
-        XCTAssertTrue(contents.contains("No corrupted files found"))
+        XCTAssertTrue(contents.contains("## ✅ No Corrupted Files Found"))
         XCTAssertTrue(contents.contains("Empty1"))
         XCTAssertTrue(contents.contains("Empty2"))
     }
@@ -84,7 +85,7 @@ final class ReportGeneratorTests: XCTestCase {
 
         let contents = try String(contentsOf: reportURL)
         XCTAssertTrue(contents.contains("bad.epub"))
-        XCTAssertTrue(contents.contains("No empty folders found"))
+        XCTAssertTrue(contents.contains("## ✅ No Empty Folders Found"))
     }
 
     // MARK: - Format Breakdown Tests
@@ -145,9 +146,9 @@ final class ReportGeneratorTests: XCTestCase {
         let reportURL = try generator.generate(from: result, rootDirectory: tempDir, corruptedDirectoryName: "CORRUPTED", into: tempDir, fileName: "breakdown.md")
 
         let contents = try String(contentsOf: reportURL)
-        XCTAssertTrue(contents.contains("Format Breakdown"))
-        XCTAssertTrue(contents.contains("epub"))
-        XCTAssertTrue(contents.contains("pdf"))
+        XCTAssertTrue(contents.contains("| File Type | Corrupted | Total | Status |"))
+        XCTAssertTrue(contents.contains("| .EPUB | 3 | 10"))
+        XCTAssertTrue(contents.contains("| .PDF | 2 | 10"))
     }
 
     // MARK: - Large Dataset Tests
@@ -260,9 +261,9 @@ final class ReportGeneratorTests: XCTestCase {
         let reportURL = try generator.generate(from: result, rootDirectory: tempDir, corruptedDirectoryName: "CORRUPTED", into: tempDir, fileName: "sections.md")
 
         let contents = try String(contentsOf: reportURL)
-        XCTAssertTrue(contents.contains("# Ebook Library Report"))
-        XCTAssertTrue(contents.contains("## Summary"))
-        XCTAssertTrue(contents.contains("## Format Breakdown"))
+        XCTAssertTrue(contents.contains("# EbookMechanic Report"))
+        XCTAssertTrue(contents.contains("## Corruption Scan Summary"))
+        XCTAssertTrue(contents.contains("### By File Type"))
         XCTAssertTrue(contents.contains("## Corrupted Files Details"))
         XCTAssertTrue(contents.contains("## Folders Without Ebooks"))
     }

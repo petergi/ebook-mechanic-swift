@@ -1,0 +1,29 @@
+{
+  "configurations" : [
+    {
+      "id" : "49B05A19-5956-4EED-B572-C6B46BD13AEF",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:",
+      "identifier" : "EbookMechanicApp",
+      "name" : "EbookMechanicApp"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "EbookMechanicAppTests",
+        "name" : "EbookMechanicAppTests"
+      }
+    }
+  ],
+  "version" : 1
+}

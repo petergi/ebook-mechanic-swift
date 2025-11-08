@@ -26,6 +26,10 @@ let package = Package(
             name: "EbookMechanicAppTests",
             dependencies: ["EbookMechanicApp"]
         ),
+        .testTarget(
+            name: "EbookMechanicAppUITests",
+            dependencies: ["EbookMechanicApp"]
+        ),
     ],
     swiftLanguageModes: [.v6]
 )

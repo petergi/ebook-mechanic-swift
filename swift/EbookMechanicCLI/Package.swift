@@ -16,7 +16,7 @@ let package = Package(
         .executableTarget(
             name: "EbookMechanicCLI",
             dependencies: [
-                .product(name: "EbookMechanicCore", package: "EbookMechanicCore"),                
+                .product(name: "EbookMechanicCore", package: "EbookMechanicCore")
             ]
         ),
         .testTarget(

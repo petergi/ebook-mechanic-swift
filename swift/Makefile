@@ -86,8 +86,8 @@ build-release:
 	@echo ""
 	@echo "CLI binary: EbookMechanicCLI/.build/release/EbookMechanicCLI"
 
-# Default test target
-test: core-test
+# Default test target now exercises core, CLI, and app (including UI hooks)
+test: core-test cli-test app-test
 
 # Run all test suites
 test-all:

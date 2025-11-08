@@ -267,69 +267,72 @@ struct CLIConfiguration {
 
 // MARK: - Progress Printing
 
-struct ProgressPrinter {
+struct ProgressPrinter: @unchecked Sendable {
     let verbose: Bool
+    private let sink: @Sendable (String) -> Void
 
-    init(verbose: Bool) {
+    init(verbose: Bool, sink: (@Sendable (String) -> Void)? = nil) {
         self.verbose = verbose
+        self.sink = sink ?? ProgressPrinter.defaultSink
     }
 
+    @Sendable
     func handle(_ event: ProgressEvent) {
         guard verbose else { return }
         switch event.stage {
         case .validatingFile(let url):
-            print("🔍 Inspecting \(url.lastPathComponent)...")
+            emit("🔍 Inspecting \(url.lastPathComponent)...")
         case .scanningFiles:
-            print("   Progress: \(event.completed)/\(event.total)")
+            emit("   Progress: \(event.completed)/\(event.total)")
         case .scanningFolders:
-            print("📂 Checking folders (\(event.completed)/\(event.total))")
+            emit("📂 Checking folders (\(event.completed)/\(event.total))")
         case .movingCorruptedFiles:
-            print("📦 Moving (\(event.completed)/\(event.total)): \(event.currentItem)")
+            emit("📦 Moving (\(event.completed)/\(event.total)): \(event.currentItem)")
         case .deletingEmptyFolders:
-            print("🧹 Deleting folder: \(event.currentItem)")
+            emit("🧹 Deleting folder: \(event.currentItem)")
         case .repairingFiles:
-            print("🛠️ Repairing (\(event.completed)/\(event.total)): \(event.currentItem)")
+            emit("🛠️ Repairing (\(event.completed)/\(event.total)): \(event.currentItem)")
         case .normalizingFiles:
-            print("✨ Normalizing (\(event.completed)/\(event.total)) \(event.currentItem)")
+            emit("✨ Normalizing (\(event.completed)/\(event.total)) \(event.currentItem)")
         }
     }
 
     func printHeader(_ title: String) {
-        print("\n=== \(title) ===")
+        emit("\n=== \(title) ===")
     }
 
     func printFooter(_ message: String) {
-        print("\n✅ \(message)\n")
+        emit("\n✅ \(message)\n")
     }
 
     func printInfo(_ message: String) {
-        print("• \(message)")
+        emit("• \(message)")
     }
 
     func printSuccess(_ message: String) {
-        print("✅ \(message)")
+        emit("✅ \(message)")
     }
 
     func printBullet(_ message: String) {
-        print("  - \(message)")
+        emit("  - \(message)")
     }
 
     func printScanResult(_ result: ScanResult) {
-        print("• Files scanned: \(result.totalFiles)")
-        print("• Corrupted files: \(result.corruptedFiles.count)")
+        emit("• Files scanned: \(result.totalFiles)")
+        emit("• Corrupted files: \(result.corruptedFiles.count)")
         for type in EbookFileType.allCases {
             let breakdown = result.breakdown(for: type)
             let status = breakdown.corrupted > 0 ? "❌" : "✅"
             let label = type.fileExtension.dropFirst().uppercased()
-            print("  \(status) \(label): \(breakdown.corrupted)/\(breakdown.total) corrupted")
+            emit("  \(status) \(label): \(breakdown.corrupted)/\(breakdown.total) corrupted")
         }
         if !result.corruptedFiles.isEmpty {
-            print("\nCorrupted files:")
+            emit("\nCorrupted files:")
             for file in result.corruptedFiles.prefix(10) {
-                print("  - \(file.url.path) [\(file.reason)]")
+                emit("  - \(file.url.path) [\(file.reason)]")
             }
             if result.corruptedFiles.count > 10 {
-                print("  … and \(result.corruptedFiles.count - 10) more")
+                emit("  … and \(result.corruptedFiles.count - 10) more")
             }
         }
     }
@@ -342,8 +345,16 @@ struct ProgressPrinter {
         printInfo("Repair attempts: \(results.count) – fixed: \(repairedCount)")
         for (index, result) in results.enumerated() where verbose {
             let icon = result.fixed ? "✅" : (result.success ? "ℹ️" : "❌")
-            print("  \(icon) [\(index + 1)] \(result.message)")
+            emit("  \(icon) [\(index + 1)] \(result.message)")
         }
+    }
+
+    private func emit(_ text: String) {
+        sink(text)
+    }
+
+    private static func defaultSink(_ text: String) {
+        print(text)
     }
 }
 
@@ -510,4 +521,3 @@ struct ShellCompletion {
         }
         """
 }
-
