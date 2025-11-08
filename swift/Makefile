@@ -3,6 +3,13 @@
 # Environment setup for reproducible builds
 SPM_ENV := SWIFT_MODULE_CACHE_PATH=.build/module-cache CLANG_MODULE_CACHE_PATH=.build/module-cache
 
+# CLI install configuration
+BIN_INSTALL_PATH ?= /usr/local/bin
+CLI_INSTALL_NAME ?= ebook-mechanic
+CLI_INSTALL_TARGET := $(BIN_INSTALL_PATH)/$(CLI_INSTALL_NAME)
+CLI_DEBUG_BINARY := EbookMechanicCLI/.build/debug/EbookMechanicCLI
+CLI_RELEASE_BINARY := EbookMechanicCLI/.build/release/EbookMechanicCLI
+
 # Default shell configuration for better error handling
 SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
@@ -47,10 +54,10 @@ help:
 	@echo ""
 	@echo "🛠️  Utility Targets:"
 	@echo "  make cli-completions - Generate shell completion scripts"
-	@echo "  make install       - Install CLI to /usr/local/bin (debug)"
-	@echo "  make install-release - Install optimized CLI to /usr/local/bin"
+	@echo "  make install       - Install CLI to $(BIN_INSTALL_PATH) (debug)"
+	@echo "  make install-release - Install optimized CLI to $(BIN_INSTALL_PATH)"
 	@echo "  make app-install   - Build & copy the macOS app bundle"
-	@echo "  make uninstall     - Remove CLI from /usr/local/bin"
+	@echo "  make uninstall     - Remove CLI from $(BIN_INSTALL_PATH)"
 	@echo "  make app-uninstall - Remove installed macOS app bundle"
 	@echo "  make format        - Format all Swift code with swift-format"
 	@echo "  make lint          - Lint Swift code (requires SwiftLint)"
@@ -263,35 +270,62 @@ docc-serve:
 
 # Install CLI binary to system path
 install: cli-build
-	@echo "📦 Installing EbookMechanicCLI to /usr/local/bin..."
-	@if [ -f "EbookMechanicCLI/.build/debug/EbookMechanicCLI" ]; then \
-		install -m 755 EbookMechanicCLI/.build/debug/EbookMechanicCLI /usr/local/bin/ebook-mechanic; \
-		echo "✅ Installed to /usr/local/bin/ebook-mechanic"; \
-		echo ""; \
-		echo "Run 'ebook-mechanic --help' to get started!"; \
-	else \
+	@echo "📦 Installing EbookMechanicCLI to $(CLI_INSTALL_TARGET)..."
+	@if [ ! -f "$(CLI_DEBUG_BINARY)" ]; then \
 		echo "❌ Error: Binary not found. Run 'make cli-build' first."; \
+		exit 1; \
+	fi
+	@if [ ! -d "$(BIN_INSTALL_PATH)" ]; then \
+		echo "❌ Error: Install directory $(BIN_INSTALL_PATH) does not exist."; \
+		echo "   Create it or pass BIN_INSTALL_PATH=/custom/path"; \
+		exit 1; \
+	fi
+	@if [ ! -w "$(BIN_INSTALL_PATH)" ]; then \
+		echo "❌ Error: Permission denied writing to $(BIN_INSTALL_PATH)."; \
+		echo "   Try 'sudo make install' or set BIN_INSTALL_PATH to a writable directory."; \
+		exit 1; \
+	fi
+	@if install -m 755 "$(CLI_DEBUG_BINARY)" "$(CLI_INSTALL_TARGET)"; then \
+		strip "$(CLI_INSTALL_TARGET)" 2>/dev/null || true; \
+		echo "✅ Installed to $(CLI_INSTALL_TARGET)"; \
+		echo ""; \
+		echo "Run '$(CLI_INSTALL_NAME) --help' to get started!"; \
+	else \
+		echo "❌ Error: install command failed. See message above."; \
 		exit 1; \
 	fi
 
 # Install release version (optimized binary)
 install-release: build-release
-	@echo "📦 Installing optimized EbookMechanicCLI to /usr/local/bin..."
-	@if [ -f "EbookMechanicCLI/.build/release/EbookMechanicCLI" ]; then \
-		install -m 755 EbookMechanicCLI/.build/release/EbookMechanicCLI /usr/local/bin/ebook-mechanic; \
-		strip /usr/local/bin/ebook-mechanic 2>/dev/null || true; \
-		echo "✅ Installed optimized binary to /usr/local/bin/ebook-mechanic"; \
-		echo ""; \
-		echo "Run 'ebook-mechanic --help' to get started!"; \
-	else \
+	@echo "📦 Installing optimized EbookMechanicCLI to $(CLI_INSTALL_TARGET)..."
+	@if [ ! -f "$(CLI_RELEASE_BINARY)" ]; then \
 		echo "❌ Error: Release binary not found."; \
+		exit 1; \
+	fi
+	@if [ ! -d "$(BIN_INSTALL_PATH)" ]; then \
+		echo "❌ Error: Install directory $(BIN_INSTALL_PATH) does not exist."; \
+		echo "   Create it or pass BIN_INSTALL_PATH=/custom/path"; \
+		exit 1; \
+	fi
+	@if [ ! -w "$(BIN_INSTALL_PATH)" ]; then \
+		echo "❌ Error: Permission denied writing to $(BIN_INSTALL_PATH)."; \
+		echo "   Try 'sudo make install-release' or set BIN_INSTALL_PATH to a writable directory."; \
+		exit 1; \
+	fi
+	@if install -m 755 "$(CLI_RELEASE_BINARY)" "$(CLI_INSTALL_TARGET)"; then \
+		strip "$(CLI_INSTALL_TARGET)" 2>/dev/null || true; \
+		echo "✅ Installed optimized binary to $(CLI_INSTALL_TARGET)"; \
+		echo ""; \
+		echo "Run '$(CLI_INSTALL_NAME) --help' to get started!"; \
+	else \
+		echo "❌ Error: install command failed. See message above."; \
 		exit 1; \
 	fi
 
 # Uninstall CLI binary
 uninstall:
-	@echo "🗑️  Uninstalling ebook-mechanic..."
-	@rm -f /usr/local/bin/ebook-mechanic
+	@echo "🗑️  Uninstalling $(CLI_INSTALL_NAME)..."
+	@rm -f "$(CLI_INSTALL_TARGET)"
 	@echo "✅ Uninstalled!"
 
 APP_BUNDLE_NAME ?= EbookMechanic.app
