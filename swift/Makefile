@@ -8,7 +8,7 @@ SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 
 # Phony targets (targets that don't represent files)
-.PHONY: help build build-all build-release test test-all core-test core-build cli-build cli-run cli-normalize cli-normalize-force cli-test cli-completions app-build app-run app-test workspace clean clean-all docc-core docc-app docc-serve docc-all install install-release uninstall format check-format lint ci info update-all
+.PHONY: help build build-all build-release test test-all core-test core-build cli-build cli-run cli-normalize cli-normalize-force cli-test cli-completions app-build app-run app-test app-install app-uninstall workspace clean clean-all docc-core docc-app docc-serve docc-all install install-release uninstall format check-format lint ci info update-all
 
 # Default target when running 'make' with no arguments
 .DEFAULT_GOAL := build
@@ -48,7 +48,9 @@ help:
 	@echo "  make cli-completions - Generate shell completion scripts"
 	@echo "  make install       - Install CLI to /usr/local/bin (debug)"
 	@echo "  make install-release - Install optimized CLI to /usr/local/bin"
+	@echo "  make app-install   - Build & copy the macOS app bundle"
 	@echo "  make uninstall     - Remove CLI from /usr/local/bin"
+	@echo "  make app-uninstall - Remove installed macOS app bundle"
 	@echo "  make format        - Format all Swift code with swift-format"
 	@echo "  make lint          - Lint Swift code (requires SwiftLint)"
 	@echo "  make check-format  - Check if code is formatted (CI-friendly)"
@@ -290,6 +292,60 @@ uninstall:
 	@echo "🗑️  Uninstalling ebook-mechanic..."
 	@rm -f /usr/local/bin/ebook-mechanic
 	@echo "✅ Uninstalled!"
+
+APP_BUNDLE_NAME ?= EbookMechanic.app
+APP_INSTALL_PATH ?= /Applications/$(APP_BUNDLE_NAME)
+
+app-install:
+	@echo "🔨 Building release build of EbookMechanicApp..."
+	$(SPM_ENV) swift build --disable-sandbox --package-path EbookMechanicApp -c release
+	@echo "📦 Assembling app bundle..."
+	@BUNDLE_ROOT="EbookMechanicApp/.build/AppBundle"; \
+	 BIN="EbookMechanicApp/.build/release/EbookMechanicApp"; \
+	 APP_DIR="$$BUNDLE_ROOT/$(APP_BUNDLE_NAME)"; \
+	 mkdir -p "$$APP_DIR/Contents/MacOS" "$$APP_DIR/Contents/Resources"; \
+	 cat <<'PLIST' > "$$APP_DIR/Contents/Info.plist"; \
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleExecutable</key>
+	<string>EbookMechanicApp</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.ebookmechanic.app</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>EbookMechanic</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>13.0</string>
+</dict>
+</plist>
+PLIST
+	 cp "$$BIN" "$$APP_DIR/Contents/MacOS/EbookMechanicApp"; \
+	 chmod +x "$$APP_DIR/Contents/MacOS/EbookMechanicApp"; \
+	 TARGET="$(APP_INSTALL_PATH)"; \
+	 echo "🚚 Installing to $$TARGET"; \
+	 if [ -d "$$TARGET" ]; then rm -rf "$$TARGET" 2>/dev/null || sudo rm -rf "$$TARGET"; fi; \
+	 mkdir -p "$$(dirname "$$TARGET")"; \
+	 cp -R "$$APP_DIR" "$$TARGET" 2>/dev/null || sudo cp -R "$$APP_DIR" "$$TARGET"; \
+	 echo "✅ macOS app available at $$TARGET"
+
+app-uninstall:
+	@if [ -d "$(APP_INSTALL_PATH)" ]; then \
+		rm -rf "$(APP_INSTALL_PATH)" 2>/dev/null || sudo rm -rf "$(APP_INSTALL_PATH)"; \
+		echo "🗑️  Removed $(APP_INSTALL_PATH)"; \
+	else \
+		echo "ℹ️  No installed app found at $(APP_INSTALL_PATH)"; \
+	fi
 
 # Format Swift code (requires swift-format)
 format:

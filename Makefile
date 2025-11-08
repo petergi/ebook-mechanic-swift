@@ -6,7 +6,7 @@
         build build-all build-go build-swift build-go-all build-swift-release \
         test test-all test-go test-swift test-coverage \
         run run-go run-swift run-app \
-        install install-go install-swift uninstall \
+        install install-go install-swift install-app uninstall uninstall-app \
         check check-go check-swift lint \
         sample-library benchmark \
         docs docs-all docs-go docs-swift docs-serve \
@@ -29,6 +29,7 @@ GO_DIR=golang
 SWIFT_DIR=swift
 PYTHON_DIR=python
 SCRIPTS_DIR=scripts
+APP_INSTALL_PATH?=/Applications/EbookMechanic.app
 
 # Default test library settings
 LIBRARY_DIR?=test-library
@@ -86,7 +87,9 @@ help:
 	@echo "  $(COLOR_BLUE)install$(COLOR_RESET)                 Install both CLIs to system"
 	@echo "  $(COLOR_BLUE)install-go$(COLOR_RESET)              Install Go CLI to \$$GOPATH/bin"
 	@echo "  $(COLOR_BLUE)install-swift$(COLOR_RESET)           Install Swift CLI to /usr/local/bin"
+	@echo "  $(COLOR_BLUE)install-app$(COLOR_RESET)             Install Swift macOS app bundle"
 	@echo "  $(COLOR_BLUE)uninstall$(COLOR_RESET)               Remove installed binaries"
+	@echo "  $(COLOR_BLUE)uninstall-app$(COLOR_RESET)           Remove installed macOS app"
 	@echo "  $(COLOR_BLUE)completion-install$(COLOR_RESET)      Install shell completions (auto-detect)"
 	@echo ""
 	@echo "$(COLOR_CYAN)✅ Quality & Checks:$(COLOR_RESET)"
@@ -332,12 +335,23 @@ install-swift:
 	@echo "$(COLOR_BLUE)Installing Swift CLI...$(COLOR_RESET)"
 	@$(MAKE) -C $(SWIFT_DIR) install-release
 
+## install-app: Install the SwiftUI macOS app bundle
+install-app:
+	@echo "$(COLOR_BLUE)Installing EbookMechanic macOS app...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) app-install APP_INSTALL_PATH="$(APP_INSTALL_PATH)"
+
 ## uninstall: Remove installed binaries
 uninstall:
 	@echo "$(COLOR_BLUE)Uninstalling...$(COLOR_RESET)"
 	@$(MAKE) -C $(GO_DIR) uninstall 2>/dev/null || true
 	@$(MAKE) -C $(SWIFT_DIR) uninstall 2>/dev/null || true
+	@$(MAKE) -C $(SWIFT_DIR) app-uninstall APP_INSTALL_PATH="$(APP_INSTALL_PATH)" 2>/dev/null || true
 	@echo "$(COLOR_GREEN)✓ Uninstalled$(COLOR_RESET)"
+
+## uninstall-app: Remove only the macOS app bundle
+uninstall-app:
+	@echo "$(COLOR_BLUE)Removing macOS app bundle...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) app-uninstall APP_INSTALL_PATH="$(APP_INSTALL_PATH)"
 
 ## completion-install: Install shell completions (auto-detect shell)
 completion-install:
