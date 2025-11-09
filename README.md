@@ -20,6 +20,8 @@ EbookMechanic is a powerful command-line tool suite for managing ebook libraries
 
 - 🔍 **Deep Validation** - Structural integrity checking for all supported formats
 - 🔧 **Auto-Repair** - Automatic fixing of corrupted files
+  - **PDF Repair (Swift):** Comprehensive header corruption detection and repair (handles email/FTP corruption, UTF-8 BOM, junk prefixes, missing binary markers)
+  - **EPUB Repair:** Auto-adds missing mimetype and container.xml files
 - 📚 **EPUB Normalization** - Restructures EPUBs to Sigil/standard specifications
 - 🗑️ **Smart Cleanup** - Removes empty folders while preserving directory structure
 - 📊 **Progress Tracking** - Real-time progress with beautiful interfaces
@@ -56,6 +58,7 @@ make build
 - **Architecture:** Modular Swift packages (Core + CLI + App)
 - **Platform:** macOS 13+, iOS 16+ ready
 - **Concurrency:** Swift actors for thread-safe operations
+- **Advanced PDF Repair:** Comprehensive header corruption detection and repair with two-phase repair process (128+ comprehensive tests)
 
 ```bash
 cd swift/

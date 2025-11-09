@@ -59,6 +59,43 @@ final class ScannerTests: XCTestCase {
         XCTAssertTrue(validator.validate(url: badPDF, as: .pdf).isValid)
     }
 
+    func testNormalizeEPUBRepairsManifestAndNCX() async throws {
+        let tempDir = try temporaryRoot()
+        let epubURL = tempDir.appendingPathComponent("Broken/book.epub")
+        try FileManager.default.createDirectory(at: epubURL.deletingLastPathComponent(), withIntermediateDirectories: true, attributes: nil)
+        try TestFixtures.createEPUBMissingManifest(at: epubURL)
+
+        let scanner = FileScanner(rootDirectory: tempDir)
+        let result = await scanner.normalizeEPUBs(force: true, dryRun: false)
+        XCTAssertEqual(result.normalized, 1)
+        XCTAssertEqual(result.skipped, 0)
+
+        let archive = try ZipArchive.load(from: epubURL)
+        let container = archive.entry(named: "META-INF/container.xml")
+        XCTAssertNotNil(container)
+        let containerString = String(data: container!.data, encoding: .utf8)!
+        XCTAssertTrue(containerString.contains("OEBPS/content.opf"))
+
+        let opfEntry = archive.entry(named: "OEBPS/content.opf")
+        XCTAssertNotNil(opfEntry)
+        let opfString = String(data: opfEntry!.data, encoding: .utf8)!
+        XCTAssertTrue(opfString.contains("Text/chapter1.xhtml"), "Manifest should include chapter file")
+        XCTAssertTrue(opfString.contains("Images/cover.jpg"), "Manifest should include cover image")
+        XCTAssertTrue(opfString.contains("toc.ncx"), "Manifest should include NCX entry")
+        XCTAssertTrue(opfString.contains("media-type=\"application/x-dtbncx+xml\""))
+        XCTAssertTrue(opfString.contains("<spine") && opfString.contains("toc="), "Spine should reference NCX toc id")
+
+        let ncxEntry = archive.entry(named: "OEBPS/toc.ncx")
+        XCTAssertNotNil(ncxEntry, "NCX file should be generated when missing")
+
+        let chapter = archive.entry(named: "OEBPS/Text/chapter1.xhtml")
+        XCTAssertNotNil(chapter)
+        let chapterString = String(data: chapter!.data, encoding: .utf8)!
+        XCTAssertTrue(chapterString.contains("<!DOCTYPE html>"))
+        XCTAssertTrue(chapterString.contains("<html"))
+        XCTAssertTrue(chapterString.contains("<body"))
+    }
+
     private func temporaryRoot() throws -> URL {
         let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true, attributes: nil)

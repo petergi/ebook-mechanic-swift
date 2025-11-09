@@ -335,7 +335,8 @@ app-install:
 	@echo "🔨 Building release build of EbookMechanicApp..."
 	$(SPM_ENV) swift build --disable-sandbox --package-path EbookMechanicApp -c release
 	@echo "📦 Assembling app bundle..."
-	@BUNDLE_ROOT="EbookMechanicApp/.build/AppBundle"; \
+	@set -euo pipefail; \
+	 BUNDLE_ROOT="EbookMechanicApp/.build/AppBundle"; \
 	 BIN="EbookMechanicApp/.build/release/EbookMechanicApp"; \
 	 APP_DIR="$$BUNDLE_ROOT/$(APP_BUNDLE_NAME)"; \
 	 mkdir -p "$$APP_DIR/Contents/MacOS" "$$APP_DIR/Contents/Resources"; \
@@ -364,7 +365,7 @@ app-install:
 		'  <string>13.0</string>' \
 		'</dict>' \
 		'</plist>' \
-		> "$$APP_DIR/Contents/Info.plist"
+		> "$$APP_DIR/Contents/Info.plist"; \
 	 cp "$$BIN" "$$APP_DIR/Contents/MacOS/EbookMechanicApp"; \
 	 chmod +x "$$APP_DIR/Contents/MacOS/EbookMechanicApp"; \
 	 TARGET="$(APP_INSTALL_PATH)"; \

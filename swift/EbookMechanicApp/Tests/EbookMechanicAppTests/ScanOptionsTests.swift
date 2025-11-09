@@ -146,7 +146,7 @@ final class ScanOptionsTests: XCTestCase {
         await viewModel.runScan(options: options)
 
         XCTAssertEqual(viewModel.summary?.totalFiles, 1)
-        XCTAssertEqual(viewModel.corruptedFiles.first?.reason, "Not a valid ZIP file")
+        XCTAssertEqual(viewModel.corruptedFiles.first?.reason, "Not a valid ZIP file (ZIP archive has invalid signature)")
         XCTAssertTrue(viewModel.statusMessages.contains { $0.contains("EPUB normalization:") })
         XCTAssertTrue(viewModel.statusMessages.contains { $0.contains("Report generated at") })
 

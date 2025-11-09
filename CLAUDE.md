@@ -236,7 +236,8 @@ Three SwiftPM packages in `EbookMechanic.xcworkspace`:
 1. **EbookMechanicCore** (swift/EbookMechanicCore/) - Core library
    - `FileScanner` - Actor-based scanner for thread-safe concurrency
    - `FileValidator` - Format-specific validators
-   - `FileRepairer` - Automatic repair engine (EPUB manifest, PDF EOF)
+   - `FileRepairer` - Automatic repair engine (EPUB manifest, comprehensive PDF header/EOF repair)
+   - `PDFHeaderRepair` - Advanced PDF header corruption detection and repair
    - `ZipArchive` - Custom ZIP implementation (no external dependencies)
    - `MarkdownReportGenerator` - Report generation
 
@@ -268,9 +269,12 @@ Three SwiftPM packages in `EbookMechanic.xcworkspace`:
 
 **Repair Capabilities (FileRepairer.swift):**
 
-- EPUB: Auto-adds missing `mimetype` and `META-INF/container.xml` files
-- PDF: Appends missing `%%EOF` markers
-- MOBI/AZW3: Returns helpful message suggesting Calibre conversion
+- **EPUB:** Auto-adds missing `mimetype` and `META-INF/container.xml` files
+- **PDF:** Comprehensive two-phase repair process:
+  - **Phase 1 (Header Repair):** Advanced header detection (searches first 8KB), strips corrupted prefix bytes, validates PDF version format (1.0-2.0), adds missing binary markers, handles UTF-8 BOM and email wrapper corruption
+  - **Phase 2 (EOF Repair):** Appends missing `%%EOF` markers
+  - Handles real-world corruption patterns: junk prefixes, email corruption, FTP corruption, invalid versions
+- **MOBI/AZW3:** Returns helpful message suggesting Calibre conversion
 - Creates `.backup` files before repairs, restores on failure
 
 **Key Implementation Details:**
@@ -460,14 +464,18 @@ Coverage target: 46%+ (use `make test-coverage` to view)
 
 ### Swift Tests
 
-- **ValidationTests.swift:** Format-specific validation tests
-- **RepairTests.swift:** Automatic repair functionality
-- **ScannerTests.swift:** File scanning and folder operations
-- **ReportGeneratorTests.swift:** Markdown report generation
-- **CLIConfigurationTests.swift:** CLI argument parsing
+- **ValidationTests.swift:** Format-specific validation tests (4 tests)
+- **RepairTests.swift:** Automatic repair functionality including PDF header repair (3 tests)
+- **PDFVerifierTests.swift:** PDF header verification and corruption detection (4 tests covering junk prefixes, UTF-8 BOM, missing binary markers, email/FTP corruption)
+- **ScannerTests.swift:** File scanning and folder operations (3 tests)
+- **ReportGeneratorTests.swift:** Markdown report generation (12 tests)
+- **CLIConfigurationTests.swift:** CLI argument parsing (45 tests)
+- **ProgressPrinterTests.swift:** CLI progress output (26 tests)
+- **ShellCompletionTests.swift:** Shell completion generation (31 tests)
 - **ScanOptionsTests.swift:** SwiftUI view model behavior
 
-All tests: 19 total (10 core + 6 CLI + 3 app)
+All tests: 128+ total (26 core + 102 CLI + app tests)
+Core library includes comprehensive PDF repair test coverage with real-world corruption scenarios
 
 ### Python Tests
 

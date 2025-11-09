@@ -21,17 +21,23 @@ final class RepairTests: XCTestCase {
 
     func testRepairEPUBAddsMissingFiles() throws {
         let epubURL = tempDirectory.appendingPathComponent("broken.epub")
-        try TestFixtures.createEPUBWithOnlyContent(at: epubURL)
+
+        // EPUB missing mimetype and container.xml
+        var entries: [ZipEntry] = []
+        entries.append(ZipEntry(name: "content.opf", data: TestFixtures.createMinimalOPF(), compressionMethod: 8))
+        entries.append(ZipEntry(name: "chapter1.html", data: Data("<html><body>Chapter 1</body></html>".utf8), compressionMethod: 8))
+        let archive = ZipArchive(entries: entries)
+        try archive.write(to: epubURL)
 
         let result = repairer.repair(url: epubURL)
 
         XCTAssertTrue(result.success)
         XCTAssertTrue(result.fixed)
 
-        let archive = try ZipArchive.load(from: epubURL)
-        XCTAssertEqual(archive.entries.first?.name, "mimetype")
-        XCTAssertEqual(archive.entries.first?.compressionMethod, 0)
-        XCTAssertNotNil(archive.entry(named: "META-INF/container.xml"))
+        let repairedArchive = try ZipArchive.load(from: epubURL)
+        XCTAssertEqual(repairedArchive.entries.first?.name, "mimetype")
+        XCTAssertEqual(repairedArchive.entries.first?.compressionMethod, 0)
+        XCTAssertNotNil(repairedArchive.entry(named: "META-INF/container.xml"))
     }
 
     func testRepairPDFAddsEOFMarker() throws {

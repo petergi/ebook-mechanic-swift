@@ -3,9 +3,11 @@ import Foundation
 /// Validates ebook containers and reports structural issues.
 public struct FileValidator: @unchecked Sendable {
     private let fileManager: FileManager
+    private let deepValidation: Bool
 
-    public init(fileManager: FileManager = .default) {
+    public init(fileManager: FileManager = .default, deepValidation: Bool = false) {
         self.fileManager = fileManager
+        self.deepValidation = deepValidation
     }
 
     /// Validates the file located at `url`, inferring the type from its extension.
@@ -61,9 +63,40 @@ public struct FileValidator: @unchecked Sendable {
                 return ValidationResult(isValid: false, reason: "Missing META-INF/container.xml")
             }
 
+            // Perform deep OPF validation
+            let opfValidator = OPFValidator()
+            let opfResult = opfValidator.validate(archive: archive, containerData: container.data)
+
+            if !opfResult.isValid {
+                let errorSummary = opfResult.errorMessages.first ?? "OPF validation failed"
+                return ValidationResult(isValid: false, reason: errorSummary)
+            }
+
+            // Optionally perform deep HTML validation
+            var htmlWarnings = 0
+            if deepValidation {
+                let htmlValidator = HTMLValidator()
+                let htmlResult = htmlValidator.validate(archive: archive)
+                htmlWarnings = htmlResult.warningCount
+
+                // HTML errors are critical
+                if !htmlResult.isValid {
+                    let errorSummary = htmlResult.issues.first(where: { $0.severity == .error })?.message ?? "HTML validation failed"
+                    return ValidationResult(isValid: false, reason: "Invalid HTML/XHTML content: \(errorSummary)")
+                }
+            }
+
+            // Include warnings as informational in the reason if needed
+            let totalWarnings = opfResult.warningMessages.count + htmlWarnings
+            if totalWarnings > 0 {
+                return ValidationResult(isValid: true, reason: "Valid EPUB (\(totalWarnings) warning\(totalWarnings == 1 ? "" : "s"))")
+            }
+
             return ValidationResult(isValid: true, reason: "Valid EPUB")
+        } catch let zipError as ZipError {
+            return ValidationResult(isValid: false, reason: "Not a valid ZIP file (\(zipError))")
         } catch {
-            return ValidationResult(isValid: false, reason: "Not a valid ZIP file")
+            return ValidationResult(isValid: false, reason: "Not a valid ZIP file (\(error.localizedDescription))")
         }
     }
 

@@ -198,10 +198,12 @@ public struct RepairResult: Sendable, Codable, Equatable {
     public var success: Bool
     public var message: String
     public var fixed: Bool
+    public var fileURL: URL?
 
-    public init(success: Bool, message: String, fixed: Bool) {
+    public init(success: Bool, message: String, fixed: Bool, fileURL: URL? = nil) {
         self.success = success
         self.message = message
         self.fixed = fixed
+        self.fileURL = fileURL
     }
 }

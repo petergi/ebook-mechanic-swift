@@ -1,6 +1,10 @@
-# 📚 EbookMechanic - Swift Implementation
+# 📚 EbookMechanic
 
-A native Swift implementation featuring both a command-line interface and a beautiful macOS SwiftUI app, powered by modern Swift concurrency.
+A native Swift implementation featuring both a command-line interface and a beautiful macOS SwiftUI app, powered by modern Swift concurrency. I need a tool to help with a ton of corrupted files I had when I deleted my carefully curated library (15 years!) and then used a Disk Recovery tool. It recovered the library. But *most* of it was corrupted. Some of the corrupted files maybe recoverable, so I needed a way to test them, and recover them. So here we are, a good learning opportunity with a real-world need behind it.  
+
+I decided to learn directly from Sigil and Calibre source code, how they handle ZIP unpacking, manifest parsing, and repair flows, as well as EPUB repairs and normalization. 
+
+
 
 ## Overview
 

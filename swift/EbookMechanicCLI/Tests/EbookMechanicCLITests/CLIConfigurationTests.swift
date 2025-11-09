@@ -332,7 +332,7 @@ final class CLIConfigurationTests: XCTestCase {
     func testForceNormalizeFlag() throws {
         let config = try CLIConfiguration.parse(arguments: ["ebook-mechanic", "--force-normalize"])
         XCTAssertTrue(config.forceNormalize)
-        XCTAssertFalse(config.normalizeEPUBs)
+        XCTAssertTrue(config.normalizeEPUBs) // --force-normalize implicitly enables --normalize-epubs
     }
 
     func testBothNormalizationFlags() throws {

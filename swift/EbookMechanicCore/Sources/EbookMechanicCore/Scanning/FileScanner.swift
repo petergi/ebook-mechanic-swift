@@ -12,6 +12,7 @@ public actor FileScanner {
     private let corruptedDirectoryName: String
 
     private(set) public var lastResult: ScanResult = ScanResult()
+    private(set) public var lastRepairResults: [RepairResult] = []
 
     public init(
         rootDirectory: URL,
@@ -269,29 +270,14 @@ public actor FileScanner {
                     continue
                 }
 
-                // Build new entries
-
                 // Filter out extraneous files and mimetype entry
                 var filteredEntries = archive.entries.filter {
                     $0.name != "mimetype" && !isExtraneousFile(name: $0.name)
                 }
 
-                // Normalize names
-                func normalizeName(_ name: String) -> String {
-                    var name = name
-                    if name.hasPrefix("./") {
-                        name.removeFirst(2)
-                    }
-                    if name.lowercased() == "meta-inf/container.xml" {
-                        return "META-INF/container.xml"
-                    }
-                    return name
-                }
-
                 // Normalize container entry and handle data
                 var containerData: Data? = nil
                 if let containerOriginal = filteredEntries.first(where: { $0.name.lowercased() == "meta-inf/container.xml" }) {
-                    // Re-encode container.xml data for UTF-8 normalization if possible
                     if let str = String(data: containerOriginal.data, encoding: .utf8),
                        let reencoded = str.data(using: .utf8) {
                         containerData = reencoded
@@ -300,36 +286,36 @@ public actor FileScanner {
                     }
                 }
 
-                // Remove old container entry from filteredEntries
                 filteredEntries.removeAll(where: { $0.name.lowercased() == "meta-inf/container.xml" })
 
-                // Synthesize container if missing
-                if containerData == nil {
-                    containerData = Data(defaultContainerXML.utf8)
-                }
+                let archiveNormalizer = EPUBArchiveNormalizer(defaultContainerXML: defaultContainerXML)
+                let normalization = archiveNormalizer.normalize(entries: filteredEntries, containerData: containerData)
+                let normalizedEntries = normalization.entries
 
-                // Compose new entries with normalized names and compression
-                var newEntries: [ZipEntry] = [ZipEntry(name: "mimetype", data: mimetypeData, compressionMethod: 0)]
-                // Add container.xml entry
-                if let containerData = containerData {
-                    newEntries.append(ZipEntry(name: "META-INF/container.xml", data: containerData, compressionMethod: 8))
-                }
-                // Add the rest, normalized and compressionMethod 8
-                let normalizedOthers = filteredEntries.map { entry in
-                    ZipEntry(name: normalizeName(entry.name), data: entry.data, compressionMethod: 8)
-                }
+                // Compose new entries with canonical ordering (mimetype must remain first)
+                var newEntries: [ZipEntry] = [
+                    ZipEntry(name: "mimetype", data: mimetypeData, compressionMethod: 0),
+                    ZipEntry(name: "META-INF/container.xml", data: normalization.containerData, compressionMethod: 8),
+                ]
 
-                // Deduplicate by name (last wins)
-                for entry in normalizedOthers {
-                    if let existingIndex = newEntries.firstIndex(where: { $0.name == entry.name }) {
-                        newEntries[existingIndex] = entry
+                let payloadEntries = normalizedEntries
+                    .filter {
+                        let lower = $0.name.lowercased()
+                        return lower != "mimetype"
+                            && lower != "meta-inf/container.xml"
+                            && !lower.hasSuffix("/")
+                    }
+                    .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+
+                for entry in payloadEntries {
+                    var normalizedEntry = entry
+                    normalizedEntry.compressionMethod = 8
+                    if let existingIndex = newEntries.firstIndex(where: { $0.name == normalizedEntry.name }) {
+                        newEntries[existingIndex] = normalizedEntry
                     } else {
-                        newEntries.append(entry)
+                        newEntries.append(normalizedEntry)
                     }
                 }
-
-                // Sort by name ascending
-                newEntries.sort { $0.name < $1.name }
 
                 let newArchive = ZipArchive(entries: newEntries)
 
@@ -380,12 +366,20 @@ public actor FileScanner {
             ))
         }
 
+        lastRepairResults = outcomes
         return (outcomes, repairedCount)
     }
 
     /// Generates a Markdown report summarising the scan.
     public func generateReport(into directory: URL, fileName: String? = nil) throws -> URL {
-        try MarkdownReportGenerator().generate(from: lastResult, rootDirectory: rootDirectory, corruptedDirectoryName: corruptedDirectoryName, into: directory, fileName: fileName)
+        try MarkdownReportGenerator().generate(
+            from: lastResult,
+            rootDirectory: rootDirectory,
+            corruptedDirectoryName: corruptedDirectoryName,
+            repairs: lastRepairResults,
+            into: directory,
+            fileName: fileName
+        )
     }
 
     private func directoryContainsEbookFiles(_ url: URL) throws -> Bool {
@@ -402,4 +396,3 @@ public actor FileScanner {
         return false
     }
 }
-

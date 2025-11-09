@@ -211,6 +211,7 @@ struct CLIConfiguration {
                 config.normalizeEPUBs = true
             case "--force-normalize":
                 config.forceNormalize = true
+                config.normalizeEPUBs = true
             default:
                 throw CLIError.invalidArgument("Unknown argument: \(argument)")
             }
@@ -345,7 +346,9 @@ struct ProgressPrinter: @unchecked Sendable {
         printInfo("Repair attempts: \(results.count) – fixed: \(repairedCount)")
         for (index, result) in results.enumerated() where verbose {
             let icon = result.fixed ? "✅" : (result.success ? "ℹ️" : "❌")
-            emit("  \(icon) [\(index + 1)] \(result.message)")
+            let path = result.fileURL?.path ?? "unknown file"
+            emit("  \(icon) [\(index + 1)] \(path)")
+            emit("     ↳ \(result.message)")
         }
     }
 

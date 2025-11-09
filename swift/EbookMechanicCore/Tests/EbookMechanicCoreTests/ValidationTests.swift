@@ -48,7 +48,7 @@ final class ValidationTests: XCTestCase {
         try "This is not a ZIP file".data(using: .utf8)!.write(to: notZip)
         let invalidZip = validator.validate(url: notZip, as: .epub)
         XCTAssertFalse(invalidZip.isValid)
-        XCTAssertEqual(invalidZip.reason, "Not a valid ZIP file")
+        XCTAssertTrue(invalidZip.reason.hasPrefix("Not a valid ZIP file"), "Reason: \(invalidZip.reason)")
     }
 
     func testValidateMOBI() throws {

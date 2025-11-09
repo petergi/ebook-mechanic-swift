@@ -4,8 +4,10 @@ import Foundation
 enum TestFixtures {
     static func createValidEPUB(at url: URL) throws {
         let archive = ZipArchive(entries: [
-            ZipEntry(name: "mimetype", data: Data("application/epub+zip".utf8)),
-            ZipEntry(name: "META-INF/container.xml", data: Data(validContainerXML.utf8)),
+            ZipEntry(name: "mimetype", data: Data("application/epub+zip".utf8), compressionMethod: 0),
+            ZipEntry(name: "META-INF/container.xml", data: Data(validContainerXML.utf8), compressionMethod: 8),
+            ZipEntry(name: "content.opf", data: createMinimalOPF(), compressionMethod: 8),
+            ZipEntry(name: "chapter1.html", data: Data("<html><body>Chapter 1</body></html>".utf8), compressionMethod: 8),
         ])
         try archive.write(to: url)
     }
@@ -48,6 +50,39 @@ enum TestFixtures {
         try archive.write(to: url)
     }
 
+    static func createEPUBMissingManifest(at url: URL) throws {
+        let container = """
+<?xml version="1.0" encoding="UTF-8"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>
+"""
+
+        let opf = """
+<?xml version="1.0" encoding="UTF-8"?>
+<package version="2.0" unique-identifier="BookId" xmlns="http://www.idpf.org/2007/opf">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:title>Sample Book</dc:title>
+    <dc:identifier id="BookId">urn:uuid:\(UUID().uuidString)</dc:identifier>
+  </metadata>
+  <manifest></manifest>
+  <spine></spine>
+</package>
+"""
+
+        let entries = [
+            ZipEntry(name: "mimetype", data: Data("application/epub+zip".utf8), compressionMethod: 0),
+            ZipEntry(name: "META-INF/container.xml", data: Data(container.utf8), compressionMethod: 8),
+            ZipEntry(name: "OEBPS/content.opf", data: Data(opf.utf8), compressionMethod: 8),
+            ZipEntry(name: "OEBPS/Text/chapter1.xhtml", data: Data("Chapter 1".utf8), compressionMethod: 8),
+            ZipEntry(name: "OEBPS/Images/cover.jpg", data: Data([0xFF, 0xD8, 0xFF, 0xD9]), compressionMethod: 8),
+        ]
+
+        try ZipArchive(entries: entries).write(to: url)
+    }
+
 
     static func createMOBI(with identifier: String, at url: URL) throws {
         var header = Data(count: 100)
@@ -85,6 +120,26 @@ enum TestFixtures {
             content.append(Data("Some PDF content here to make it larger than 100 bytes.\n".utf8))
         }
         try content.write(to: url)
+    }
+
+    static func createMinimalOPF() -> Data {
+        let opf = """
+<?xml version="1.0" encoding="UTF-8"?>
+<package version="2.0" unique-identifier="BookId" xmlns="http://www.idpf.org/2007/opf">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:title>Test Book</dc:title>
+    <dc:identifier id="BookId">test-123</dc:identifier>
+    <dc:language>en</dc:language>
+  </metadata>
+  <manifest>
+    <item id="item1" href="chapter1.html" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="item1"/>
+  </spine>
+</package>
+"""
+        return Data(opf.utf8)
     }
 
     private static let validContainerXML = """

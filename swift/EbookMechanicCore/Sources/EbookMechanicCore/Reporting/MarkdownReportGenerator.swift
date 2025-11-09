@@ -8,6 +8,7 @@ public struct MarkdownReportGenerator: Sendable {
         from result: ScanResult,
         rootDirectory: URL,
         corruptedDirectoryName: String,
+        repairs: [RepairResult] = [],
         into directory: URL,
         fileName: String? = nil
     ) throws -> URL {
@@ -41,6 +42,10 @@ public struct MarkdownReportGenerator: Sendable {
         builder.appendLine("- **Folders with ebooks:** \(result.foldersWithEbooks)")
         builder.appendLine("- **Folders without ebooks:** \(result.emptyFolders.count)\n")
 
+        func relativePath(for url: URL) -> String {
+            url.path.replacingOccurrences(of: rootDirectory.path, with: "").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        }
+
         if !result.corruptedFiles.isEmpty {
             builder.appendLine("---\n")
             builder.appendLine("## Corrupted Files Details\n")
@@ -49,7 +54,7 @@ public struct MarkdownReportGenerator: Sendable {
                 guard let files = grouped[type], !files.isEmpty else { continue }
                 builder.appendLine("### \(type.fileExtension.uppercased()) Files\n")
                 for file in files {
-                    let relative = file.url.path.replacingOccurrences(of: rootDirectory.path, with: "").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                    let relative = relativePath(for: file.url)
                     builder.appendLine("#### `\(relative)`\n")
                     builder.appendLine("- **Size:** \(ByteCountFormatter.readableString(from: file.size))")
                     builder.appendLine("- **Reason:** \(file.reason)\n")
@@ -64,7 +69,7 @@ public struct MarkdownReportGenerator: Sendable {
             builder.appendLine("---\n")
             builder.appendLine("## Folders Without Ebooks\n")
             for folder in result.emptyFolders {
-                let relative = folder.path.replacingOccurrences(of: rootDirectory.path, with: "").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                let relative = relativePath(for: folder)
                 builder.appendLine("### `\(relative)`\n")
                 if let contents = try? FileManager.default.contentsOfDirectory(atPath: folder.path), !contents.isEmpty {
                     builder.appendLine("**Contents:** \(contents.count) items\n")
@@ -83,6 +88,26 @@ public struct MarkdownReportGenerator: Sendable {
         } else if result.totalFolders > 0 {
             builder.appendLine("---\n")
             builder.appendLine("## ✅ No Empty Folders Found\n")
+        }
+
+        if !repairs.isEmpty {
+            builder.appendLine("---\n")
+            builder.appendLine("## Repair Attempts\n")
+            for (index, repair) in repairs.enumerated() {
+                let label: String
+                if repair.fixed {
+                    label = "Fixed"
+                } else if repair.success {
+                    label = "No change"
+                } else {
+                    label = "Failed"
+                }
+                let icon: String = repair.fixed ? "✅" : (repair.success ? "ℹ️" : "❌")
+                let path = repair.fileURL.map { "`\(relativePath(for: $0))`" } ?? "*Unknown file*"
+                builder.appendLine("### \(icon) Attempt \(index + 1): \(label)")
+                builder.appendLine("- **File:** \(path)")
+                builder.appendLine("- **Details:** \(repair.message)\n")
+            }
         }
 
         builder.appendLine("---\n")
