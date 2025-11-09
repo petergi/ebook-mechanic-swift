@@ -12,7 +12,7 @@ This document outlines the immediate next steps for the EbookMechanic Swift impl
 - Added comprehensive Makefile targets for both EPUBMechanicCLI and PDFMechanicCLI to `swift/Makefile`
 - Fixed binary paths in specialized CLI Makefiles (EPUBMechanicCLI/Makefile, PDFMechanicCLI/Makefile)
 - Corrected shell completion file names (epub-mechanic vs pdf-mechanic)
-- Standardized shell configuration across all Makefiles (using `/bin/bash`)
+- Standardized shell configuration across all Makefiles (using `/bin/zsh`)
 - Fixed package path references in build commands
 - Updated all build artifact paths to use relative `.build` directories
 - Added new targets: `build-specialized`, `install-specialized`, `uninstall-specialized`

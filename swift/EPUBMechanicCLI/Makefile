@@ -11,7 +11,7 @@ CLI_DEBUG_BINARY := EPUBMechanicCLI/.build/debug/EPUBMechanicCLI
 CLI_RELEASE_BINARY := EPUBMechanicCLI/.build/release/EPUBMechanicCLI
 
 # Default shell configuration for better error handling
-SHELL := /bin/bash
+SHELL := /bin/zsh
 .SHELLFLAGS := -eu -o pipefail -c
 .ONESHELL:
 

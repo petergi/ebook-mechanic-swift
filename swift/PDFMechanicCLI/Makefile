@@ -11,7 +11,7 @@ CLI_DEBUG_BINARY := PDFMechanicCLI/.build/debug/PDFMechanicCLI
 CLI_RELEASE_BINARY := PDFMechanicCLI/.build/release/PDFMechanicCLI
 
 # Default shell configuration for better error handling
-SHELL := /bin/bash
+SHELL := /bin/zsh
 .SHELLFLAGS := -eu -o pipefail -c
 .ONESHELL:
 
