@@ -166,26 +166,37 @@ Five SwiftPM packages in `EbookMechanic.xcworkspace`:
    - `PDFHeaderRepair` - Advanced PDF header corruption detection and repair
    - `ZipArchive` - Custom ZIP implementation (no external dependencies)
    - `MarkdownReportGenerator` - Report generation
-2. **EbookMechanicCLI** (swift/EbookMechanicCLI/) - Command-line interface
+   - 26 comprehensive tests
 
+2. **EbookMechanicCLI** (swift/EbookMechanicCLI/) - Full-featured command-line interface
    - Flag parsing with configuration struct
    - Progress printer with emoji feedback
    - Interactive prompts with auto-confirm mode
+   - Shell completions (Bash, Zsh, Fish, PowerShell)
    - Depends on EbookMechanicCore
+   - 102 tests for CLI functionality
+
 3. **EbookMechanicApp** (swift/EbookMechanicApp/) - macOS SwiftUI app
    - `ScanViewModel` - Observable view model shared with CLI logic
    - `ContentView` - Gradient UI with live progress, toggle controls
    - Directory picker using `NSOpenPanel`
    - Scrollable corrupted/empty folder lists
-4. **EpubMechanicApp** (swift/EpubMechanicApp/) - Command-line utility for EPUBS
-   - 
-   - 
-   - 
-5. **PDFMechanicApp** (swift/PDFMechanicApp/) - Command-line utility for PDFs
-   - 
-   - 
-   - 
-   - 
+   - 3 view-model tests
+
+4. **EPUBMechanicCLI** (swift/EPUBMechanicCLI/) - Specialized EPUB utility
+   - EPUB-only validation (ZIP + mimetype + container.xml)
+   - Automatic repair of missing EPUB metadata
+   - Simplified CLI focused on EPUB operations
+   - Depends on EbookMechanicCore
+   - 2 basic tests
+
+5. **PDFMechanicCLI** (swift/PDFMechanicCLI/) - Specialized PDF utility
+   - PDF + AZW4 validation (header + EOF markers)
+   - Advanced PDF header corruption repair
+   - Detects junk prefixes, UTF-8 BOM, email wrappers
+   - Simplified CLI focused on PDF operations
+   - Depends on EbookMechanicCore
+   - 2 basic tests 
 
 **Actor-Based Concurrency (FileScanner.swift):**
 

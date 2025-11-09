@@ -11,6 +11,12 @@
       location = "group:EbookMechanicApp">
    </FileRef>
    <FileRef
+      location = "group:EPUBMechanicCLI">
+   </FileRef>
+   <FileRef
+      location = "group:PDFMechanicCLI">
+   </FileRef>
+   <FileRef
       location = "group:README.md">
    </FileRef>
    <Group

@@ -25,7 +25,7 @@ The Swift implementation of EbookMechanic provides dual interfaces—a CLI for t
 
 ## Architecture
 
-The Swift implementation uses a modular Swift Package Manager architecture:
+The Swift implementation uses a modular Swift Package Manager architecture with 5 packages:
 
 ### EbookMechanicCore (Core Library)
 
@@ -44,13 +44,13 @@ The foundation package providing all core functionality:
 - Swift 6 strict concurrency enforced
 - Actor isolation for automatic thread safety
 - Async/await patterns throughout
-- Comprehensive XCTest coverage (10 tests)
+- Comprehensive XCTest coverage (26 tests)
 
-### EbookMechanicCLI (Command-Line Interface)
+### EbookMechanicCLI (Full-Featured CLI)
 
 **Location:** `swift/EbookMechanicCLI/`
 
-Terminal interface for command-line users:
+Terminal interface for all ebook formats:
 
 - Fast text interface with progress feedback
 - Flag parsing with configuration struct
@@ -59,7 +59,35 @@ Terminal interface for command-line users:
 - Shell completion support (Bash, Zsh, Fish, PowerShell)
 - Depends on EbookMechanicCore
 
-**Test Coverage:** 6 tests for configuration parsing
+**Test Coverage:** 102 tests for configuration and completions
+
+### EPUBMechanicCLI (EPUB-Focused Utility)
+
+**Location:** `swift/EPUBMechanicCLI/`
+
+Specialized CLI for EPUB validation and repair:
+
+- EPUB-only validation (ZIP + mimetype + container.xml)
+- Automatic repair of missing EPUB metadata
+- Simplified interface focused on EPUB operations
+- Lightweight alternative to full CLI
+- Depends on EbookMechanicCore
+
+**Test Coverage:** 2 tests for basic functionality
+
+### PDFMechanicCLI (PDF-Focused Utility)
+
+**Location:** `swift/PDFMechanicCLI/`
+
+Specialized CLI for PDF and AZW4 validation and repair:
+
+- PDF + AZW4 validation (header + EOF markers)
+- Advanced PDF header corruption repair
+- Detects: junk prefixes, UTF-8 BOM, email wrappers
+- Simplified interface focused on PDF operations
+- Depends on EbookMechanicCore
+
+**Test Coverage:** 2 tests for basic functionality
 
 ### EbookMechanicApp (macOS SwiftUI App)
 
