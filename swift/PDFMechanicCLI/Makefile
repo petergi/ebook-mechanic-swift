@@ -1,14 +1,14 @@
-# EPUBMechanic Swift workspace make targets
+# PDFMechanicCLI Swift workspace make targets
 
 # Environment setup for reproducible builds
 SPM_ENV := SWIFT_MODULE_CACHE_PATH=.build/module-cache CLANG_MODULE_CACHE_PATH=.build/module-cache
 
 # CLI install configuration
 BIN_INSTALL_PATH ?= /usr/local/bin
-CLI_INSTALL_NAME ?= epub-mechanic
+CLI_INSTALL_NAME ?= pdf-mechanic
 CLI_INSTALL_TARGET := $(BIN_INSTALL_PATH)/$(CLI_INSTALL_NAME)
-CLI_DEBUG_BINARY := .build/debug/EpubMechanicCLI
-CLI_RELEASE_BINARY := .build/release/EpubMechanicCLI
+CLI_DEBUG_BINARY := .build/debug/PDFMechanicCLI
+CLI_RELEASE_BINARY := .build/release/PDFMechanicCLI
 
 # Default shell configuration for better error handling
 SHELL := /bin/zsh
@@ -22,7 +22,7 @@ SHELL := /bin/zsh
 .DEFAULT_GOAL := build
 
 help:
-	@echo "EpubMechanic Make Targets"
+	@echo "PDFMechanicCLI Make Targets"
 	@echo "================================"
 	@echo ""
 	@echo "🏗️  Build Targets:"
@@ -31,28 +31,26 @@ help:
 	@echo ""
 	@echo "🧪 Test Targets:"
 	@echo "  make test                      - Run cli tests (default)"
-	@echo "  make test-all                  - Run all test suites (CLI )"
-	@echo "  make cli-test       	        - Run the CLI test suite"
+	@echo "  make test-all                  - Run all test suites"
+
 	@echo ""
 	@echo "🚀 Run Targets:"
 	@echo "  make cli-run ARGS=            	- Run the CLI (default: --help)"
-	@echo "  make cli-normalize             - Normalize EPUBs (dry-run mode)"
-	@echo "  make cli-normalize-force       - Force normalize EPUBs (live mode)"
 	@echo ""
 	@echo "📚 Documentation Targets:"
 	@echo "  make docc-all                  - Generate all documentation (cli)"
-	@echo "  make docc-cli                  - Generate DocC docs for EPUBMechanic"
+	@echo "  make docc-cli                  - Generate DocC docs for PDFMechanic"
 	@echo "  make docc-serve                - Serve docs at http://localhost:8080"
 	@echo ""
 	@echo "🛠️  Utility Targets:"
-	@echo "  make cli-completions           - Generate shell completion scripts"
+	@echo "  make completions           - Generate shell completion scripts"
 	@echo "  make install                   - Install CLI to $(BIN_INSTALL_PATH) (debug)"
 	@echo "  make install-release           - Install optimized CLI to $(BIN_INSTALL_PATH)"
 	@echo "  make uninstall                 - Remove CLI from $(BIN_INSTALL_PATH)"
 	@echo "  make format                    - Format all Swift code with swift-format"
 	@echo "  make lint                      - Lint Swift code (requires SwiftLint)"
 	@echo "  make check-format              - Check if code is formatted (CI-friendly)"
-	@echo "  make workspace                 - Open ../EPUBMechanic.xcworkspace in Xcode"
+	@echo "  make workspace                 - Open ../EbookMechanic.xcworkspace in Xcode"
 	@echo "  make clean                     - Remove build artifacts for all packages"
 	@echo "  make clean-all                 - Deep clean (includes completions & docs)"
 	@echo "  make info                      - Display build information and sizes"
@@ -79,10 +77,10 @@ build-all: cli-build
 # Release builds (optimized)
 build-release:
 	@echo "🚀 Building optimized release binaries..."
-	$(SPM_ENV) swift build --disable-sandbox --package-path EPUBMechanicCLI -c release
+	$(SPM_ENV) swift build --disable-sandbox --package-path PDFMechanicCLI -c release
 	@echo "✅ Release builds complete!"
 	@echo ""
-	@echo "CLI binary: EPUBMechanicCLI/.build/release/EPUBMechanicCLI"
+	@echo "CLI binary: PDFMechanicCLI/.build/release/PDFMechanicCLI"
 
 # Default test target now exercises CLI
 test: cli-test
@@ -95,30 +93,24 @@ test-all:
 	@echo ""
 	@echo "✅ All test suites completed!"
 
-cli-build:
-	@echo "🔨 Building EPUBMechanicCLI..."
-	$(SPM_ENV) swift build --disable-sandbox --package-path EPUBMechanicCLI
+build-cli:
+	@echo "🔨 Building PDFMechanicCLI..."
+	$(SPM_ENV) swift build --disable-sandbox --package-path PDFMechanicCLI
 
-cli-run:
-	$(SPM_ENV) swift run --disable-sandbox --package-path EPUBMechanicCLI EPUBMechanicCLI $(if $(ARGS),$(ARGS),--help)
+run-cli:
+	$(SPM_ENV) swift run --disable-sandbox --package-path PDFMechanicCLI PDFMechanicCLI $(if $(ARGS),$(ARGS),--help)
 
-cli-normalize:
-	$(SPM_ENV) swift run --disable-sandbox --package-path EPUBMechanicCLI EPUBMechanicCLI $(if $(ARGS),$(ARGS),--normalize-epubs --dry-run)
+test-cli:
+	@echo "🧪 Running PDFMechanicCLI tests..."
+	$(SPM_ENV) swift test --disable-sandbox --package-path PDFMechanicCLI
 
-cli-normalize-force:
-	$(SPM_ENV) swift run --disable-sandbox --package-path EPUBMechanicCLI EPUBMechanicCLI $(if $(ARGS),$(ARGS),--normalize-epubs --force-normalize --dry-run=false)
-
-cli-test:
-	@echo "🧪 Running EPUBMechanicCLI tests..."
-	$(SPM_ENV) swift test --disable-sandbox --package-path EPUBMechanicCLI
-
-cli-completions:
+completions:
 	@echo "📝 Generating shell completion scripts..."
 	@mkdir -p completions
-	@$(SPM_ENV) swift run --disable-sandbox --package-path EPUBMechanicCLI EPUBMechanicCLI --generate-completion bash > completions/epub-mechanic.bash
-	@$(SPM_ENV) swift run --disable-sandbox --package-path EPUBMechanicCLI EPUBMechanicCLI --generate-completion zsh > completions/_epub-mechanic
-	@$(SPM_ENV) swift run --disable-sandbox --package-path EPUBMechanicCLI EPUBMechanicCLI --generate-completion fish > completions/epub-mechanic.fish
-	@$(SPM_ENV) swift run --disable-sandbox --package-path EPUBMechanicCLI EPUBMechanicCLI --generate-completion powershell > completions/epub-mechanic.ps1
+	@$(SPM_ENV) swift run --disable-sandbox --package-path PDFMechanicCLI PDFMechanicCLI --generate-completion bash > completions/epub-mechanic.bash
+	@$(SPM_ENV) swift run --disable-sandbox --package-path PDFMechanicCLI PDFMechanicCLI --generate-completion zsh > completions/_epub-mechanic
+	@$(SPM_ENV) swift run --disable-sandbox --package-path PDFMechanicCLI PDFMechanicCLI --generate-completion fish > completions/epub-mechanic.fish
+	@$(SPM_ENV) swift run --disable-sandbox --package-path PDFMechanicCLI PDFMechanicCLI --generate-completion powershell > completions/epub-mechanic.ps1
 	@echo "✅ Completion scripts generated in ./completions/"
 	@echo ""
 	@echo "To install:"
@@ -128,22 +120,22 @@ cli-completions:
 	@echo "  PowerShell: . completions/epub-mechanic.ps1"
 
 workspace:
-	@echo "🚀 Opening ../EPUBMechanic.xcworkspace in Xcode..."
-	@open ../EPUBMechanic.xcworkspace
+	@echo "🚀 Opening ../EbookMechanic.xcworkspace in Xcode..."
+	@open ../EbookMechanic.xcworkspace
 
 clean:
 	@echo "🧹 Cleaning build artifacts..."
-	@chmod -R u+w EPUBMechanicCLI/.build 2>/dev/null || true
-	@rm -rf EPUBMechanicCLI/.build
+	@chmod -R u+w PDFMechanicCLI/.build 2>/dev/null || true
+	@rm -rf PDFMechanicCLI/.build
 	@echo "✅ Build artifacts removed!"
 
 # Deep clean - removes build artifacts, completions, and docs
 clean-all:
 	@echo "🧹 Deep cleaning project..."
 	@echo "  Fixing permissions..."
-	@chmod -R u+w EPUBMechanicCLI/.build 2>/dev/null || true
+	@chmod -R u+w PDFMechanicCLI/.build 2>/dev/null || true
 	@echo "  Removing build artifacts..."
-	@rm -rf  EPUBMechanicCLI/.build
+	@rm -rf  PDFMechanicCLI/.build
 	@echo "  Removing completions..."
 	@rm -rf completions/
 	@echo "✅ All build artifacts, completions, and documentation removed!"
@@ -157,23 +149,23 @@ docc-all:
 	@echo ""
 	@echo "To serve: make docc-serve"
 
-Docc-cli:
-	@echo "Generating DocC documentation for EPUBMechanicCLI..."
+docc-cli:
+	@echo "Generating DocC documentation for PDFMechanicCLI..."
 	@if command -v docc >/dev/null 2>&1; then \
 		echo "Using docc command..."; \
-		cd EPUBMechanicCLI && $(SPM_ENV) swift build --target EPUBMechanicCLI && \
+		cd PDFMechanicCLI && $(SPM_ENV) swift build --target PDFMechanicCLI && \
 		$(SPM_ENV) swift package plugin generate-documentation \
-			--target EPUBMechanicCLI \
+			--target PDFMechanicCLI \
 			--output-path .build/docc \
 			--transform-for-static-hosting \
-			--hosting-base-path EPUBMechanicCLI-docs; \
+			--hosting-base-path PDFMechanicCLI-docs; \
 	elif xcodebuild -version >/dev/null 2>&1; then \
 		echo "Using xcodebuild docbuild..."; \
 		xcodebuild docbuild \
-			-scheme EPUBMechanicCLI \
+			-scheme PDFMechanicCLI \
 			-destination 'platform=macOS' \
-			-derivedDataPath EPUBMechanicCLI/.build/xcode-derived; \
-		echo "Documentation built to EPUBMechanicCLI/.build/xcode-derived"; \
+			-derivedDataPath PDFMechanicCLI/.build/xcode-derived; \
+		echo "Documentation built to PDFMechanicCLI/.build/xcode-derived"; \
 	else \
 		echo "Error: Neither docc nor xcodebuild found. Please install Xcode or swift-docc-plugin."; \
 		exit 1; \
@@ -181,11 +173,11 @@ Docc-cli:
 
 # Quick local preview using Python HTTP server (requires Python 3)
 docc-serve:
-	@if [ -d "EPUBMechanicCLI/.build/docc" ]; then \
-		echo "📚 Serving EPUBMechanicCLI documentation at http://localhost:8080"; \
+	@if [ -d "PDFMechanicCLI/.build/docc" ]; then \
+		echo "📚 Serving PDFMechanicCLI documentation at http://localhost:8080"; \
 		echo "Press Ctrl+C to stop the server."; \
 		echo ""; \
-		python3 -m http.server --directory EPUBMechanicCLI/.build/docc 8080; \
+		python3 -m http.server --directory PDFMechanicCLI/.build/docc 8080; \
 	else \
 		echo "❌ Error: No DocC documentation found."; \
 		echo ""; \
@@ -199,8 +191,8 @@ docc-serve:
 	fi
 
 # Install CLI binary to system path
-install: cli-build
-	@echo "📦 Installing EPUBMechanicCLI to $(CLI_INSTALL_TARGET)..."
+install: build-cli
+	@echo "📦 Installing PDFMechanicCLI to $(CLI_INSTALL_TARGET)..."
 	@if [ ! -f "$(CLI_DEBUG_BINARY)" ]; then \
 		echo "❌ Error: Binary not found. Run 'make cli-build' first."; \
 		exit 1; \
@@ -227,7 +219,7 @@ install: cli-build
 
 # Install release version (optimized binary)
 install-release: build-release
-	@echo "📦 Installing optimized EPUBMechanicCLI to $(CLI_INSTALL_TARGET)..."
+	@echo "📦 Installing optimized PDFMechanicCLI to $(CLI_INSTALL_TARGET)..."
 	@if [ ! -f "$(CLI_RELEASE_BINARY)" ]; then \
 		echo "❌ Error: Release binary not found."; \
 		exit 1; \
@@ -262,8 +254,8 @@ uninstall:
 format:
 	@if command -v swift-format >/dev/null 2>&1; then \
 		echo "🎨 Formatting Swift code..."; \
-		find EPUBMechanicCLI/Sources -name "*.swift" -exec swift-format -i {} \;; \
-		find EPUBMechanicCLI/Tests -name "*.swift" -exec swift-format -i {} \;; \
+		find PDFMechanicCLI/Sources -name "*.swift" -exec swift-format -i {} \;; \
+		find PDFMechanicCLI/Tests -name "*.swift" -exec swift-format -i {} \;; \
 		echo "✅ Code formatted!"; \
 	else \
 		echo "❌ swift-format not found. Install with:"; \
@@ -276,7 +268,7 @@ format:
 check-format:
 	@if command -v swift-format >/dev/null 2>&1; then \
 		echo "🔍 Checking Swift code formatting..."; \
-		swift-format lint -r EPUBMechanicCLI/Sources EPUBMechanicCLI/Tests; \
+		swift-format lint -r PDFMechanicCLI/Sources PDFMechanicCLI/Tests; \
 		echo "✅ Format check passed!"; \
 	else \
 		echo "⚠️  swift-format not installed, skipping format check"; \
@@ -286,7 +278,7 @@ check-format:
 lint:
 	@if command -v swiftlint >/dev/null 2>&1; then \
 		echo "🔍 Linting Swift code..."; \
-		cd ../EPUBMechanicCLI && swiftlint; \
+		cd ../PDFMechanicCLI && swiftlint; \
 		echo "✅ Lint check passed!"; \
 	else \
 		echo "❌ SwiftLint not found. Install with:"; \
@@ -303,7 +295,7 @@ ci: build-all test-all check-format
 
 # Print build info (useful for debugging)
 info:
-	@echo "🔍 EPUBMechanic Build Information"
+	@echo "🔍 PDFMechanic Build Information"
 	@echo "===================================="
 	@echo ""
 	@echo "Swift version:"
@@ -313,18 +305,18 @@ info:
 	@xcodebuild -version 2>/dev/null || echo "  Xcode not found"
 	@echo ""
 	@echo "Build directories:"
-	@echo "  CLI:  $(shell du -sh EPUBMechanicCLI/.build 2>/dev/null | cut -f1 || echo 'Not built')"
+	@echo "  CLI:  $(shell du -sh PDFMechanicCLI/.build 2>/dev/null | cut -f1 || echo 'Not built')"
 	@echo ""
 	@echo "Generated artifacts:"
 	@echo "  Completions: $(shell [ -d completions ] && ls -1 completions | wc -l | xargs || echo '0') files"
-	@echo "  CLI docs:   $(shell [ -d EPUBMechanicCLI/.build/docc ] && echo 'Generated' || echo 'Not generated')"
+	@echo "  CLI docs:   $(shell [ -d PDFMechanicCLI/.build/docc ] && echo 'Generated' || echo 'Not generated')"
 	@echo ""
 
 # Update all generated artifacts (completions and documentation)
 update-all:
 	@echo "🔄 Updating all generated artifacts..."
 	@echo ""
-	@$(MAKE) cli-completions
+	@$(MAKE) completions
 	@echo ""
 	@$(MAKE) docc-all
 	@echo ""

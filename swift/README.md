@@ -2,9 +2,7 @@
 
 A native Swift implementation featuring both a command-line interface and a beautiful macOS SwiftUI app, powered by modern Swift concurrency. I need a tool to help with a ton of corrupted files I had when I deleted my carefully curated library (15 years!) and then used a Disk Recovery tool. It recovered the library. But *most* of it was corrupted. Some of the corrupted files maybe recoverable, so I needed a way to test them, and recover them. So here we are, a good learning opportunity with a real-world need behind it.  
 
-I decided to learn directly from Sigil and Calibre source code, how they handle ZIP unpacking, manifest parsing, and repair flows, as well as EPUB repairs and normalization. 
-
-
+I decided to learn directly from Sigil and Calibre source code, how they handle ZIP unpacking, manifest parsing, and repair flows, as well as EPUB repairs and normalization.
 
 ## Overview
 
@@ -42,6 +40,7 @@ The foundation package providing all core functionality:
 - **MarkdownReportGenerator** - Report generation with statistics
 
 **Key Features:**
+
 - Swift 6 strict concurrency enforced
 - Actor isolation for automatic thread safety
 - Async/await patterns throughout
@@ -124,14 +123,15 @@ make uninstall
 
 ```bash
 # Launch the SwiftUI app
-make app-run
+make run-app
 
 # Or build and run explicitly
-make app-build
-make app-run
+make build-app
+make run-app
 ```
 
 The app provides:
+
 - Visual directory selection via native picker
 - Real-time progress bars
 - Toggle switches for repair, normalization, dry-run
@@ -220,25 +220,30 @@ ebook-mechanic --quiet --report
 ### Validation Strategy
 
 **EPUB Files:**
+
 - ZIP validation using custom `ZipArchive` implementation
 - Check for `mimetype` file with content: `application/epub+zip`
 - Verify `META-INF/container.xml` presence (non-empty)
 
 **MOBI Files:**
+
 - PalmDB header validation
 - Identifier check at bytes 60-68 (`BOOKMOBI` or `TEXtREAd`)
 - Header structure validation (first 32 bytes)
 
 **PDF Files:**
+
 - Header validation (`%PDF-`)
 - Minimum file size validation (5 bytes)
 - EOF marker check (`%%EOF` in last 1KB)
 
 **AZW3 Files (Kindle Format 8):**
+
 - Uses MOBI/PalmDB structure validation
 - Same header checks as MOBI
 
 **AZW4 Files (PDF wrapper):**
+
 - Validates as PDF format
 - PDF header and EOF markers required
 
@@ -249,6 +254,7 @@ Returns `ValidationResult(isValid: Bool, reason: String)`
 Comprehensive restructuring to canonical format:
 
 **ZIP Structure Normalization:**
+
 - `mimetype` first and uncompressed with exact contents `application/epub+zip`
 - All other entries deflated (compression method 8)
 - UTF-8 file names with language encoding flag
@@ -257,6 +263,7 @@ Comprehensive restructuring to canonical format:
 - Removes extraneous files (`__MACOSX/*`, `.DS_Store`, `Thumbs.db`, `desktop.ini`)
 
 **OPF (content.opf) Normalization:**
+
 - Locate via META-INF/container.xml (rootfile@full-path)
 - Canonicalize XML declaration, UTF-8 encoding, LF newlines
 - Normalize metadata text (trim, collapse spaces, NFC)
@@ -269,25 +276,30 @@ Comprehensive restructuring to canonical format:
 - Normalize `<spine>` order to follow manifest
 
 **Dry-Run Support:**
+
 - Reports what would change without modifications
 - Use `--force-normalize` to re-normalize already normalized files
 
 ### Repair Capabilities
 
 **EPUB Repair:**
+
 - Auto-adds missing `mimetype` file
 - Creates `META-INF/container.xml` if missing
 - Rebuilds ZIP structure correctly
 
 **PDF Repair:**
+
 - Appends missing `%%EOF` markers
 - Validates and fixes structure issues
 
 **MOBI/AZW3:**
+
 - Returns helpful message suggesting Calibre conversion
 - Cannot auto-repair proprietary format
 
 **Safety:**
+
 - Creates `.backup` files before repairs
 - Restores from backup on failure
 - Detailed error messages for troubleshooting
@@ -295,12 +307,14 @@ Comprehensive restructuring to canonical format:
 ### Actor-Based Concurrency
 
 **FileScanner Actor:**
+
 - All methods are `async` and actor-isolated
 - Guaranteed thread safety without manual locking
 - Progress events are `Sendable` structs
 - Structured stages: `.scanningFiles`, `.validatingFile(URL)`, `.repairingFiles`
 
 **Benefits:**
+
 - No data races
 - No manual mutex management
 - Swift 6 strict concurrency compliance
@@ -318,6 +332,7 @@ make cli-completions
 ```
 
 This creates scripts in `./completions/`:
+
 - `ebook-mechanic.bash` - Bash completion
 - `_ebook-mechanic` - Zsh completion
 - `ebook-mechanic.fish` - Fish completion
@@ -473,6 +488,7 @@ Swift's compiled nature and actor-based concurrency provide excellent performanc
 - **Low Memory** - Efficient memory management
 
 **Typical performance on 10,000 files:**
+
 - **Swift version: ~8-12 seconds**
 - Go version: ~5-10 seconds
 - Python version: ~30-45 seconds
@@ -536,6 +552,7 @@ swift/
 - SwiftUI for macOS app (built-in)
 
 **Requirements:**
+
 - Swift 5.9+
 - macOS 13+ (for app)
 - iOS 16+ (architecture ready)
@@ -640,6 +657,7 @@ make clean-all
 ### When to Use Swift
 
 **Choose Swift when:**
+
 - 🍎 You want a native macOS app with SwiftUI
 - 📱 You need iOS integration potential
 - 🎨 You prefer visual interfaces
@@ -647,11 +665,13 @@ make clean-all
 - 🛠️ You're in the Apple ecosystem
 
 **Choose Go when:**
+
 - ⚡ You need maximum performance
 - 🌍 You need cross-platform deployment
 - 📦 You want a single binary for all platforms
 
 **Choose Python when:**
+
 - 🐍 You prefer scripting languages
 - 🔧 You need easy modification
 - 📚 You're prototyping

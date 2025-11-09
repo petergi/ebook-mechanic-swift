@@ -1,26 +1,26 @@
 # 📚 EbookMechanic
 
-A comprehensive, multi-language ebook library management toolkit for validating, repairing, and organizing ebook collections.
+A comprehensive, ebook library management toolkit for validating, repairing, and organizing ebook collections.
 
 ## Overview
 
-EbookMechanic is a powerful command-line tool suite for managing ebook libraries. It validates ebook files, detects corruption, repairs damaged files when possible, normalizes EPUB files to industry standards, and maintains clean library organization. Available in three implementations to suit different needs and environments.
+EbookMechanic is a powerful command-line tool suite for managing ebook libraries. It validates ebook files, detects corruption, repairs damaged files when possible, normalizes EPUB files to industry standards, and maintains clean library organization.
 
 ### Supported Formats
 
-| Format | Description | Validation |
-|--------|-------------|------------|
-| 📗 **EPUB** | Electronic Publication | ZIP structure, mimetype, container.xml |
-| 📕 **MOBI** | Mobipocket | PalmDB header, identifier signature |
-| 📘 **AZW3** | Kindle Format 8 | MOBI structure validation |
-| 📙 **AZW4** | Kindle PDF Wrapper | PDF structure validation |
-| 📄 **PDF** | Portable Document Format | Header and EOF markers |
+| Format           | Description              | Validation                             |
+| ---------------- | ------------------------ | -------------------------------------- |
+| 📗**EPUB** | Electronic Publication   | ZIP structure, mimetype, container.xml |
+| 📕**MOBI** | Mobipocket               | PalmDB header, identifier signature    |
+| 📘**AZW3** | Kindle Format 8          | MOBI structure validation              |
+| 📙**AZW4** | Kindle PDF Wrapper       | PDF structure validation               |
+| 📄**PDF**  | Portable Document Format | Header and EOF markers                 |
 
 ## Features
 
 - 🔍 **Deep Validation** - Structural integrity checking for all supported formats
 - 🔧 **Auto-Repair** - Automatic fixing of corrupted files
-  - **PDF Repair (Swift):** Comprehensive header corruption detection and repair (handles email/FTP corruption, UTF-8 BOM, junk prefixes, missing binary markers)
+  - **PDF Repair:** Comprehensive header corruption detection and repair (handles email/FTP corruption, UTF-8 BOM, junk prefixes, missing binary markers)
   - **EPUB Repair:** Auto-adds missing mimetype and container.xml files
 - 📚 **EPUB Normalization** - Restructures EPUBs to Sigil/standard specifications
 - 🗑️ **Smart Cleanup** - Removes empty folders while preserving directory structure
@@ -31,54 +31,21 @@ EbookMechanic is a powerful command-line tool suite for managing ebook libraries
 
 ## Implementations
 
-This repository contains three complete, feature-compatible implementations:
-
-### 🔷 [Go Implementation](./golang/)
-
-**Best for:** Production use, performance-critical applications, standalone deployment
-
-- **Performance:** Compiled binary, blazing fast (5-10s for 10k files)
-- **UI:** Beautiful Bubble Tea TUI with real-time progress
-- **Deployment:** Single binary, no dependencies, cross-platform builds
-- **Testing:** 48.2% coverage with comprehensive unit tests
-- **Concurrency:** Goroutines for efficient parallel processing
-
-```bash
-cd golang/
-make build
-./ebook-mechanic -dir ~/Books -repair
-```
-
 ### 🔶 [Swift Implementation](./swift/)
 
 **Best for:** macOS users, native app experience, Swift ecosystem integration
 
 - **Performance:** Compiled native binary with actor-based concurrency
 - **UI:** Dual interface - CLI + native macOS SwiftUI app
-- **Architecture:** Modular Swift packages (Core + CLI + App)
+- **Architecture:** Modular Swift packages (Core + CLI(s) + App)
 - **Platform:** macOS 13+, iOS 16+ ready
 - **Concurrency:** Swift actors for thread-safe operations
 - **Advanced PDF Repair:** Comprehensive header corruption detection and repair with two-phase repair process (128+ comprehensive tests)
 
 ```bash
 cd swift/
-make build-all
-make app-run  # Launch macOS app
-```
 
-### 🔸 [Python Implementation](./python/)
-
-**Best for:** Python environments, prototyping, educational purposes
-
-- **Performance:** Interpreted, functional (30-45s for 10k files)
-- **UI:** Rich library for beautiful terminal output
-- **Flexibility:** Modular scripts, easy to modify and extend
-- **Portability:** Works anywhere Python 3 is available
-- **Tools:** Includes test library generator
-
-```bash
-cd python/
-python3 ebook_manager_tui.py ~/Books
+make run-app      # Launch macOS app
 ```
 
 ## Quick Start
@@ -88,25 +55,40 @@ python3 ebook_manager_tui.py ~/Books
 The root Makefile provides a unified build system for all implementations:
 
 ```bash
-# Build both Go and Swift
-make build
+# Build 
+make build                                     # Build all
+make build-all                                 # Build everything (all-in-one, epub-mechanic, pdf-mechanic, SwiftUI macOS app)
+make build-cli                                 # Build All-in-one cli
+make build-cli-epub-mechanic                   # Build EPUB Mechanic cli 
+make build-cli-pdf-mechanic                    # Build PDF Mechanic cli 
+make build-app-ebook-mechanic                  # Build SwiftUI macOS app
 
-# Run all tests
-make test
+# Test
+make test                                      # Test all
+make test-all                                  # Test everything (all-in-one, epub-mechanic, pdf-mechanic, SwiftUI macOS app)
+make test-cli                                  # Test All-in-one cli
+make test-cli-epub-mechanic                    # Test EPUB Mechanic cli 
+make test-cli-pdf-mechanic                     # Test PDF Mechanic cli 
+make test-app-ebook-mechanic                   # Test SwiftUI macOS app
 
 # Run specific implementation
-make run-go        # Go CLI with TUI
-make run-swift     # Swift CLI
-make run-app       # Swift macOS app
+make run-ebook-mechanic-cli                    # Run cli (all-in-one)
+make run-epub-mechanic-cli                     # Run EPUB Mechanic cli 
+make run-pdf-mechanic-cli                      # Run PDF Mechanic cli 
+make run-ebook-mechanic-app                    # Run SwiftUI macOS app
 
 # Generate test library for testing
 make sample-library
 
-# Compare implementations
+# Benchmark implementations
 make benchmark
 
-# Install CLIs
-make install
+# Install 
+make install                                    # Install all the CLIs
+make install-cli                                # Install All-in-one cli
+make install-epub-mechanic-cli                  # Install EPUB Mechanic cli 
+make install-pdf-mechanic-cli                   # Install PDF Mechanic cli 
+make install-ebook-mechanic-app                 # Install SwiftUI macOS app
 
 # See all commands
 make help
@@ -117,31 +99,28 @@ make help
 Each implementation can also be used independently:
 
 ```bash
-# Go
-cd golang && make build && ./ebook-mechanic
+# CLI(s) 
+cd swift && make build-cli && make run-cli                                  # All-in-one cli
+cd swift && make build-epub-mechanic-cli && make run-epub-mechanic-cli      # EPUB Mechanic cli 
+cd swift && make build-pdf-mechanic-cli && make run-pdf-mechanic-cli        # PDF Mechanic cli 
 
-# Swift
-cd swift && make cli-build && make cli-run
-
-# Python
-cd python && python3 ebook_manager_tui.py
+# APP
+cd swift && make build-ebook-mechanic-app && make run-ebook-mechanic-app    # SwiftUI macOS app
 ```
 
 ## Installation
 
 ### Prerequisites
 
-| Implementation | Requirements |
-|----------------|--------------|
-| **Go** | Go 1.24+ |
+| Implementation  | Requirements                       |
+| --------------- | ---------------------------------- |
 | **Swift** | macOS with Xcode 15.0+, Swift 5.9+ |
-| **Python** | Python 3.7+, Rich library (TUI only) |
 
 ### Install from Source
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/EbookMechanic
+git clone https://github.com/{yourusername}/EbookMechanic
 cd EbookMechanic
 
 # Build all implementations
@@ -194,53 +173,27 @@ ebook-mechanic -no-confirm
 ebook-mechanic -no-tui
 ```
 
-## Performance Comparison
-
-Typical performance on 10,000 files across implementations:
-
-| Implementation | Time | Memory | Binary Size | Startup Time |
-|----------------|------|--------|-------------|--------------|
-| **Go** | ~5-10s | ~15MB | ~8MB | <10ms |
-| **Swift** | ~8-12s | ~20MB | ~2MB | <50ms |
-| **Python** | ~30-45s | ~50MB | N/A (interpreted) | ~500ms |
-
-*Benchmarks run on identical test libraries using `make benchmark`*
-
 ## Project Structure
 
-```
+```text
 EbookMechanic/
 ├── Makefile                    # Master build system (start here)
 ├── README.md                   # This file
 ├── CLAUDE.md                   # AI assistant instructions
 │
-├── golang/                     # Go implementation
-│   ├── Makefile               # Go-specific build system
-│   ├── README.md              # Go implementation docs
-│   ├── main.go                # Entry point + Bubble Tea TUI
-│   ├── validator.go           # Format validation logic
-│   ├── scanner.go             # File scanning operations
-│   ├── normalize.go           # EPUB normalization
-│   ├── report.go              # Markdown reporting
-│   └── *_test.go              # Comprehensive test suite
 │
 ├── swift/                      # Swift implementation
-│   ├── Makefile               # Swift-specific build system
-│   ├── README.md              # Swift implementation docs
-│   ├── EbookMechanicCore/     # Core library package
-│   ├── EbookMechanicCLI/      # Command-line interface
-│   └── EbookMechanicApp/      # macOS SwiftUI app
+│   ├── Makefile                # Swift-specific build system
+│   ├── README.md               # Swift implementation docs
+│   ├── EbookMechanicCore/      # Core library package
+│   ├── EbookMechanicCLI/       # All-in-one Command-line interface
+│   ├── EPUBMechanic/           # EPUBMechanic Command-line interface
+│   ├── PDFMechanicCLI/         # PDFMechanic Command-line interface
+│   └── EbookMechanicApp/       # macOS SwiftUI app
 │
-├── python/                     # Python implementation
-│   ├── README.md              # Python implementation docs
-│   ├── ebook_manager_tui.py   # Full TUI implementation
-│   ├── ebook_manager.py       # Core validation logic
-│   ├── check_corrupted_ebooks.py  # Corruption checker
-│   ├── delete_empty_ebook_folders.py  # Folder cleanup
-│   └── generate_test_library.py  # Test fixture generator
-│
-└── scripts/                    # Shared utilities
-    └── benchmark.sh           # Cross-implementation benchmarks
+└── scripts/                        # Shared utilities
+│   ├──  generate_test_library.py   # Test fixture generator
+│   └── benchmark.sh                # Cross-implementation benchmarks
 ```
 
 ## Development
@@ -261,16 +214,6 @@ make check lint
 make clean-all
 ```
 
-### Language-Specific Commands
-
-```bash
-# Delegate to Go Makefile
-make go-<target>              # e.g., make go-test-coverage
-
-# Delegate to Swift Makefile
-make swift-<target>           # e.g., make swift-docc-all
-```
-
 ### Generate Test Libraries
 
 Create test fixtures with valid and corrupt files:
@@ -287,9 +230,7 @@ make sample-library LIBRARY_AUTHORS=20 LIBRARY_FORMATS=pdf,epub
 
 ### Implementation-Specific Docs
 
-- **Go:** [golang/README.md](./golang/README.md) - Comprehensive Go implementation guide
 - **Swift:** [swift/README.md](./swift/README.md) - Swift workspace and app documentation
-- **Python:** [python/README.md](./python/README.md) - Python scripts and utilities
 
 ### Generate Documentation
 
@@ -307,25 +248,14 @@ All implementations support shell completion for Bash, Zsh, Fish, and PowerShell
 
 ```bash
 # Auto-detect and install for current shell
-make completion-install
+make install-completion
 
 # Generate all completion scripts
-make completion-generate
+make generate-completion
 ```
 
-## Choosing an Implementation
-
-| Use Case | Recommended Implementation |
-|----------|---------------------------|
-| **Production deployment** | Go - Single binary, best performance |
-| **macOS native app** | Swift - Native SwiftUI interface |
-| **Python environment** | Python - Easy integration, no compilation |
-| **Maximum performance** | Go - Fastest execution, lowest memory |
-| **Development/Prototyping** | Python - Easy to modify and experiment |
-| **iOS integration** | Swift - iOS-ready architecture |
-| **Cross-platform CLI** | Go - Works everywhere, no dependencies |
-
 All implementations share:
+
 - Identical validation rules
 - Same CORRUPTED directory convention
 - Compatible report formats
@@ -364,9 +294,6 @@ make build-all
 ```bash
 # Run benchmarks to identify bottlenecks
 make benchmark
-
-# Profile specific implementation
-cd golang && make profile-cpu
 ```
 
 ### Test Failures
@@ -374,10 +301,6 @@ cd golang && make profile-cpu
 ```bash
 # Run full test suite
 make test-all
-
-# Test specific implementation
-make go-test
-make swift-test-all
 ```
 
 ## License
@@ -386,8 +309,6 @@ Free to use and modify.
 
 ## Acknowledgments
 
-- **Go:** Built with [Bubble Tea](https://github.com/charmbracelet/bubbletea) and [Lipgloss](https://github.com/charmbracelet/lipgloss)
-- **Python:** Uses [Rich](https://github.com/Textualize/rich) library for terminal UI
 - **Swift:** Native SwiftUI and Swift Package Manager
 
 ---

@@ -26,47 +26,47 @@ help:
 	@echo "================================"
 	@echo ""
 	@echo "🏗️  Build Targets:"
-	@echo "  make build         - Build core library only (default)"
-	@echo "  make build-all     - Build everything (core + CLI + app)"
-	@echo "  make build-release - Build optimized release binaries"
-	@echo "  make core-build    - Build the core library"
-	@echo "  make cli-build     - Build the CLI executable"
-	@echo "  make app-build     - Build the macOS SwiftUI app"
+	@echo "  make build           - Build core library only (default)"
+	@echo "  make build-all       - Build everything (core + CLI + app)"
+	@echo "  make build-release   - Build optimized release binaries"
+	@echo "  make build-core      - Build the core library"
+	@echo "  make build-cli       - Build the CLI executable"
+	@echo "  make build-app       - Build the macOS SwiftUI app"
 	@echo ""
 	@echo "🧪 Test Targets:"
-	@echo "  make test          - Run core library tests (default)"
-	@echo "  make test-all      - Run all test suites (core + CLI + app)"
-	@echo "  make core-test     - Run the EbookMechanicCore test suite"
-	@echo "  make cli-test      - Run the CLI test suite"
-	@echo "  make app-test      - Run the app test suite"
+	@echo "  make test            - Run core library tests (default)"
+	@echo "  make test-all        - Run all test suites (core + CLI + app)"
+	@echo "  make test-core       - Run the EbookMechanicCore test suite"
+	@echo "  make test-cli        - Run the CLI test suite"
+	@echo "  make test-app        - Run the app test suite"
 	@echo ""
 	@echo "🚀 Run Targets:"
-	@echo "  make cli-run ARGS=             - Run the CLI (default: --help)"
-	@echo "  make cli-normalize             - Normalize EPUBs (dry-run mode)"
-	@echo "  make cli-normalize-force       - Force normalize EPUBs (live mode)"
-	@echo "  make app-run                   - Launch the SwiftUI app"
+	@echo "  make run-cli ARGS=   - Run the CLI (default: --help)"
+	@echo "  make normalize       - Normalize EPUBs (dry-run mode)"
+	@echo "  make normalize-force - Force normalize EPUBs (live mode)"
+	@echo "  make run-app         - Launch the SwiftUI app"
 	@echo ""
 	@echo "📚 Documentation Targets:"
-	@echo "  make docc-all      - Generate all documentation (core + app)"
-	@echo "  make docc-core     - Generate DocC docs for EbookMechanicCore"
-	@echo "  make docc-app      - Generate DocC docs for EbookMechanicApp"
-	@echo "  make docc-serve    - Serve docs at http://localhost:8080"
+	@echo "  make docc-all        - Generate all documentation (core + app)"
+	@echo "  make docc-core       - Generate DocC docs for EbookMechanicCore"
+	@echo "  make docc-app        - Generate DocC docs for EbookMechanicApp"
+	@echo "  make docc-serve      - Serve docs at http://localhost:8080"
 	@echo ""
 	@echo "🛠️  Utility Targets:"
-	@echo "  make cli-completions - Generate shell completion scripts"
-	@echo "  make install       - Install CLI to $(BIN_INSTALL_PATH) (debug)"
+	@echo "  make completions     - Generate shell completion scripts"
+	@echo "  make install         - Install CLI to $(BIN_INSTALL_PATH) (debug)"
 	@echo "  make install-release - Install optimized CLI to $(BIN_INSTALL_PATH)"
-	@echo "  make app-install   - Build & copy the macOS app bundle"
-	@echo "  make uninstall     - Remove CLI from $(BIN_INSTALL_PATH)"
-	@echo "  make app-uninstall - Remove installed macOS app bundle"
-	@echo "  make format        - Format all Swift code with swift-format"
-	@echo "  make lint          - Lint Swift code (requires SwiftLint)"
-	@echo "  make check-format  - Check if code is formatted (CI-friendly)"
-	@echo "  make workspace     - Open EbookMechanic.xcworkspace in Xcode"
-	@echo "  make clean         - Remove build artifacts for all packages"
-	@echo "  make clean-all     - Deep clean (includes completions & docs)"
-	@echo "  make info          - Display build information and sizes"
-	@echo "  make update-all    - Update completions and documentation"
+	@echo "  make install-app     - Build & copy the macOS app bundle"
+	@echo "  make uninstall       - Remove CLI from $(BIN_INSTALL_PATH)"
+	@echo "  make uninstall-app   - Remove installed macOS app bundle"
+	@echo "  make format          - Format all Swift code with swift-format"
+	@echo "  make lint            - Lint Swift code (requires SwiftLint)"
+	@echo "  make check-format    - Check if code is formatted (CI-friendly)"
+	@echo "  make workspace       - Open EbookMechanic.xcworkspace in Xcode"
+	@echo "  make clean           - Remove build artifacts for all packages"
+	@echo "  make clean-all       - Deep clean (includes completions & docs)"
+	@echo "  make info            - Display build information and sizes"
+	@echo "  make update-all     - Update completions and documentation"
 	@echo ""
 	@echo "🤖 CI/CD Targets:"
 	@echo "  make ci            - Run full CI pipeline (build-all + test-all + check-format)"
@@ -82,7 +82,7 @@ help:
 build: core-build
 
 # Build all components
-build-all: core-build cli-build app-build
+build-all: core-build build-cli build-app
 	@echo ""
 	@echo "✅ All components built successfully!"
 
@@ -103,40 +103,40 @@ test: core-test cli-test app-test
 test-all:
 	@echo "🧪 Running all test suites..."
 	@echo ""
-	@$(MAKE) core-test
+	@$(MAKE) test-core
 	@echo ""
-	@$(MAKE) cli-test
+	@$(MAKE) test-cli
 	@echo ""
-	@$(MAKE) app-test
+	@$(MAKE) test-app
 	@echo ""
 	@echo "✅ All test suites completed!"
 
-core-test:
+test-core:
 	@echo "🧪 Running EbookMechanicCore tests..."
 	$(SPM_ENV) swift test --disable-sandbox --package-path EbookMechanicCore
 
-core-build:
+build-core:
 	@echo "🔨 Building EbookMechanicCore..."
 	$(SPM_ENV) swift build --disable-sandbox --package-path EbookMechanicCore
 
-cli-build:
+build-cli:
 	@echo "🔨 Building EbookMechanicCLI..."
 	$(SPM_ENV) swift build --disable-sandbox --package-path EbookMechanicCLI
 
-cli-run:
+run-cli:
 	$(SPM_ENV) swift run --disable-sandbox --package-path EbookMechanicCLI EbookMechanicCLI $(if $(ARGS),$(ARGS),--help)
 
-cli-normalize:
+normalize:
 	$(SPM_ENV) swift run --disable-sandbox --package-path EbookMechanicCLI EbookMechanicCLI $(if $(ARGS),$(ARGS),--normalize-epubs --dry-run)
 
-cli-normalize-force:
+normalize-force:
 	$(SPM_ENV) swift run --disable-sandbox --package-path EbookMechanicCLI EbookMechanicCLI $(if $(ARGS),$(ARGS),--normalize-epubs --force-normalize --dry-run=false)
 
-cli-test:
+test-cli:
 	@echo "🧪 Running EbookMechanicCLI tests..."
 	$(SPM_ENV) swift test --disable-sandbox --package-path EbookMechanicCLI
 
-cli-completions:
+completions:
 	@echo "📝 Generating shell completion scripts..."
 	@mkdir -p completions
 	@$(SPM_ENV) swift run --disable-sandbox --package-path EbookMechanicCLI EbookMechanicCLI --generate-completion bash > completions/ebook-mechanic.bash
@@ -151,14 +151,14 @@ cli-completions:
 	@echo "  Fish:       cp completions/ebook-mechanic.fish ~/.config/fish/completions/"
 	@echo "  PowerShell: . completions/ebook-mechanic.ps1"
 
-app-build:
+build-app:
 	@echo "🔨 Building EbookMechanicApp..."
 	$(SPM_ENV) swift build --disable-sandbox --package-path EbookMechanicApp
 
-app-run:
+run-app:
 	$(SPM_ENV) swift run --disable-sandbox --package-path EbookMechanicApp EbookMechanicApp
 
-app-test:
+test-app:
 	@echo "🧪 Running EbookMechanicApp tests..."
 	$(SPM_ENV) swift test --disable-sandbox --package-path EbookMechanicApp
 
@@ -269,7 +269,7 @@ docc-serve:
 	fi
 
 # Install CLI binary to system path
-install: cli-build
+install: build-cli
 	@echo "📦 Installing EbookMechanicCLI to $(CLI_INSTALL_TARGET)..."
 	@if [ ! -f "$(CLI_DEBUG_BINARY)" ]; then \
 		echo "❌ Error: Binary not found. Run 'make cli-build' first."; \
@@ -331,7 +331,7 @@ uninstall:
 APP_BUNDLE_NAME ?= EbookMechanic.app
 APP_INSTALL_PATH ?= /Applications/$(APP_BUNDLE_NAME)
 
-app-install:
+install-app:
 	@echo "🔨 Building release build of EbookMechanicApp..."
 	$(SPM_ENV) swift build --disable-sandbox --package-path EbookMechanicApp -c release
 	@echo "📦 Assembling app bundle..."
@@ -375,7 +375,7 @@ app-install:
 	 cp -R "$$APP_DIR" "$$TARGET" 2>/dev/null || sudo cp -R "$$APP_DIR" "$$TARGET"; \
 	 echo "✅ macOS app available at $$TARGET"
 
-app-uninstall:
+uninstall-app:
 	@if [ -d "$(APP_INSTALL_PATH)" ]; then \
 		rm -rf "$(APP_INSTALL_PATH)" 2>/dev/null || sudo rm -rf "$(APP_INSTALL_PATH)"; \
 		echo "🗑️  Removed $(APP_INSTALL_PATH)"; \
@@ -460,7 +460,7 @@ info:
 update-all:
 	@echo "🔄 Updating all generated artifacts..."
 	@echo ""
-	@$(MAKE) cli-completions
+	@$(MAKE) completions
 	@echo ""
 	@$(MAKE) docc-all
 	@echo ""
