@@ -2,17 +2,11 @@
   "mcpServers": {
     "fetch": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-fetch"
-      ]
+      "args": ["-y", "@modelcontextprotocol/server-fetch"]
     },
     "github": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-github"
-      ],
+      "args": ["-y", "@modelcontextprotocol/server-github"],
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_TOKEN>"
       }
@@ -27,12 +21,7 @@
     },
     "markitdown": {
       "command": "docker",
-      "args": [
-        "run",
-        "--rm",
-        "-i",
-        "markitdown-mcp:latest"
-      ]
+      "args": ["run", "--rm", "-i", "markitdown-mcp:latest"]
     },
     "@microsoft/clarity-mcp-server": {
       "command": "npx",
@@ -43,17 +32,7 @@
     },
     "DevBox": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@microsoft/devbox-mcp@latest"
-      ]
-    },
-    "aks": {
-      "command": "<path of binary aks-mcp>",
-      "args": [
-        "--transport",
-        "stdio"
-      ]
+      "args": ["-y", "@microsoft/devbox-mcp@latest"]
     }
   }
 }

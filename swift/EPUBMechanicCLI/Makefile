@@ -16,7 +16,7 @@ SHELL := /bin/zsh
 .ONESHELL:
 
 # Phony targets (targets that don't represent files)
-.PHONY: all help build build-release test test-all cli-build cli-run cli-normalize cli-normalize-force cli-test cli-completions workspace project clean clean-all docc-cli docc-serve docc-all install install-release uninstall format check-format lint ci info update-all
+.PHONY: all help build build-all build-release test test-all build-cli run-cli normalize-epub normalize-epub-force test-cli completions workspace project clean clean-all docc-cli docc-serve docc-all install install-release uninstall format check-format lint ci info update-all
 
 # Default target when running 'make' with no arguments
 .DEFAULT_GOAL := build
@@ -35,8 +35,8 @@ help:
 	@echo ""
 	@echo "🚀 Run Targets:"
 	@echo "  make run-cli ARGS=             - Run the CLI (default: --help)"
-	@echo "  make cli-normalize             - Normalize EPUBs (dry-run mode)"
-	@echo "  make cli-normalize-force       - Force normalize EPUBs (live mode)"
+	@echo "  make normalize-epub            - Normalize EPUBs (dry-run mode)"
+	@echo "  make normalize-epub-force      - Force normalize EPUBs (live mode)"
 	@echo ""
 	@echo "📚 Documentation Targets:"
 	@echo "  make docc-all                  - Generate all documentation"
@@ -68,8 +68,16 @@ help:
 	@echo "DocC documentation:"
 	@echo "  See DOCC_SETUP.md for setup instructions if 'make docc-cli' fails."
 
+# Makefile Naming Convention:
+# Targets follow the pattern: action-target
+# Examples: test-cli, build-cli, run-cli, normalize-epub
+# This provides consistent, readable target names across all Makefiles.
+
 # Default target
 build: build-cli
+
+# Build all components (alias for build-all)
+all: build-all
 
 # Build all components
 build-all: build-cli
@@ -102,10 +110,10 @@ build-cli:
 run-cli:
 	$(SPM_ENV) swift run --disable-sandbox EPUBMechanicCLI $(if $(ARGS),$(ARGS),--help)
 
-cli-normalize:
+normalize-epub:
 	$(SPM_ENV) swift run --disable-sandbox EPUBMechanicCLI $(if $(ARGS),$(ARGS),--normalize-epubs --dry-run)
 
-cli-normalize-force:
+normalize-epub-force:
 	$(SPM_ENV) swift run --disable-sandbox EPUBMechanicCLI $(if $(ARGS),$(ARGS),--normalize-epubs --force-normalize --dry-run=false)
 
 test-cli:

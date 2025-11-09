@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REPO_ROOT=$(cd "${SCRIPT_DIR}/.." && pwd)
 SWIFT_ROOT="${REPO_ROOT}/swift"
-PY_GENERATOR="${REPO_ROOT}/python/generate_test_library.py"
+PY_GENERATOR="${REPO_ROOT}/scripts/generate_test_library.py"
 
 usage() {
   cat <<USAGE
@@ -12,22 +12,20 @@ Usage: $(basename "$0") [options]
 
 Options:
   -n, --iterations <num>  Number of runs per implementation (default: 3)
-      --go-args <args>    Extra arguments passed to the Go CLI (quoted string)
       --swift-args <args> Extra arguments passed to the Swift CLI (quoted string)
       --authors <num>     Number of authors per generated library (default: 10)
       --formats <list>    Comma-separated formats (default: pdf,epub,mobi,azw3,azw4)
       --keep-libraries    Preserve generated libraries (for inspection)
   -h, --help              Show this help message
 
-Each run builds the Go and Swift CLIs (release equivalents) and, for every
+Each run builds the Swift CLI (release) and, for every
 iteration and implementation, generates a fresh sample library using
-python/generate_test_library.py. Both CLIs are executed in dry-run mode, and the
+python/generate_test_library.py. The CLIs are executed in dry-run mode, and the
 script reports per-run timings alongside averages.
 USAGE
 }
 
 ITERATIONS=3
-GO_ARGS_EXTRA=""
 SWIFT_ARGS_EXTRA=""
 AUTHORS=10
 FORMATS="pdf,epub,mobi,azw3,azw4"
@@ -37,10 +35,6 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     -n|--iterations)
       ITERATIONS="$2"
-      shift 2
-      ;;
-    --go-args)
-      GO_ARGS_EXTRA="$2"
       shift 2
       ;;
     --swift-args)
@@ -98,7 +92,8 @@ PY
 
 generate_library() {
   local prefix="$1"
-  local dest="${BENCH_DIR}/${prefix}_$(uuid)"
+  local dest
+  dest="${BENCH_DIR}/${prefix}_$(uuid)"
   python3 "$PY_GENERATOR" \
     --output "$dest" \
     --authors "$AUTHORS" \
@@ -107,14 +102,6 @@ generate_library() {
   printf '%s\n' "$dest"
 }
 
-build_go() {
-  >&2 echo "Building Go CLI..."
-  pushd "$REPO_ROOT/golang" >/dev/null
-  GO_BIN="${BENCH_DIR}/ebook-mechanic-go"
-  go build -o "$GO_BIN" .
-  popd >/dev/null
-  printf '%s\n' "$GO_BIN"
-}
 
 build_swift() {
   >&2 echo "Building Swift CLI (release)..."
@@ -150,11 +137,8 @@ run_cli() {
   shift 3
   local -a base_args=("$@")
   local extra=""
-  if [[ "$label" == "Go CLI" ]]; then
-    extra="$GO_ARGS_EXTRA"
-  else
-    extra="$SWIFT_ARGS_EXTRA"
-  fi
+  extra="$SWIFT_ARGS_EXTRA"
+
 
   printf '\n==> %s\n' "$label"
   local total=0.0
@@ -195,10 +179,9 @@ run_cli() {
   printf '  Average: %ss\n' "$avg"
 }
 
-GO_BIN=$(build_go)
+
 SWIFT_BIN=$(build_swift)
 
-run_cli "Go CLI" "$GO_BIN" "-dir" -dry-run -no-confirm -no-tui
 run_cli "Swift CLI" "$SWIFT_BIN" "--dir" --dry-run --no-confirm --quiet
 
 printf '\nBenchmark complete (iterations: %d).\n' "$ITERATIONS"

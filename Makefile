@@ -1,5 +1,4 @@
 # EbookMechanic - Master Makefile
-# Multi-language ebook library management toolkit
 
 
 .PHONY: help info version tree \
@@ -56,7 +55,7 @@ VERSION=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 help:
 	@echo "$(COLOR_BOLD)╔════════════════════════════════════════════════════════════╗$(COLOR_RESET)"
 	@echo "$(COLOR_BOLD)║         EbookMechanic - Master Build System                ║$(COLOR_RESET)"
-	@echo "$(COLOR_BOLD)║   		  Ebook management toolkit                       ║$(COLOR_RESET)"
+	@echo "$(COLOR_BOLD)║   		  Ebook management toolkit                 ║$(COLOR_RESET)"
 	@echo "$(COLOR_BOLD)╚════════════════════════════════════════════════════════════╝$(COLOR_RESET)"
 	@echo ""
 	@echo "$(COLOR_YELLOW)Usage:$(COLOR_RESET) make [target]"
@@ -238,17 +237,207 @@ tree:
 
 # ==================== Build Targets ====================
 
+## build: Build both App and Swift CLI (all-in-one)
+build:
+	@echo "$(COLOR_BLUE)Building EbookMechanic (Swift CLI + App)...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) build
+	@echo "$(COLOR_GREEN)✓ Build complete!$(COLOR_RESET)"
 
+## build-all: Build everything (all CLIs and App)
+build-all:
+	@echo "$(COLOR_BLUE)Building all components...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) build-all
+	@echo "$(COLOR_GREEN)✓ All components built!$(COLOR_RESET)"
+
+## build-cli: Build all-in-one CLI
+build-cli:
+	@echo "$(COLOR_BLUE)Building EbookMechanic CLI...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) build-cli
+	@echo "$(COLOR_GREEN)✓ CLI built!$(COLOR_RESET)"
+
+## build-epub-mechanic-cli: Build EPUB Mechanic CLI
+build-epub-mechanic-cli:
+	@echo "$(COLOR_BLUE)Building EPUB Mechanic CLI...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) build-epub
+	@echo "$(COLOR_GREEN)✓ EPUB Mechanic CLI built!$(COLOR_RESET)"
+
+## build-pdf-mechanic-cli: Build PDF Mechanic CLI
+build-pdf-mechanic-cli:
+	@echo "$(COLOR_BLUE)Building PDF Mechanic CLI...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) build-pdf
+	@echo "$(COLOR_GREEN)✓ PDF Mechanic CLI built!$(COLOR_RESET)"
+
+## build-ebook-mechanic-app: Build Ebook Mechanic macOS App
+build-ebook-mechanic-app:
+	@echo "$(COLOR_BLUE)Building Ebook Mechanic App...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) build-app
+	@echo "$(COLOR_GREEN)✓ Ebook Mechanic App built!$(COLOR_RESET)"
+
+## build-release: Build optimized release binaries
+build-release:
+	@echo "$(COLOR_BLUE)Building optimized release binaries...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) build-release
+	@echo "$(COLOR_GREEN)✓ Release builds complete!$(COLOR_RESET)"
 
 # ==================== Test Targets ====================
 
+## test: Run all tests
+test:
+	@echo "$(COLOR_BLUE)Running all tests...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) test
+	@echo "$(COLOR_GREEN)✓ All tests passed!$(COLOR_RESET)"
 
+## test-all: Run comprehensive test suites
+test-all:
+	@echo "$(COLOR_BLUE)Running comprehensive test suites...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) test-all
+	@echo "$(COLOR_GREEN)✓ All test suites completed!$(COLOR_RESET)"
+
+## test-cli: Run all-in-one CLI tests
+test-cli:
+	@echo "$(COLOR_BLUE)Running Ebook Mechanic CLI tests...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) test-cli
+	@echo "$(COLOR_GREEN)✓ CLI tests passed!$(COLOR_RESET)"
+
+## test-ebook-mechanic-cli: Run Ebook Mechanic CLI tests
+test-ebook-mechanic-cli:
+	@echo "$(COLOR_BLUE)Running Ebook Mechanic CLI tests...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) test-cli
+	@echo "$(COLOR_GREEN)✓ Ebook Mechanic CLI tests passed!$(COLOR_RESET)"
+
+## test-epub-mechanic-cli: Run EPUB Mechanic CLI tests
+test-epub-mechanic-cli:
+	@echo "$(COLOR_BLUE)Running EPUB Mechanic CLI tests...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) test-epub
+	@echo "$(COLOR_GREEN)✓ EPUB Mechanic CLI tests passed!$(COLOR_RESET)"
+
+## test-pdf-mechanic-cli: Run PDF Mechanic CLI tests
+test-pdf-mechanic-cli:
+	@echo "$(COLOR_BLUE)Running PDF Mechanic CLI tests...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) test-pdf
+	@echo "$(COLOR_GREEN)✓ PDF Mechanic CLI tests passed!$(COLOR_RESET)"
+
+## test-ebook-mechanic-app: Run Ebook Mechanic macOS App tests
+test-ebook-mechanic-app:
+	@echo "$(COLOR_BLUE)Running Ebook Mechanic App tests...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) test-app
+	@echo "$(COLOR_GREEN)✓ Ebook Mechanic App tests passed!$(COLOR_RESET)"
 
 # ==================== Run Targets ====================
 
+## run: Run all-in-one CLI (alias for run-cli)
+run: run-cli
 
+## run-cli: Run all-in-one CLI
+run-cli:
+	@echo "$(COLOR_BLUE)Running Ebook Mechanic CLI...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) run-cli ARGS="$(ARGS)"
+
+## run-ebook-mechanic-cli: Run Ebook Mechanic CLI
+run-ebook-mechanic-cli:
+	@echo "$(COLOR_BLUE)Running Ebook Mechanic CLI...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) run-cli ARGS="$(ARGS)"
+
+## run-epub-mechanic-cli: Run EPUB Mechanic CLI
+run-epub-mechanic-cli:
+	@echo "$(COLOR_BLUE)Running EPUB Mechanic CLI...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) run-epub ARGS="$(ARGS)"
+
+## run-pdf-mechanic-cli: Run PDF Mechanic CLI
+run-pdf-mechanic-cli:
+	@echo "$(COLOR_BLUE)Running PDF Mechanic CLI...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) run-pdf ARGS="$(ARGS)"
+
+## run-ebook-mechanic-app: Run Ebook Mechanic macOS App
+run-ebook-mechanic-app:
+	@echo "$(COLOR_BLUE)Launching Ebook Mechanic App...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) run-app
+
+## run-app: Run Ebook Mechanic macOS App (alias)
+run-app: run-ebook-mechanic-app
 
 # ==================== Installation ====================
+
+## install: Install all CLIs to system
+install:
+	@echo "$(COLOR_BLUE)Installing all CLIs...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) install
+	@$(MAKE) -C $(SWIFT_DIR) install-specialized
+	@echo "$(COLOR_GREEN)✓ All CLIs installed!$(COLOR_RESET)"
+
+## install-ebook-mechanic-cli: Install Ebook Mechanic CLI
+install-ebook-mechanic-cli:
+	@echo "$(COLOR_BLUE)Installing Ebook Mechanic CLI...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) install
+	@echo "$(COLOR_GREEN)✓ Ebook Mechanic CLI installed!$(COLOR_RESET)"
+
+## install-epub-mechanic-cli: Install EPUB Mechanic CLI
+install-epub-mechanic-cli:
+	@echo "$(COLOR_BLUE)Installing EPUB Mechanic CLI...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) install-epub
+	@echo "$(COLOR_GREEN)✓ EPUB Mechanic CLI installed!$(COLOR_RESET)"
+
+## install-pdf-mechanic-cli: Install PDF Mechanic CLI
+install-pdf-mechanic-cli:
+	@echo "$(COLOR_BLUE)Installing PDF Mechanic CLI...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) install-pdf
+	@echo "$(COLOR_GREEN)✓ PDF Mechanic CLI installed!$(COLOR_RESET)"
+
+## install-ebook-mechanic-app: Install Ebook Mechanic macOS App
+install-ebook-mechanic-app:
+	@echo "$(COLOR_BLUE)Installing Ebook Mechanic App...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) install-app
+	@echo "$(COLOR_GREEN)✓ Ebook Mechanic App installed!$(COLOR_RESET)"
+
+## install-completions: Install Shell Completions
+install-completions:
+	@echo "$(COLOR_BLUE)Installing shell completions...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) completions
+	@echo "$(COLOR_GREEN)✓ Shell completions generated!$(COLOR_RESET)"
+	@echo ""
+	@echo "$(COLOR_YELLOW)To install completions:$(COLOR_RESET)"
+	@echo "  Bash:       cp $(SWIFT_DIR)/completions/ebook-mechanic.bash /usr/local/etc/bash_completion.d/"
+	@echo "  Zsh:        cp $(SWIFT_DIR)/completions/_ebook-mechanic /usr/local/share/zsh/site-functions/"
+	@echo "  Fish:       cp $(SWIFT_DIR)/completions/ebook-mechanic.fish ~/.config/fish/completions/"
+
+## uninstall: Remove all installed binaries
+uninstall:
+	@echo "$(COLOR_BLUE)Uninstalling all CLIs...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) uninstall
+	@$(MAKE) -C $(SWIFT_DIR) uninstall-specialized
+	@echo "$(COLOR_GREEN)✓ All CLIs uninstalled!$(COLOR_RESET)"
+
+## uninstall-ebook-mechanic-cli: Uninstall Ebook Mechanic CLI
+uninstall-ebook-mechanic-cli:
+	@echo "$(COLOR_BLUE)Uninstalling Ebook Mechanic CLI...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) uninstall
+	@echo "$(COLOR_GREEN)✓ Ebook Mechanic CLI uninstalled!$(COLOR_RESET)"
+
+## uninstall-epub-mechanic-cli: Uninstall EPUB Mechanic CLI
+uninstall-epub-mechanic-cli:
+	@echo "$(COLOR_BLUE)Uninstalling EPUB Mechanic CLI...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) uninstall-epub
+	@echo "$(COLOR_GREEN)✓ EPUB Mechanic CLI uninstalled!$(COLOR_RESET)"
+
+## uninstall-pdf-mechanic-cli: Uninstall PDF Mechanic CLI
+uninstall-pdf-mechanic-cli:
+	@echo "$(COLOR_BLUE)Uninstalling PDF Mechanic CLI...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) uninstall-pdf
+	@echo "$(COLOR_GREEN)✓ PDF Mechanic CLI uninstalled!$(COLOR_RESET)"
+
+## uninstall-ebook-mechanic-app: Uninstall Ebook Mechanic macOS App
+uninstall-ebook-mechanic-app:
+	@echo "$(COLOR_BLUE)Uninstalling Ebook Mechanic App...$(COLOR_RESET)"
+	@$(MAKE) -C $(SWIFT_DIR) uninstall-app
+	@echo "$(COLOR_GREEN)✓ Ebook Mechanic App uninstalled!$(COLOR_RESET)"
+
+## uninstall-completions: Uninstall Shell Completions
+uninstall-completions:
+	@echo "$(COLOR_BLUE)Removing shell completions...$(COLOR_RESET)"
+	@rm -f /usr/local/etc/bash_completion.d/ebook-mechanic.bash
+	@rm -f /usr/local/share/zsh/site-functions/_ebook-mechanic
+	@rm -f ~/.config/fish/completions/ebook-mechanic.fish
+	@echo "$(COLOR_GREEN)✓ Shell completions removed!$(COLOR_RESET)"
 
 
 # ==================== Quality Checks ====================

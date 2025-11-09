@@ -16,7 +16,7 @@ SHELL := /bin/zsh
 .ONESHELL:
 
 # Phony targets (targets that don't represent files)
-.PHONY: help build build-release test test-all cli-build cli-run cli-normalize cli-normalize-force cli-test cli-completions workspace project clean clean-all docc-cli docc-serve docc-all install install-release uninstall format check-format lint ci info update-all
+.PHONY: help build build-all build-release test test-all build-cli run-cli test-cli completions workspace project clean clean-all docc-cli docc-serve docc-all install install-release uninstall format check-format lint ci info update-all
 
 # Default target when running 'make' with no arguments
 .DEFAULT_GOAL := build
@@ -66,11 +66,16 @@ help:
 	@echo "DocC documentation:"
 	@echo "  See DOCC_SETUP.md for setup instructions if 'make docc-cli' fails."
 
+# Makefile Naming Convention:
+# Targets follow the pattern: action-target
+# Examples: test-cli, build-cli, run-cli
+# This provides consistent, readable target names across all Makefiles.
+
 # Default target
-build: cli-build
+build: build-cli
 
 # Build all components
-build-all: cli-build
+build-all: build-cli
 	@echo ""
 	@echo "✅ All components built successfully!"
 
@@ -83,13 +88,13 @@ build-release:
 	@echo "CLI binary: $(CLI_RELEASE_BINARY)"
 
 # Default test target now exercises CLI
-test: cli-test
+test: test-cli
 
 # Run all test suites
 test-all:
 	@echo "🧪 Running all test suites..."
 	@echo ""
-	@$(MAKE) cli-test
+	@$(MAKE) test-cli
 	@echo ""
 	@echo "✅ All test suites completed!"
 
@@ -99,6 +104,16 @@ build-cli:
 
 run-cli:
 	$(SPM_ENV) swift run --disable-sandbox PDFMechanicCLI $(if $(ARGS),$(ARGS),--help)
+
+cli-normalize:
+	@echo "⚠️  PDF normalization is not applicable."
+	@echo "PDFs do not have normalization requirements like EPUBs."
+	@echo "Use '--repair' flag with run-cli for PDF repair operations."
+
+cli-normalize-force:
+	@echo "⚠️  PDF normalization is not applicable."
+	@echo "PDFs do not have normalization requirements like EPUBs."
+	@echo "Use '--repair' flag with run-cli for PDF repair operations."
 
 test-cli:
 	@echo "🧪 Running PDFMechanicCLI tests..."
