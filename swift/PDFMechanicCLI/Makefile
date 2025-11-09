@@ -16,7 +16,7 @@ SHELL := /bin/zsh
 .ONESHELL:
 
 # Phony targets (targets that don't represent files)
-.PHONY: help build build-release test test-all cli-build cli-run cli-normalize cli-normalize-force cli-test cli-completions workspace clean clean-all docc-cli docc-serve docc-all install install-release uninstall format check-format lint ci info update-all
+.PHONY: help build build-release test test-all cli-build cli-run cli-normalize cli-normalize-force cli-test cli-completions workspace project clean clean-all docc-cli docc-serve docc-all install install-release uninstall format check-format lint ci info update-all
 
 # Default target when running 'make' with no arguments
 .DEFAULT_GOAL := build
@@ -51,6 +51,7 @@ help:
 	@echo "  make lint                      - Lint Swift code (requires SwiftLint)"
 	@echo "  make check-format              - Check if code is formatted (CI-friendly)"
 	@echo "  make workspace                 - Open ../EbookMechanic.xcworkspace in Xcode"
+	@echo "  make project                   - Open PDFMechanicCLI package in Xcode"
 	@echo "  make clean                     - Remove build artifacts for all packages"
 	@echo "  make clean-all                 - Deep clean (includes completions & docs)"
 	@echo "  make info                      - Display build information and sizes"
@@ -122,6 +123,10 @@ completions:
 workspace:
 	@echo "🚀 Opening ../EbookMechanic.xcworkspace in Xcode..."
 	@open ../EbookMechanic.xcworkspace
+
+project:
+	@echo "🚀 Opening PDFMechanicCLI package in Xcode..."
+	@xed .
 
 clean:
 	@echo "🧹 Cleaning build artifacts..."
