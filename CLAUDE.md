@@ -72,22 +72,54 @@ Swift Implementation (swift/)
 ```bash
 cd swift
 
-# Run core library tests
-make core-test
+# Core library
+make core-build         # Build core library
+make core-test          # Run core tests
 
-# Build and run CLI
-make cli-build
-make cli-run ARGS="--help"
+# Main CLI
+make cli-build          # Build main CLI
+make cli-run ARGS="..." # Run main CLI
+make cli-test           # Test main CLI
 
-# Build and test macOS SwiftUI app
-make build-app
-make test-app
+# macOS SwiftUI app
+make build-app          # Build app
+make test-app           # Test app
+make run-app            # Launch app
 
-# Open Xcode workspace
-make workspace
+# Specialized CLIs (EPUB and PDF)
+make build-specialized  # Build both specialized CLIs
+make epub-build         # Build EPUB Mechanic CLI
+make pdf-build          # Build PDF Mechanic CLI
+make epub-test          # Test EPUB Mechanic CLI
+make pdf-test           # Test PDF Mechanic CLI
+make epub-run ARGS="..."# Run EPUB Mechanic CLI
+make pdf-run ARGS="..." # Run PDF Mechanic CLI
 
-# Clean build artifacts
-make clean
+# Build everything
+make build-all          # Build core + all CLIs + app
+make test-all           # Test everything
+make build-release      # Optimized release builds
+
+# Install CLIs
+make install            # Install main CLI (debug)
+make install-release    # Install main CLI (release)
+make install-specialized# Install EPUB + PDF CLIs
+make epub-install       # Install EPUB CLI (debug)
+make epub-install-release # Install EPUB CLI (release)
+make pdf-install        # Install PDF CLI (debug)
+make pdf-install-release  # Install PDF CLI (release)
+
+# Uninstall
+make uninstall          # Uninstall main CLI
+make uninstall-specialized # Uninstall specialized CLIs
+make epub-uninstall     # Uninstall EPUB CLI
+make pdf-uninstall      # Uninstall PDF CLI
+
+# Utilities
+make workspace          # Open Xcode workspace
+make clean              # Remove build artifacts
+make clean-all          # Deep clean (includes docs/completions)
+make info               # Show build information
 ```
 
 **Swift module cache environment:**

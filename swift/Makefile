@@ -10,13 +10,25 @@ CLI_INSTALL_TARGET := $(BIN_INSTALL_PATH)/$(CLI_INSTALL_NAME)
 CLI_DEBUG_BINARY := EbookMechanicCLI/.build/debug/EbookMechanicCLI
 CLI_RELEASE_BINARY := EbookMechanicCLI/.build/release/EbookMechanicCLI
 
+# EPUB Mechanic CLI configuration
+EPUB_CLI_INSTALL_NAME ?= epub-mechanic
+EPUB_CLI_INSTALL_TARGET := $(BIN_INSTALL_PATH)/$(EPUB_CLI_INSTALL_NAME)
+EPUB_CLI_DEBUG_BINARY := EPUBMechanicCLI/.build/debug/EPUBMechanicCLI
+EPUB_CLI_RELEASE_BINARY := EPUBMechanicCLI/.build/release/EPUBMechanicCLI
+
+# PDF Mechanic CLI configuration
+PDF_CLI_INSTALL_NAME ?= pdf-mechanic
+PDF_CLI_INSTALL_TARGET := $(BIN_INSTALL_PATH)/$(PDF_CLI_INSTALL_NAME)
+PDF_CLI_DEBUG_BINARY := PDFMechanicCLI/.build/debug/PDFMechanicCLI
+PDF_CLI_RELEASE_BINARY := PDFMechanicCLI/.build/release/PDFMechanicCLI
+
 # Default shell configuration for better error handling
 SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 .ONESHELL:
 
 # Phony targets (targets that don't represent files)
-.PHONY: help build build-all build-release test test-all core-test core-build cli-build cli-run cli-normalize cli-normalize-force cli-test cli-completions app-build app-run app-test app-install app-uninstall workspace clean clean-all docc-core docc-app docc-serve docc-all install install-release uninstall format check-format lint ci info update-all
+.PHONY: help build build-all build-release test test-all core-test core-build cli-build cli-run cli-normalize cli-normalize-force cli-test cli-completions app-build app-run app-test app-install app-uninstall epub-build epub-build-release epub-test epub-run epub-install epub-install-release epub-uninstall pdf-build pdf-build-release pdf-test pdf-run pdf-install pdf-install-release pdf-uninstall build-specialized install-specialized uninstall-specialized workspace clean clean-all docc-core docc-app docc-serve docc-all install install-release uninstall format check-format lint ci info update-all
 
 # Default target when running 'make' with no arguments
 .DEFAULT_GOAL := build
@@ -26,25 +38,32 @@ help:
 	@echo "================================"
 	@echo ""
 	@echo "🏗️  Build Targets:"
-	@echo "  make build           - Build core library only (default)"
-	@echo "  make build-all       - Build everything (core + CLI + app)"
-	@echo "  make build-release   - Build optimized release binaries"
-	@echo "  make build-core      - Build the core library"
-	@echo "  make build-cli       - Build the CLI executable"
-	@echo "  make build-app       - Build the macOS SwiftUI app"
+	@echo "  make build            - Build core library only (default)"
+	@echo "  make build-all        - Build everything (core + all CLIs + app)"
+	@echo "  make build-release    - Build optimized release binaries"
+	@echo "  make build-core       - Build the core library"
+	@echo "  make build-cli        - Build the main CLI executable"
+	@echo "  make build-app        - Build the macOS SwiftUI app"
+	@echo "  make build-specialized- Build specialized CLIs (EPUB + PDF)"
+	@echo "  make epub-build       - Build EPUB Mechanic CLI"
+	@echo "  make pdf-build        - Build PDF Mechanic CLI"
 	@echo ""
 	@echo "🧪 Test Targets:"
 	@echo "  make test            - Run core library tests (default)"
-	@echo "  make test-all        - Run all test suites (core + CLI + app)"
+	@echo "  make test-all        - Run all test suites (core + all CLIs + app)"
 	@echo "  make test-core       - Run the EbookMechanicCore test suite"
-	@echo "  make test-cli        - Run the CLI test suite"
+	@echo "  make test-cli        - Run the main CLI test suite"
 	@echo "  make test-app        - Run the app test suite"
+	@echo "  make epub-test       - Run EPUB Mechanic CLI tests"
+	@echo "  make pdf-test        - Run PDF Mechanic CLI tests"
 	@echo ""
 	@echo "🚀 Run Targets:"
-	@echo "  make run-cli ARGS=   - Run the CLI (default: --help)"
+	@echo "  make run-cli ARGS=   - Run the main CLI (default: --help)"
 	@echo "  make normalize       - Normalize EPUBs (dry-run mode)"
 	@echo "  make normalize-force - Force normalize EPUBs (live mode)"
 	@echo "  make run-app         - Launch the SwiftUI app"
+	@echo "  make epub-run ARGS=  - Run EPUB Mechanic CLI"
+	@echo "  make pdf-run ARGS=   - Run PDF Mechanic CLI"
 	@echo ""
 	@echo "📚 Documentation Targets:"
 	@echo "  make docc-all        - Generate all documentation (core + app)"
@@ -53,20 +72,28 @@ help:
 	@echo "  make docc-serve      - Serve docs at http://localhost:8080"
 	@echo ""
 	@echo "🛠️  Utility Targets:"
-	@echo "  make completions     - Generate shell completion scripts"
-	@echo "  make install         - Install CLI to $(BIN_INSTALL_PATH) (debug)"
-	@echo "  make install-release - Install optimized CLI to $(BIN_INSTALL_PATH)"
-	@echo "  make install-app     - Build & copy the macOS app bundle"
-	@echo "  make uninstall       - Remove CLI from $(BIN_INSTALL_PATH)"
-	@echo "  make uninstall-app   - Remove installed macOS app bundle"
-	@echo "  make format          - Format all Swift code with swift-format"
-	@echo "  make lint            - Lint Swift code (requires SwiftLint)"
-	@echo "  make check-format    - Check if code is formatted (CI-friendly)"
-	@echo "  make workspace       - Open EbookMechanic.xcworkspace in Xcode"
-	@echo "  make clean           - Remove build artifacts for all packages"
-	@echo "  make clean-all       - Deep clean (includes completions & docs)"
-	@echo "  make info            - Display build information and sizes"
-	@echo "  make update-all     - Update completions and documentation"
+	@echo "  make completions        - Generate shell completion scripts"
+	@echo "  make install            - Install main CLI to $(BIN_INSTALL_PATH) (debug)"
+	@echo "  make install-release    - Install optimized main CLI to $(BIN_INSTALL_PATH)"
+	@echo "  make install-app        - Build & copy the macOS app bundle"
+	@echo "  make install-specialized- Install specialized CLIs (EPUB + PDF)"
+	@echo "  make epub-install       - Install EPUB Mechanic CLI"
+	@echo "  make epub-install-release - Install optimized EPUB Mechanic CLI"
+	@echo "  make pdf-install        - Install PDF Mechanic CLI"
+	@echo "  make pdf-install-release  - Install optimized PDF Mechanic CLI"
+	@echo "  make uninstall          - Remove main CLI from $(BIN_INSTALL_PATH)"
+	@echo "  make uninstall-app      - Remove installed macOS app bundle"
+	@echo "  make uninstall-specialized - Uninstall specialized CLIs"
+	@echo "  make epub-uninstall     - Uninstall EPUB Mechanic CLI"
+	@echo "  make pdf-uninstall      - Uninstall PDF Mechanic CLI"
+	@echo "  make format             - Format all Swift code with swift-format"
+	@echo "  make lint               - Lint Swift code (requires SwiftLint)"
+	@echo "  make check-format       - Check if code is formatted (CI-friendly)"
+	@echo "  make workspace          - Open EbookMechanic.xcworkspace in Xcode"
+	@echo "  make clean              - Remove build artifacts for all packages"
+	@echo "  make clean-all          - Deep clean (includes completions & docs)"
+	@echo "  make info               - Display build information and sizes"
+	@echo "  make update-all         - Update completions and documentation"
 	@echo ""
 	@echo "🤖 CI/CD Targets:"
 	@echo "  make ci            - Run full CI pipeline (build-all + test-all + check-format)"
@@ -82,9 +109,14 @@ help:
 build: core-build
 
 # Build all components
-build-all: core-build build-cli build-app
+build-all: core-build build-cli build-app build-specialized
 	@echo ""
 	@echo "✅ All components built successfully!"
+
+# Build specialized CLIs
+build-specialized: epub-build pdf-build
+	@echo ""
+	@echo "✅ Specialized CLIs built successfully!"
 
 # Release builds (optimized)
 build-release:
@@ -92,9 +124,13 @@ build-release:
 	$(SPM_ENV) swift build --disable-sandbox --package-path EbookMechanicCore -c release
 	$(SPM_ENV) swift build --disable-sandbox --package-path EbookMechanicCLI -c release
 	$(SPM_ENV) swift build --disable-sandbox --package-path EbookMechanicApp -c release
+	$(SPM_ENV) swift build --disable-sandbox --package-path EPUBMechanicCLI -c release
+	$(SPM_ENV) swift build --disable-sandbox --package-path PDFMechanicCLI -c release
 	@echo "✅ Release builds complete!"
 	@echo ""
-	@echo "CLI binary: EbookMechanicCLI/.build/release/EbookMechanicCLI"
+	@echo "Main CLI binary: EbookMechanicCLI/.build/release/EbookMechanicCLI"
+	@echo "EPUB CLI binary: EPUBMechanicCLI/.build/release/EPUBMechanicCLI"
+	@echo "PDF CLI binary:  PDFMechanicCLI/.build/release/PDFMechanicCLI"
 
 # Default test target now exercises core, CLI, and app (including UI hooks)
 test: core-test cli-test app-test
@@ -108,6 +144,10 @@ test-all:
 	@$(MAKE) test-cli
 	@echo ""
 	@$(MAKE) test-app
+	@echo ""
+	@$(MAKE) epub-test
+	@echo ""
+	@$(MAKE) pdf-test
 	@echo ""
 	@echo "✅ All test suites completed!"
 
@@ -162,6 +202,111 @@ test-app:
 	@echo "🧪 Running EbookMechanicApp tests..."
 	$(SPM_ENV) swift test --disable-sandbox --package-path EbookMechanicApp
 
+# EPUB Mechanic CLI targets
+epub-build:
+	@echo "🔨 Building EPUBMechanicCLI..."
+	$(SPM_ENV) swift build --disable-sandbox --package-path EPUBMechanicCLI
+
+epub-build-release:
+	@echo "🚀 Building optimized EPUBMechanicCLI..."
+	$(SPM_ENV) swift build --disable-sandbox --package-path EPUBMechanicCLI -c release
+
+epub-test:
+	@echo "🧪 Running EPUBMechanicCLI tests..."
+	$(SPM_ENV) swift test --disable-sandbox --package-path EPUBMechanicCLI
+
+epub-run:
+	$(SPM_ENV) swift run --disable-sandbox --package-path EPUBMechanicCLI EPUBMechanicCLI $(if $(ARGS),$(ARGS),--help)
+
+epub-install: epub-build
+	@echo "📦 Installing EPUBMechanicCLI to $(EPUB_CLI_INSTALL_TARGET)..."
+	@if [ ! -f "$(EPUB_CLI_DEBUG_BINARY)" ]; then \
+		echo "❌ Error: Binary not found. Run 'make epub-build' first."; \
+		exit 1; \
+	fi
+	@if install -m 755 "$(EPUB_CLI_DEBUG_BINARY)" "$(EPUB_CLI_INSTALL_TARGET)"; then \
+		strip "$(EPUB_CLI_INSTALL_TARGET)" 2>/dev/null || true; \
+		echo "✅ Installed to $(EPUB_CLI_INSTALL_TARGET)"; \
+	else \
+		echo "❌ Error: install command failed. Try 'sudo make epub-install'."; \
+		exit 1; \
+	fi
+
+epub-install-release: epub-build-release
+	@echo "📦 Installing optimized EPUBMechanicCLI to $(EPUB_CLI_INSTALL_TARGET)..."
+	@if [ ! -f "$(EPUB_CLI_RELEASE_BINARY)" ]; then \
+		echo "❌ Error: Release binary not found."; \
+		exit 1; \
+	fi
+	@if install -m 755 "$(EPUB_CLI_RELEASE_BINARY)" "$(EPUB_CLI_INSTALL_TARGET)"; then \
+		strip "$(EPUB_CLI_INSTALL_TARGET)" 2>/dev/null || true; \
+		echo "✅ Installed optimized binary to $(EPUB_CLI_INSTALL_TARGET)"; \
+	else \
+		echo "❌ Error: install command failed. Try 'sudo make epub-install-release'."; \
+		exit 1; \
+	fi
+
+epub-uninstall:
+	@echo "🗑️  Uninstalling $(EPUB_CLI_INSTALL_NAME)..."
+	@rm -f "$(EPUB_CLI_INSTALL_TARGET)"
+	@echo "✅ Uninstalled!"
+
+# PDF Mechanic CLI targets
+pdf-build:
+	@echo "🔨 Building PDFMechanicCLI..."
+	$(SPM_ENV) swift build --disable-sandbox --package-path PDFMechanicCLI
+
+pdf-build-release:
+	@echo "🚀 Building optimized PDFMechanicCLI..."
+	$(SPM_ENV) swift build --disable-sandbox --package-path PDFMechanicCLI -c release
+
+pdf-test:
+	@echo "🧪 Running PDFMechanicCLI tests..."
+	$(SPM_ENV) swift test --disable-sandbox --package-path PDFMechanicCLI
+
+pdf-run:
+	$(SPM_ENV) swift run --disable-sandbox --package-path PDFMechanicCLI PDFMechanicCLI $(if $(ARGS),$(ARGS),--help)
+
+pdf-install: pdf-build
+	@echo "📦 Installing PDFMechanicCLI to $(PDF_CLI_INSTALL_TARGET)..."
+	@if [ ! -f "$(PDF_CLI_DEBUG_BINARY)" ]; then \
+		echo "❌ Error: Binary not found. Run 'make pdf-build' first."; \
+		exit 1; \
+	fi
+	@if install -m 755 "$(PDF_CLI_DEBUG_BINARY)" "$(PDF_CLI_INSTALL_TARGET)"; then \
+		strip "$(PDF_CLI_INSTALL_TARGET)" 2>/dev/null || true; \
+		echo "✅ Installed to $(PDF_CLI_INSTALL_TARGET)"; \
+	else \
+		echo "❌ Error: install command failed. Try 'sudo make pdf-install'."; \
+		exit 1; \
+	fi
+
+pdf-install-release: pdf-build-release
+	@echo "📦 Installing optimized PDFMechanicCLI to $(PDF_CLI_INSTALL_TARGET)..."
+	@if [ ! -f "$(PDF_CLI_RELEASE_BINARY)" ]; then \
+		echo "❌ Error: Release binary not found."; \
+		exit 1; \
+	fi
+	@if install -m 755 "$(PDF_CLI_RELEASE_BINARY)" "$(PDF_CLI_INSTALL_TARGET)"; then \
+		strip "$(PDF_CLI_INSTALL_TARGET)" 2>/dev/null || true; \
+		echo "✅ Installed optimized binary to $(PDF_CLI_INSTALL_TARGET)"; \
+	else \
+		echo "❌ Error: install command failed. Try 'sudo make pdf-install-release'."; \
+		exit 1; \
+	fi
+
+pdf-uninstall:
+	@echo "🗑️  Uninstalling $(PDF_CLI_INSTALL_NAME)..."
+	@rm -f "$(PDF_CLI_INSTALL_TARGET)"
+	@echo "✅ Uninstalled!"
+
+# Combined specialized CLI targets
+install-specialized: epub-install pdf-install
+	@echo "✅ All specialized CLIs installed!"
+
+uninstall-specialized: epub-uninstall pdf-uninstall
+	@echo "✅ All specialized CLIs uninstalled!"
+
 workspace:
 	@echo "🚀 Opening EbookMechanic.xcworkspace in Xcode..."
 	@open EbookMechanic.xcworkspace
@@ -171,7 +316,9 @@ clean:
 	@chmod -R u+w EbookMechanicCore/.build 2>/dev/null || true
 	@chmod -R u+w EbookMechanicCLI/.build 2>/dev/null || true
 	@chmod -R u+w EbookMechanicApp/.build 2>/dev/null || true
-	@rm -rf EbookMechanicCore/.build EbookMechanicCLI/.build EbookMechanicApp/.build
+	@chmod -R u+w EPUBMechanicCLI/.build 2>/dev/null || true
+	@chmod -R u+w PDFMechanicCLI/.build 2>/dev/null || true
+	@rm -rf EbookMechanicCore/.build EbookMechanicCLI/.build EbookMechanicApp/.build EPUBMechanicCLI/.build PDFMechanicCLI/.build
 	@echo "✅ Build artifacts removed!"
 
 # Deep clean - removes build artifacts, completions, and docs
@@ -181,8 +328,10 @@ clean-all:
 	@chmod -R u+w EbookMechanicCore/.build 2>/dev/null || true
 	@chmod -R u+w EbookMechanicCLI/.build 2>/dev/null || true
 	@chmod -R u+w EbookMechanicApp/.build 2>/dev/null || true
+	@chmod -R u+w EPUBMechanicCLI/.build 2>/dev/null || true
+	@chmod -R u+w PDFMechanicCLI/.build 2>/dev/null || true
 	@echo "  Removing build artifacts..."
-	@rm -rf EbookMechanicCore/.build EbookMechanicCLI/.build EbookMechanicApp/.build
+	@rm -rf EbookMechanicCore/.build EbookMechanicCLI/.build EbookMechanicApp/.build EPUBMechanicCLI/.build PDFMechanicCLI/.build
 	@echo "  Removing completions..."
 	@rm -rf completions/
 	@echo "✅ All build artifacts, completions, and documentation removed!"
@@ -446,9 +595,11 @@ info:
 	@xcodebuild -version 2>/dev/null || echo "  Xcode not found"
 	@echo ""
 	@echo "Build directories:"
-	@echo "  Core: $(shell du -sh EbookMechanicCore/.build 2>/dev/null | cut -f1 || echo 'Not built')"
-	@echo "  CLI:  $(shell du -sh EbookMechanicCLI/.build 2>/dev/null | cut -f1 || echo 'Not built')"
-	@echo "  App:  $(shell du -sh EbookMechanicApp/.build 2>/dev/null | cut -f1 || echo 'Not built')"
+	@echo "  Core:     $(shell du -sh EbookMechanicCore/.build 2>/dev/null | cut -f1 || echo 'Not built')"
+	@echo "  Main CLI: $(shell du -sh EbookMechanicCLI/.build 2>/dev/null | cut -f1 || echo 'Not built')"
+	@echo "  App:      $(shell du -sh EbookMechanicApp/.build 2>/dev/null | cut -f1 || echo 'Not built')"
+	@echo "  EPUB CLI: $(shell du -sh EPUBMechanicCLI/.build 2>/dev/null | cut -f1 || echo 'Not built')"
+	@echo "  PDF CLI:  $(shell du -sh PDFMechanicCLI/.build 2>/dev/null | cut -f1 || echo 'Not built')"
 	@echo ""
 	@echo "Generated artifacts:"
 	@echo "  Completions: $(shell [ -d completions ] && ls -1 completions | wc -l | xargs || echo '0') files"

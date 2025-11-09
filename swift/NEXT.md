@@ -4,56 +4,53 @@ This document outlines the immediate next steps for the EbookMechanic Swift impl
 
 ## Immediate Next Steps (This Week)
 
-### 1. 🎯 Makefile Integration (Priority: Critical)
+### 1. ✅ Makefile Integration (Priority: Critical) - COMPLETED
 
-**Why**: Users need easy commands to build and install the new CLIs.
+**Status**: ✅ Completed and tested
 
-**What to do**:
+**What was done**:
+- Added comprehensive Makefile targets for both EPUBMechanicCLI and PDFMechanicCLI to `swift/Makefile`
+- Fixed binary paths in specialized CLI Makefiles (EPUBMechanicCLI/Makefile, PDFMechanicCLI/Makefile)
+- Corrected shell completion file names (epub-mechanic vs pdf-mechanic)
+- Standardized shell configuration across all Makefiles (using `/bin/bash`)
+- Fixed package path references in build commands
+- Updated all build artifact paths to use relative `.build` directories
+- Added new targets: `build-specialized`, `install-specialized`, `uninstall-specialized`
+- Individual targets: `epub-build`, `epub-test`, `epub-install`, `epub-install-release`, `epub-uninstall`
+- Individual targets: `pdf-build`, `pdf-test`, `pdf-install`, `pdf-install-release`, `pdf-uninstall`
+- Extended `build-all` and `test-all` to include specialized CLIs
+- Updated `clean` and `clean-all` targets to remove specialized CLI build artifacts
+
+**Verified commands**:
 ```bash
-# Add these targets to swift/Makefile
-
-# EPUB Mechanic CLI targets
-epub-build:
-	@cd EPUBMechanicCLI && swift build
-
-epub-build-release:
-	@cd EPUBMechanicCLI && swift build -c release
-
-epub-test:
-	@cd EPUBMechanicCLI && swift test
-
-epub-install:
-	@sudo cp EPUBMechanicCLI/.build/release/EPUBMechanicCLI /usr/local/bin/epub-mechanic
-
-# PDF Mechanic CLI targets
-pdf-build:
-	@cd PDFMechanicCLI && swift build
-
-pdf-build-release:
-	@cd PDFMechanicCLI && swift build -c release
-
-pdf-test:
-	@cd PDFMechanicCLI && swift test
-
-pdf-install:
-	@sudo cp PDFMechanicCLI/.build/release/PDFMechanicCLI /usr/local/bin/pdf-mechanic
-
-# Build all specialized CLIs
-build-specialized:
-	@$(MAKE) epub-build
-	@$(MAKE) pdf-build
-
-# Install all CLIs
-install-all:
-	@$(MAKE) install
-	@$(MAKE) epub-install
-	@$(MAKE) pdf-install
+make help              # ✅ Shows all new targets
+make epub-build        # ✅ Builds EPUBMechanicCLI successfully
+make pdf-test          # ✅ Runs PDF Mechanic CLI tests (2 tests pass)
+make build-specialized # ✅ Builds both specialized CLIs
 ```
 
-**Files to modify**:
-- `swift/Makefile`
+**Available targets**:
+```bash
+# Build
+make epub-build / make pdf-build
+make epub-build-release / make pdf-build-release
+make build-specialized
 
-**Estimated time**: 30 minutes
+# Test
+make epub-test / make pdf-test
+
+# Run
+make epub-run ARGS="--help" / make pdf-run ARGS="--help"
+
+# Install
+make epub-install / make pdf-install
+make epub-install-release / make pdf-install-release
+make install-specialized
+
+# Uninstall
+make epub-uninstall / make pdf-uninstall
+make uninstall-specialized
+```
 
 ---
 

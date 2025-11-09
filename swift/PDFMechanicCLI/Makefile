@@ -7,11 +7,11 @@ SPM_ENV := SWIFT_MODULE_CACHE_PATH=.build/module-cache CLANG_MODULE_CACHE_PATH=.
 BIN_INSTALL_PATH ?= /usr/local/bin
 CLI_INSTALL_NAME ?= pdf-mechanic
 CLI_INSTALL_TARGET := $(BIN_INSTALL_PATH)/$(CLI_INSTALL_NAME)
-CLI_DEBUG_BINARY := .build/debug/PDFMechanicCLI
-CLI_RELEASE_BINARY := .build/release/PDFMechanicCLI
+CLI_DEBUG_BINARY := PDFMechanicCLI/.build/debug/PDFMechanicCLI
+CLI_RELEASE_BINARY := PDFMechanicCLI/.build/release/PDFMechanicCLI
 
 # Default shell configuration for better error handling
-SHELL := /bin/zsh
+SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 .ONESHELL:
 
@@ -77,10 +77,10 @@ build-all: cli-build
 # Release builds (optimized)
 build-release:
 	@echo "🚀 Building optimized release binaries..."
-	$(SPM_ENV) swift build --disable-sandbox --package-path PDFMechanicCLI -c release
+	$(SPM_ENV) swift build --disable-sandbox -c release
 	@echo "✅ Release builds complete!"
 	@echo ""
-	@echo "CLI binary: PDFMechanicCLI/.build/release/PDFMechanicCLI"
+	@echo "CLI binary: $(CLI_RELEASE_BINARY)"
 
 # Default test target now exercises CLI
 test: cli-test
@@ -95,29 +95,29 @@ test-all:
 
 build-cli:
 	@echo "🔨 Building PDFMechanicCLI..."
-	$(SPM_ENV) swift build --disable-sandbox --package-path PDFMechanicCLI
+	$(SPM_ENV) swift build --disable-sandbox
 
 run-cli:
-	$(SPM_ENV) swift run --disable-sandbox --package-path PDFMechanicCLI PDFMechanicCLI $(if $(ARGS),$(ARGS),--help)
+	$(SPM_ENV) swift run --disable-sandbox PDFMechanicCLI $(if $(ARGS),$(ARGS),--help)
 
 test-cli:
 	@echo "🧪 Running PDFMechanicCLI tests..."
-	$(SPM_ENV) swift test --disable-sandbox --package-path PDFMechanicCLI
+	$(SPM_ENV) swift test --disable-sandbox
 
 completions:
 	@echo "📝 Generating shell completion scripts..."
 	@mkdir -p completions
-	@$(SPM_ENV) swift run --disable-sandbox --package-path PDFMechanicCLI PDFMechanicCLI --generate-completion bash > completions/epub-mechanic.bash
-	@$(SPM_ENV) swift run --disable-sandbox --package-path PDFMechanicCLI PDFMechanicCLI --generate-completion zsh > completions/_epub-mechanic
-	@$(SPM_ENV) swift run --disable-sandbox --package-path PDFMechanicCLI PDFMechanicCLI --generate-completion fish > completions/epub-mechanic.fish
-	@$(SPM_ENV) swift run --disable-sandbox --package-path PDFMechanicCLI PDFMechanicCLI --generate-completion powershell > completions/epub-mechanic.ps1
+	@$(SPM_ENV) swift run --disable-sandbox PDFMechanicCLI --generate-completion bash > completions/pdf-mechanic.bash
+	@$(SPM_ENV) swift run --disable-sandbox PDFMechanicCLI --generate-completion zsh > completions/_pdf-mechanic
+	@$(SPM_ENV) swift run --disable-sandbox PDFMechanicCLI --generate-completion fish > completions/pdf-mechanic.fish
+	@$(SPM_ENV) swift run --disable-sandbox PDFMechanicCLI --generate-completion powershell > completions/pdf-mechanic.ps1
 	@echo "✅ Completion scripts generated in ./completions/"
 	@echo ""
 	@echo "To install:"
-	@echo "  Bash:       cp completions/epub-mechanic.bash /usr/local/etc/bash_completion.d/"
-	@echo "  Zsh:        cp completions/_epub-mechanic /usr/local/share/zsh/site-functions/"
-	@echo "  Fish:       cp completions/epub-mechanic.fish ~/.config/fish/completions/"
-	@echo "  PowerShell: . completions/epub-mechanic.ps1"
+	@echo "  Bash:       cp completions/pdf-mechanic.bash /usr/local/etc/bash_completion.d/"
+	@echo "  Zsh:        cp completions/_pdf-mechanic /usr/local/share/zsh/site-functions/"
+	@echo "  Fish:       cp completions/pdf-mechanic.fish ~/.config/fish/completions/"
+	@echo "  PowerShell: . completions/pdf-mechanic.ps1"
 
 workspace:
 	@echo "🚀 Opening ../EbookMechanic.xcworkspace in Xcode..."
@@ -125,17 +125,17 @@ workspace:
 
 clean:
 	@echo "🧹 Cleaning build artifacts..."
-	@chmod -R u+w PDFMechanicCLI/.build 2>/dev/null || true
-	@rm -rf PDFMechanicCLI/.build
+	@chmod -R u+w .build 2>/dev/null || true
+	@rm -rf .build
 	@echo "✅ Build artifacts removed!"
 
 # Deep clean - removes build artifacts, completions, and docs
 clean-all:
 	@echo "🧹 Deep cleaning project..."
 	@echo "  Fixing permissions..."
-	@chmod -R u+w PDFMechanicCLI/.build 2>/dev/null || true
+	@chmod -R u+w .build 2>/dev/null || true
 	@echo "  Removing build artifacts..."
-	@rm -rf  PDFMechanicCLI/.build
+	@rm -rf .build
 	@echo "  Removing completions..."
 	@rm -rf completions/
 	@echo "✅ All build artifacts, completions, and documentation removed!"
@@ -153,7 +153,7 @@ docc-cli:
 	@echo "Generating DocC documentation for PDFMechanicCLI..."
 	@if command -v docc >/dev/null 2>&1; then \
 		echo "Using docc command..."; \
-		cd PDFMechanicCLI && $(SPM_ENV) swift build --target PDFMechanicCLI && \
+		$(SPM_ENV) swift build --target PDFMechanicCLI && \
 		$(SPM_ENV) swift package plugin generate-documentation \
 			--target PDFMechanicCLI \
 			--output-path .build/docc \
@@ -164,8 +164,8 @@ docc-cli:
 		xcodebuild docbuild \
 			-scheme PDFMechanicCLI \
 			-destination 'platform=macOS' \
-			-derivedDataPath PDFMechanicCLI/.build/xcode-derived; \
-		echo "Documentation built to PDFMechanicCLI/.build/xcode-derived"; \
+			-derivedDataPath .build/xcode-derived; \
+		echo "Documentation built to .build/xcode-derived"; \
 	else \
 		echo "Error: Neither docc nor xcodebuild found. Please install Xcode or swift-docc-plugin."; \
 		exit 1; \
@@ -173,11 +173,11 @@ docc-cli:
 
 # Quick local preview using Python HTTP server (requires Python 3)
 docc-serve:
-	@if [ -d "PDFMechanicCLI/.build/docc" ]; then \
+	@if [ -d ".build/docc" ]; then \
 		echo "📚 Serving PDFMechanicCLI documentation at http://localhost:8080"; \
 		echo "Press Ctrl+C to stop the server."; \
 		echo ""; \
-		python3 -m http.server --directory PDFMechanicCLI/.build/docc 8080; \
+		python3 -m http.server --directory .build/docc 8080; \
 	else \
 		echo "❌ Error: No DocC documentation found."; \
 		echo ""; \
@@ -305,11 +305,11 @@ info:
 	@xcodebuild -version 2>/dev/null || echo "  Xcode not found"
 	@echo ""
 	@echo "Build directories:"
-	@echo "  CLI:  $(shell du -sh PDFMechanicCLI/.build 2>/dev/null | cut -f1 || echo 'Not built')"
+	@echo "  CLI:  $(shell du -sh .build 2>/dev/null | cut -f1 || echo 'Not built')"
 	@echo ""
 	@echo "Generated artifacts:"
 	@echo "  Completions: $(shell [ -d completions ] && ls -1 completions | wc -l | xargs || echo '0') files"
-	@echo "  CLI docs:   $(shell [ -d PDFMechanicCLI/.build/docc ] && echo 'Generated' || echo 'Not generated')"
+	@echo "  CLI docs:   $(shell [ -d .build/docc ] && echo 'Generated' || echo 'Not generated')"
 	@echo ""
 
 # Update all generated artifacts (completions and documentation)

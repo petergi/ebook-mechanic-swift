@@ -7,11 +7,11 @@ SPM_ENV := SWIFT_MODULE_CACHE_PATH=.build/module-cache CLANG_MODULE_CACHE_PATH=.
 BIN_INSTALL_PATH ?= /usr/local/bin
 CLI_INSTALL_NAME ?= epub-mechanic
 CLI_INSTALL_TARGET := $(BIN_INSTALL_PATH)/$(CLI_INSTALL_NAME)
-CLI_DEBUG_BINARY := .build/debug/EpubMechanicCLI
-CLI_RELEASE_BINARY := .build/release/EpubMechanicCLI
+CLI_DEBUG_BINARY := EPUBMechanicCLI/.build/debug/EPUBMechanicCLI
+CLI_RELEASE_BINARY := EPUBMechanicCLI/.build/release/EPUBMechanicCLI
 
 # Default shell configuration for better error handling
-SHELL := /bin/zsh
+SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 .ONESHELL:
 
@@ -78,10 +78,10 @@ build-all: build-cli
 # Release builds (optimized)
 build-release:
 	@echo "🚀 Building optimized release binaries..."
-	$(SPM_ENV) swift build --disable-sandbox --package-path EPUBMechanicCLI -c release
+	$(SPM_ENV) swift build --disable-sandbox -c release
 	@echo "✅ Release builds complete!"
 	@echo ""
-	@echo "CLI binary: EPUBMechanicCLI/.build/release/EPUBMechanicCLI"
+	@echo "CLI binary: $(CLI_RELEASE_BINARY)"
 
 # Default test target now exercises CLI
 test: test-cli
@@ -96,28 +96,28 @@ test-all:
 
 build-cli:
 	@echo "🔨 Building EPUBMechanicCLI..."
-	$(SPM_ENV) swift build --disable-sandbox --package-path EPUBMechanicCLI
+	$(SPM_ENV) swift build --disable-sandbox
 
 run-cli:
-	$(SPM_ENV) swift run --disable-sandbox --package-path EPUBMechanicCLI EPUBMechanicCLI $(if $(ARGS),$(ARGS),--help)
+	$(SPM_ENV) swift run --disable-sandbox EPUBMechanicCLI $(if $(ARGS),$(ARGS),--help)
 
 cli-normalize:
-	$(SPM_ENV) swift run --disable-sandbox --package-path EPUBMechanicCLI EPUBMechanicCLI $(if $(ARGS),$(ARGS),--normalize-epubs --dry-run)
+	$(SPM_ENV) swift run --disable-sandbox EPUBMechanicCLI $(if $(ARGS),$(ARGS),--normalize-epubs --dry-run)
 
 cli-normalize-force:
-	$(SPM_ENV) swift run --disable-sandbox --package-path EPUBMechanicCLI EPUBMechanicCLI $(if $(ARGS),$(ARGS),--normalize-epubs --force-normalize --dry-run=false)
+	$(SPM_ENV) swift run --disable-sandbox EPUBMechanicCLI $(if $(ARGS),$(ARGS),--normalize-epubs --force-normalize --dry-run=false)
 
 test-cli:
 	@echo "🧪 Running EPUBMechanicCLI tests..."
-	$(SPM_ENV) swift test --disable-sandbox --package-path EPUBMechanicCLI
+	$(SPM_ENV) swift test --disable-sandbox
 
 completions:
 	@echo "📝 Generating shell completion scripts..."
 	@mkdir -p completions
-	@$(SPM_ENV) swift run --disable-sandbox --package-path EPUBMechanicCLI EPUBMechanicCLI --generate-completion bash > completions/epub-mechanic.bash
-	@$(SPM_ENV) swift run --disable-sandbox --package-path EPUBMechanicCLI EPUBMechanicCLI --generate-completion zsh > completions/_epub-mechanic
-	@$(SPM_ENV) swift run --disable-sandbox --package-path EPUBMechanicCLI EPUBMechanicCLI --generate-completion fish > completions/epub-mechanic.fish
-	@$(SPM_ENV) swift run --disable-sandbox --package-path EPUBMechanicCLI EPUBMechanicCLI --generate-completion powershell > completions/epub-mechanic.ps1
+	@$(SPM_ENV) swift run --disable-sandbox EPUBMechanicCLI --generate-completion bash > completions/epub-mechanic.bash
+	@$(SPM_ENV) swift run --disable-sandbox EPUBMechanicCLI --generate-completion zsh > completions/_epub-mechanic
+	@$(SPM_ENV) swift run --disable-sandbox EPUBMechanicCLI --generate-completion fish > completions/epub-mechanic.fish
+	@$(SPM_ENV) swift run --disable-sandbox EPUBMechanicCLI --generate-completion powershell > completions/epub-mechanic.ps1
 	@echo "✅ Completion scripts generated in ./completions/"
 	@echo ""
 	@echo "To install:"
@@ -132,17 +132,17 @@ workspace:
 
 clean:
 	@echo "🧹 Cleaning build artifacts..."
-	@chmod -R u+w EPUBMechanicCLI/.build 2>/dev/null || true
-	@rm -rf EPUBMechanicCLI/.build
+	@chmod -R u+w .build 2>/dev/null || true
+	@rm -rf .build
 	@echo "✅ Build artifacts removed!"
 
 # Deep clean - removes build artifacts, completions, and docs
 clean-all:
 	@echo "🧹 Deep cleaning project..."
 	@echo "  Fixing permissions..."
-	@chmod -R u+w EPUBMechanicCLI/.build 2>/dev/null || true
+	@chmod -R u+w .build 2>/dev/null || true
 	@echo "  Removing build artifacts..."
-	@rm -rf  EPUBMechanicCLI/.build
+	@rm -rf .build
 	@echo "  Removing completions..."
 	@rm -rf completions/
 	@echo "✅ All build artifacts, completions, and documentation removed!"
@@ -160,7 +160,7 @@ docc-cli:
 	@echo "Generating DocC documentation for EPUBMechanicCLI..."
 	@if command -v docc >/dev/null 2>&1; then \
 		echo "Using docc command..."; \
-		cd EPUBMechanicCLI && $(SPM_ENV) swift build --target EPUBMechanicCLI && \
+		$(SPM_ENV) swift build --target EPUBMechanicCLI && \
 		$(SPM_ENV) swift package plugin generate-documentation \
 			--target EPUBMechanicCLI \
 			--output-path .build/docc \
@@ -171,8 +171,8 @@ docc-cli:
 		xcodebuild docbuild \
 			-scheme EPUBMechanicCLI \
 			-destination 'platform=macOS' \
-			-derivedDataPath EPUBMechanicCLI/.build/xcode-derived; \
-		echo "Documentation built to EPUBMechanicCLI/.build/xcode-derived"; \
+			-derivedDataPath .build/xcode-derived; \
+		echo "Documentation built to .build/xcode-derived"; \
 	else \
 		echo "Error: Neither docc nor xcodebuild found. Please install Xcode or swift-docc-plugin."; \
 		exit 1; \
@@ -180,11 +180,11 @@ docc-cli:
 
 # Quick local preview using Python HTTP server (requires Python 3)
 docc-serve:
-	@if [ -d "EPUBMechanicCLI/.build/docc" ]; then \
+	@if [ -d ".build/docc" ]; then \
 		echo "📚 Serving EPUBMechanicCLI documentation at http://localhost:8080"; \
 		echo "Press Ctrl+C to stop the server."; \
 		echo ""; \
-		python3 -m http.server --directory EPUBMechanicCLI/.build/docc 8080; \
+		python3 -m http.server --directory .build/docc 8080; \
 	else \
 		echo "❌ Error: No DocC documentation found."; \
 		echo ""; \
@@ -312,11 +312,11 @@ info:
 	@xcodebuild -version 2>/dev/null || echo "  Xcode not found"
 	@echo ""
 	@echo "Build directories:"
-	@echo "  CLI:  $(shell du -sh EPUBMechanicCLI/.build 2>/dev/null | cut -f1 || echo 'Not built')"
+	@echo "  CLI:  $(shell du -sh .build 2>/dev/null | cut -f1 || echo 'Not built')"
 	@echo ""
 	@echo "Generated artifacts:"
 	@echo "  Completions: $(shell [ -d completions ] && ls -1 completions | wc -l | xargs || echo '0') files"
-	@echo "  CLI docs:   $(shell [ -d EPUBMechanicCLI/.build/docc ] && echo 'Generated' || echo 'Not generated')"
+	@echo "  CLI docs:   $(shell [ -d .build/docc ] && echo 'Generated' || echo 'Not generated')"
 	@echo ""
 
 # Update all generated artifacts (completions and documentation)
