@@ -22,23 +22,27 @@ The EbookMechanicApp provides a graphical interface for the EbookMechanic toolki
 ### Components
 
 **EbookMechanicApp.swift**
+
 - App entry point
 - SwiftUI `App` protocol conformance
 - Window group configuration
 
 **ContentView.swift**
+
 - Main UI layout
 - Gradient background design
 - Control panels and result displays
 - Progress visualization
 
 **ScanViewModel.swift**
+
 - Observable view model (`ObservableObject`)
 - Business logic and state management
 - Integration with `FileScanner` from Core library
 - `@Published` properties for reactive updates
 
 **ScanOptions.swift**
+
 - Configuration model for scan operations
 - User preferences and settings
 - Codable for persistence (future enhancement)
@@ -122,21 +126,25 @@ open EbookMechanicApp/.build/debug/EbookMechanicApp.app
 ### Features in Detail
 
 **Directory Selection:**
+
 - Native macOS file picker
 - Remembers last selected directory (session-based)
 - Validates directory accessibility
 
 **Progress Tracking:**
+
 - Real-time progress bar (0-100%)
 - Current operation status
 - File count updates
 
 **Results Display:**
+
 - Corrupted files with full paths
 - Empty folders identified for removal
 - Color-coded lists for easy identification
 
 **Configuration:**
+
 - Repair: Automatically fix corrupted files
 - Dry Run: Preview changes without modifications
 - Confirm: Prompt before deletion operations
@@ -315,13 +323,12 @@ swift run --package-path EbookMechanicApp EbookMechanicApp
 
 ## License
 
-This project maintains compatibility with the original Go-based EbookMechanic toolchain.
+This project is licensed under the MIT License.
 
 ## Credits
 
 - Built with SwiftUI and Swift Concurrency
 - Powered by EbookMechanicCore library
-- Original Go implementation of EbookMechanic
 
 ---
 

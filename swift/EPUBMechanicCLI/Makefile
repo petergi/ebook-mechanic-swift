@@ -26,28 +26,28 @@ help:
 	@echo "================================"
 	@echo ""
 	@echo "🏗️  Build Targets:"
-	@echo "  make build                     - Build CLI (default)"
-	@echo "  make build-release             - Build optimized release binaries"
+	@printf "  %-30s %s\n" "make build" "Build CLI (default)"
+	@printf "  %-30s %s\n" "make build-release" "Build optimized release binaries"
 	@echo ""
 	@echo "🧪 Test Targets:"
-	@echo "  make test                      - Run CLI tests (default)"
-	@echo "  make test-all                  - Run all test suites"
+	@printf "  %-30s %s\n" "make test" "Run CLI tests (default)"
+	@printf "  %-30s %s\n" "make test-all" "Run all test suites"
 	@echo ""
 	@echo "🚀 Run Targets:"
-	@echo "  make run-cli ARGS=             - Run the CLI (default: --help)"
-	@echo "  make normalize-epub            - Normalize EPUBs (dry-run mode)"
-	@echo "  make normalize-epub-force      - Force normalize EPUBs (live mode)"
+	@printf "  %-30s %s\n" "make run-cli ARGS=" "Run the CLI (default: --help)"
+	@printf "  %-30s %s\n" "make normalize-epub" "Normalize EPUBs (dry-run mode)"
+	@printf "  %-30s %s\n" "make normalize-epub-force" "Force normalize EPUBs (live mode)"
 	@echo ""
 	@echo "📚 Documentation Targets:"
-	@echo "  make docc-all                  - Generate all documentation"
-	@echo "  make docc-cli                  - Generate DocC docs for EPUBMechanicCLI"
-	@echo "  make docc-serve                - Serve docs at http://localhost:8080"
+	@printf "  %-30s %s\n" "make docc-all" "Generate all documentation"
+	@printf "  %-30s %s\n" "make docc-cli" "Generate DocC docs for EPUBMechanicCLI"
+	@printf "  %-30s %s\n" "make docc-serve" "Serve docs at http://localhost:8080"
 	@echo ""
 	@echo "🛠️  Utility Targets:"
-	@echo "  make completions           - Generate shell completion scripts"
-	@echo "  make install                   - Install CLI to $(BIN_INSTALL_PATH) (debug)"
-	@echo "  make install-release           - Install optimized CLI to $(BIN_INSTALL_PATH)"
-	@echo "  make uninstall                 - Remove CLI from $(BIN_INSTALL_PATH)"
+	@printf "  %-30s %s\n" "make completions" "Generate shell completion scripts"
+	@printf "  %-30s %s\n" "make install" "Install CLI to $(BIN_INSTALL_PATH) (debug)"
+	@printf "  %-30s %s\n" "make install-release" "Install optimized CLI to $(BIN_INSTALL_PATH)"
+	@printf "  %-30s %s\n" "make uninstall" "Remove CLI from $(BIN_INSTALL_PATH)"
 	@echo "  make format                    - Format all Swift code with swift-format"
 	@echo "  make lint                      - Lint Swift code (requires SwiftLint)"
 	@echo "  make check-format              - Check if code is formatted (CI-friendly)"
@@ -298,7 +298,7 @@ check-format:
 lint:
 	@if command -v swiftlint >/dev/null 2>&1; then \
 		echo "🔍 Linting Swift code..."; \
-		cd ../EPUBMechanicCLI && swiftlint; \
+		swiftlint; \
 		echo "✅ Lint check passed!"; \
 	else \
 		echo "❌ SwiftLint not found. Install with:"; \
@@ -325,11 +325,11 @@ info:
 	@xcodebuild -version 2>/dev/null || echo "  Xcode not found"
 	@echo ""
 	@echo "Build directories:"
-	@echo "  CLI:  $(shell du -sh .build 2>/dev/null | cut -f1 || echo 'Not built')"
+	@printf "  %-15s %s\n" "CLI:" "$$(du -sh .build 2>/dev/null | cut -f1 || echo 'Not built')"
 	@echo ""
 	@echo "Generated artifacts:"
-	@echo "  Completions: $(shell [ -d completions ] && ls -1 completions | wc -l | xargs || echo '0') files"
-	@echo "  CLI docs:   $(shell [ -d .build/docc ] && echo 'Generated' || echo 'Not generated')"
+	@printf "  %-15s %s\n" "Completions:" "$$(if [ -d completions ]; then ls -1 completions | wc -l | xargs; else echo '0'; fi) files"
+	@printf "  %-15s %s\n" "CLI docs:" "$$(if [ -d .build/docc ]; then echo 'Generated'; else echo 'Not generated'; fi)"
 	@echo ""
 
 # Update all generated artifacts (completions and documentation)

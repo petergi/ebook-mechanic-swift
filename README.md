@@ -59,17 +59,17 @@ The root Makefile provides a unified build system for all implementations:
 make build                                     # Build all
 make build-all                                 # Build everything (all-in-one, epub-mechanic, pdf-mechanic, SwiftUI macOS app)
 make build-cli                                 # Build All-in-one cli
-make build-cli-epub-mechanic                   # Build EPUB Mechanic cli 
-make build-cli-pdf-mechanic                    # Build PDF Mechanic cli 
-make build-app-ebook-mechanic                  # Build SwiftUI macOS app
+make build-epub-mechanic-cli                   # Build EPUB Mechanic cli 
+make build-pdf-mechanic-cli                    # Build PDF Mechanic cli 
+make build-ebook-mechanic-app                  # Build SwiftUI macOS app
 
 # Test
 make test                                      # Test all
 make test-all                                  # Test everything (all-in-one, epub-mechanic, pdf-mechanic, SwiftUI macOS app)
 make test-cli                                  # Test All-in-one cli
-make test-cli-epub-mechanic                    # Test EPUB Mechanic cli 
-make test-cli-pdf-mechanic                     # Test PDF Mechanic cli 
-make test-app-ebook-mechanic                   # Test SwiftUI macOS app
+make test-epub-mechanic-cli                    # Test EPUB Mechanic cli 
+make test-pdf-mechanic-cli                     # Test PDF Mechanic cli 
+make test-ebook-mechanic-app                   # Test SwiftUI macOS app
 
 # Run specific implementation
 make run-ebook-mechanic-cli                    # Run cli (all-in-one)
@@ -85,7 +85,7 @@ make benchmark
 
 # Install 
 make install                                    # Install all the CLIs
-make install-cli                                # Install All-in-one cli
+make install-ebook-mechanic-cli                 # Install All-in-one cli
 make install-epub-mechanic-cli                  # Install EPUB Mechanic cli 
 make install-pdf-mechanic-cli                   # Install PDF Mechanic cli 
 make install-ebook-mechanic-app                 # Install SwiftUI macOS app
@@ -101,11 +101,11 @@ Each implementation can also be used independently:
 ```bash
 # CLI(s) 
 cd swift && make build-cli && make run-cli                                  # All-in-one cli
-cd swift && make build-epub-mechanic-cli && make run-epub-mechanic-cli      # EPUB Mechanic cli 
-cd swift && make build-pdf-mechanic-cli && make run-pdf-mechanic-cli        # PDF Mechanic cli 
+cd swift && make build-epub && make run-epub                                # EPUB Mechanic cli 
+cd swift && make build-pdf && make run-pdf                                  # PDF Mechanic cli 
 
 # APP
-cd swift && make build-ebook-mechanic-app && make run-ebook-mechanic-app    # SwiftUI macOS app
+cd swift && make build-app && make run-app                                  # SwiftUI macOS app
 ```
 
 ## Installation

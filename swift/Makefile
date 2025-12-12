@@ -38,65 +38,65 @@ help:
 	@echo "================================"
 	@echo ""
 	@echo "🏗️  Build Targets:"
-	@echo "  make build            - Build core library only (default)"
-	@echo "  make build-all        - Build everything (core + all CLIs + app)"
-	@echo "  make build-release    - Build optimized release binaries"
-	@echo "  make build-core       - Build the core library"
-	@echo "  make build-cli        - Build the main CLI executable"
-	@echo "  make build-app        - Build the macOS SwiftUI app"
-	@echo "  make build-specialized - Build specialized CLIs (EPUB + PDF)"
-	@echo "  make build-epub       - Build EPUB Mechanic CLI"
-	@echo "  make build-pdf        - Build PDF Mechanic CLI"
+	@printf "  %-30s %s\n" "make build" "Build core library only (default)"
+	@printf "  %-30s %s\n" "make build-all" "Build everything (core + all CLIs + app)"
+	@printf "  %-30s %s\n" "make build-release" "Build optimized release binaries"
+	@printf "  %-30s %s\n" "make build-core" "Build the core library"
+	@printf "  %-30s %s\n" "make build-cli" "Build the main CLI executable"
+	@printf "  %-30s %s\n" "make build-app" "Build the macOS SwiftUI app"
+	@printf "  %-30s %s\n" "make build-specialized" "Build specialized CLIs (EPUB + PDF)"
+	@printf "  %-30s %s\n" "make build-epub" "Build EPUB Mechanic CLI"
+	@printf "  %-30s %s\n" "make build-pdf" "Build PDF Mechanic CLI"
 	@echo ""
 	@echo "🧪 Test Targets:"
-	@echo "  make test            - Run core library tests (default)"
-	@echo "  make test-all        - Run all test suites (core + all CLIs + app)"
-	@echo "  make test-core       - Run the EbookMechanicCore test suite"
-	@echo "  make test-cli        - Run the main CLI test suite"
-	@echo "  make test-app        - Run the app test suite"
-	@echo "  make test-epub       - Run EPUB Mechanic CLI tests"
-	@echo "  make test-pdf        - Run PDF Mechanic CLI tests"
+	@printf "  %-30s %s\n" "make test" "Run core library tests (default)"
+	@printf "  %-30s %s\n" "make test-all" "Run all test suites (core + all CLIs + app)"
+	@printf "  %-30s %s\n" "make test-core" "Run the EbookMechanicCore test suite"
+	@printf "  %-30s %s\n" "make test-cli" "Run the main CLI test suite"
+	@printf "  %-30s %s\n" "make test-app" "Run the app test suite"
+	@printf "  %-30s %s\n" "make test-epub" "Run EPUB Mechanic CLI tests"
+	@printf "  %-30s %s\n" "make test-pdf" "Run PDF Mechanic CLI tests"
 	@echo ""
 	@echo "🚀 Run Targets:"
-	@echo "  make run-cli ARGS=   - Run the main CLI (default: --help)"
-	@echo "  make normalize       - Normalize EPUBs (dry-run mode)"
-	@echo "  make normalize-force - Force normalize EPUBs (live mode)"
-	@echo "  make run-app         - Launch the SwiftUI app"
-	@echo "  make run-epub ARGS=  - Run EPUB Mechanic CLI"
-	@echo "  make run-pdf ARGS=   - Run PDF Mechanic CLI"
+	@printf "  %-30s %s\n" "make run-cli ARGS=" "Run the main CLI (default: --help)"
+	@printf "  %-30s %s\n" "make normalize" "Normalize EPUBs (dry-run mode)"
+	@printf "  %-30s %s\n" "make normalize-force" "Force normalize EPUBs (live mode)"
+	@printf "  %-30s %s\n" "make run-app" "Launch the SwiftUI app"
+	@printf "  %-30s %s\n" "make run-epub ARGS=" "Run EPUB Mechanic CLI"
+	@printf "  %-30s %s\n" "make run-pdf ARGS=" "Run PDF Mechanic CLI"
 	@echo ""
 	@echo "📚 Documentation Targets:"
-	@echo "  make docc-all        - Generate all documentation (core + app)"
-	@echo "  make docc-core       - Generate DocC docs for EbookMechanicCore"
-	@echo "  make docc-app        - Generate DocC docs for EbookMechanicApp"
-	@echo "  make docc-serve      - Serve docs at http://localhost:8080"
+	@printf "  %-30s %s\n" "make docc-all" "Generate all documentation (core + app)"
+	@printf "  %-30s %s\n" "make docc-core" "Generate DocC docs for EbookMechanicCore"
+	@printf "  %-30s %s\n" "make docc-app" "Generate DocC docs for EbookMechanicApp"
+	@printf "  %-30s %s\n" "make docc-serve" "Serve docs at http://localhost:8080"
 	@echo ""
 	@echo "🛠️  Utility Targets:"
-	@echo "  make completions        - Generate shell completion scripts"
-	@echo "  make install            - Install main CLI to $(BIN_INSTALL_PATH) (debug)"
-	@echo "  make install-release    - Install optimized main CLI to $(BIN_INSTALL_PATH)"
-	@echo "  make install-app        - Build & copy the macOS app bundle"
-	@echo "  make install-specialized - Install specialized CLIs (EPUB + PDF)"
-	@echo "  make install-epub       - Install EPUB Mechanic CLI"
-	@echo "  make install-epub-release - Install optimized EPUB Mechanic CLI"
-	@echo "  make install-pdf        - Install PDF Mechanic CLI"
-	@echo "  make install-pdf-release  - Install optimized PDF Mechanic CLI"
-	@echo "  make uninstall          - Remove main CLI from $(BIN_INSTALL_PATH)"
-	@echo "  make uninstall-app      - Remove installed macOS app bundle"
-	@echo "  make uninstall-specialized - Uninstall specialized CLIs"
-	@echo "  make uninstall-epub     - Uninstall EPUB Mechanic CLI"
-	@echo "  make uninstall-pdf      - Uninstall PDF Mechanic CLI"
-	@echo "  make format             - Format all Swift code with swift-format"
-	@echo "  make lint               - Lint Swift code (requires SwiftLint)"
-	@echo "  make check-format       - Check if code is formatted (CI-friendly)"
-	@echo "  make workspace          - Open EbookMechanic.xcworkspace in Xcode"
-	@echo "  make clean              - Remove build artifacts for all packages"
-	@echo "  make clean-all          - Deep clean (includes completions & docs)"
-	@echo "  make info               - Display build information and sizes"
-	@echo "  make update-all         - Update completions and documentation"
+	@printf "  %-30s %s\n" "make completions" "Generate shell completion scripts"
+	@printf "  %-30s %s\n" "make install" "Install main CLI to $(BIN_INSTALL_PATH) (debug)"
+	@printf "  %-30s %s\n" "make install-release" "Install optimized main CLI to $(BIN_INSTALL_PATH)"
+	@printf "  %-30s %s\n" "make install-app" "Build & copy the macOS app bundle"
+	@printf "  %-30s %s\n" "make install-specialized" "Install specialized CLIs (EPUB + PDF)"
+	@printf "  %-30s %s\n" "make install-epub" "Install EPUB Mechanic CLI"
+	@printf "  %-30s %s\n" "make install-epub-release" "Install optimized EPUB Mechanic CLI"
+	@printf "  %-30s %s\n" "make install-pdf" "Install PDF Mechanic CLI"
+	@printf "  %-30s %s\n" "make install-pdf-release" "Install optimized PDF Mechanic CLI"
+	@printf "  %-30s %s\n" "make uninstall" "Remove main CLI from $(BIN_INSTALL_PATH)"
+	@printf "  %-30s %s\n" "make uninstall-app" "Remove installed macOS app bundle"
+	@printf "  %-30s %s\n" "make uninstall-specialized" "Uninstall specialized CLIs"
+	@printf "  %-30s %s\n" "make uninstall-epub" "Uninstall EPUB Mechanic CLI"
+	@printf "  %-30s %s\n" "make uninstall-pdf" "Uninstall PDF Mechanic CLI"
+	@printf "  %-30s %s\n" "make format" "Format all Swift code with swift-format"
+	@printf "  %-30s %s\n" "make lint" "Lint Swift code (requires SwiftLint)"
+	@printf "  %-30s %s\n" "make check-format" "Check if code is formatted (CI-friendly)"
+	@printf "  %-30s %s\n" "make workspace" "Open EbookMechanic.xcworkspace in Xcode"
+	@printf "  %-30s %s\n" "make clean" "Remove build artifacts for all packages"
+	@printf "  %-30s %s\n" "make clean-all" "Deep clean (includes completions & docs)"
+	@printf "  %-30s %s\n" "make info" "Display build information and sizes"
+	@printf "  %-30s %s\n" "make update-all" "Update completions and documentation"
 	@echo ""
 	@echo "🤖 CI/CD Targets:"
-	@echo "  make ci            - Run full CI pipeline (build-all + test-all + check-format)"
+	@printf "  %-30s %s\n" "make ci" "Run full CI pipeline (build-all + test-all + check-format)"
 	@echo ""
 	@echo "Environment defaults:"
 	@echo "  SWIFT_MODULE_CACHE_PATH and CLANG_MODULE_CACHE_PATH are pinned to .build/module-cache"
@@ -547,6 +547,10 @@ format:
 		find EbookMechanicCLI/Tests -name "*.swift" -exec swift-format -i {} \;; \
 		find EbookMechanicApp/Sources -name "*.swift" -exec swift-format -i {} \;; \
 		find EbookMechanicApp/Tests -name "*.swift" -exec swift-format -i {} \;; \
+		find EPUBMechanicCLI/Sources -name "*.swift" -exec swift-format -i {} \;; \
+		find EPUBMechanicCLI/Tests -name "*.swift" -exec swift-format -i {} \;; \
+		find PDFMechanicCLI/Sources -name "*.swift" -exec swift-format -i {} \;; \
+		find PDFMechanicCLI/Tests -name "*.swift" -exec swift-format -i {} \;; \
 		echo "✅ Code formatted!"; \
 	else \
 		echo "❌ swift-format not found. Install with:"; \
@@ -562,6 +566,8 @@ check-format:
 		swift-format lint -r EbookMechanicCore/Sources EbookMechanicCore/Tests; \
 		swift-format lint -r EbookMechanicCLI/Sources EbookMechanicCLI/Tests; \
 		swift-format lint -r EbookMechanicApp/Sources EbookMechanicApp/Tests; \
+		swift-format lint -r EPUBMechanicCLI/Sources EPUBMechanicCLI/Tests; \
+		swift-format lint -r PDFMechanicCLI/Sources PDFMechanicCLI/Tests; \
 		echo "✅ Format check passed!"; \
 	else \
 		echo "⚠️  swift-format not installed, skipping format check"; \
@@ -574,6 +580,8 @@ lint:
 		cd EbookMechanicCore && swiftlint; \
 		cd ../EbookMechanicCLI && swiftlint; \
 		cd ../EbookMechanicApp && swiftlint; \
+		cd ../EPUBMechanicCLI && swiftlint; \
+		cd ../PDFMechanicCLI && swiftlint; \
 		echo "✅ Lint check passed!"; \
 	else \
 		echo "❌ SwiftLint not found. Install with:"; \
@@ -600,16 +608,16 @@ info:
 	@xcodebuild -version 2>/dev/null || echo "  Xcode not found"
 	@echo ""
 	@echo "Build directories:"
-	@echo "  Core:     $(shell du -sh EbookMechanicCore/.build 2>/dev/null | cut -f1 || echo 'Not built')"
-	@echo "  Main CLI: $(shell du -sh EbookMechanicCLI/.build 2>/dev/null | cut -f1 || echo 'Not built')"
-	@echo "  App:      $(shell du -sh EbookMechanicApp/.build 2>/dev/null | cut -f1 || echo 'Not built')"
-	@echo "  EPUB CLI: $(shell du -sh EPUBMechanicCLI/.build 2>/dev/null | cut -f1 || echo 'Not built')"
-	@echo "  PDF CLI:  $(shell du -sh PDFMechanicCLI/.build 2>/dev/null | cut -f1 || echo 'Not built')"
+	@printf "  %-15s %s\n" "Core:" "$$(du -sh EbookMechanicCore/.build 2>/dev/null | cut -f1 || echo 'Not built')"
+	@printf "  %-15s %s\n" "Main CLI:" "$$(du -sh EbookMechanicCLI/.build 2>/dev/null | cut -f1 || echo 'Not built')"
+	@printf "  %-15s %s\n" "App:" "$$(du -sh EbookMechanicApp/.build 2>/dev/null | cut -f1 || echo 'Not built')"
+	@printf "  %-15s %s\n" "EPUB CLI:" "$$(du -sh EPUBMechanicCLI/.build 2>/dev/null | cut -f1 || echo 'Not built')"
+	@printf "  %-15s %s\n" "PDF CLI:" "$$(du -sh PDFMechanicCLI/.build 2>/dev/null | cut -f1 || echo 'Not built')"
 	@echo ""
 	@echo "Generated artifacts:"
-	@echo "  Completions: $(shell [ -d completions ] && ls -1 completions | wc -l | xargs || echo '0') files"
-	@echo "  Core docs:   $(shell [ -d EbookMechanicCore/.build/docc ] && echo 'Generated' || echo 'Not generated')"
-	@echo "  App docs:    $(shell [ -d EbookMechanicApp/.build/docc ] && echo 'Generated' || echo 'Not generated')"
+	@printf "  %-15s %s\n" "Completions:" "$$(if [ -d completions ]; then ls -1 completions | wc -l | xargs; else echo '0'; fi) files"
+	@printf "  %-15s %s\n" "Core docs:" "$$(if [ -d EbookMechanicCore/.build/docc ]; then echo 'Generated'; else echo 'Not generated'; fi)"
+	@printf "  %-15s %s\n" "App docs:" "$$(if [ -d EbookMechanicApp/.build/docc ]; then echo 'Generated'; else echo 'Not generated'; fi)"
 	@echo ""
 
 # Update all generated artifacts (completions and documentation)

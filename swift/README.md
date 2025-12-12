@@ -518,8 +518,6 @@ Swift's compiled nature and actor-based concurrency provide excellent performanc
 **Typical performance on 10,000 files:**
 
 - **Swift version: ~8-12 seconds**
-- Go version: ~5-10 seconds
-- Python version: ~30-45 seconds
 
 ## Project Structure
 
@@ -669,41 +667,6 @@ Swift uses sandboxed module caches to avoid conflicts:
 make clean-all
 ```
 
-## Comparison with Other Implementations
-
-| Feature | Swift | Go | Python |
-|---------|-------|-----|--------|
-| **Speed** | ~12s for 10k files | ~8s for 10k files | ~30s for 10k files |
-| **Memory** | ~20MB | ~15MB | ~50MB |
-| **Platform** | macOS, iOS ready | Cross-platform | Cross-platform |
-| **Interface** | CLI + Native App | CLI only | CLI only |
-| **Concurrency** | Actors | Goroutines | Single-threaded |
-| **Dependencies** | Zero (built-in) | Built-in binary | Python + Rich |
-| **Binary Size** | ~2MB | ~8MB | N/A (interpreted) |
-| **Startup Time** | <50ms | <10ms | ~500ms |
-
-### When to Use Swift
-
-**Choose Swift when:**
-
-- 🍎 You want a native macOS app with SwiftUI
-- 📱 You need iOS integration potential
-- 🎨 You prefer visual interfaces
-- 🔒 You want strong type safety with modern concurrency
-- 🛠️ You're in the Apple ecosystem
-
-**Choose Go when:**
-
-- ⚡ You need maximum performance
-- 🌍 You need cross-platform deployment
-- 📦 You want a single binary for all platforms
-
-**Choose Python when:**
-
-- 🐍 You prefer scripting languages
-- 🔧 You need easy modification
-- 📚 You're prototyping
-
 ## Contributing
 
 Contributions are welcome! Please:
@@ -720,14 +683,13 @@ Contributions are welcome! Please:
 
 ## License
 
-This project maintains compatibility with the original Go-based EbookMechanic toolchain.
+This project is licensed under the MIT License.
 
 ## Credits
 
-- Original Go implementation of EbookMechanic
 - Swift Package Manager and SwiftUI communities
 - Contributors to the project
 
 ---
 
-**Quick Links:** [Parent README](../README.md) | [Master Makefile](../Makefile) | [Go Implementation](../golang/README.md) | [Python Implementation](../python/README.md)
+**Quick Links:** [Parent README](../README.md) | [Master Makefile](../Makefile)

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-EbookMechanic is a multi-language ebook library management toolkit with implementations in **Go**, **Swift**, and **Python**. It validates ebook files (EPUB, MOBI, AZW3, AZW4, PDF), detects corruption, repairs files when possible, and cleans up empty folders.
+EbookMechanic is a multi-language ebook library management toolkit with implementations in **Swift** and **Python**. It validates ebook files (EPUB, MOBI, AZW3, AZW4, PDF), detects corruption, repairs files when possible, and cleans up empty folders.
 
 **Current Status (November 2025):**
 
@@ -73,13 +73,13 @@ Swift Implementation (swift/)
 cd swift
 
 # Core library
-make core-build         # Build core library
-make core-test          # Run core tests
+make build-core         # Build core library
+make test-core          # Run core tests
 
 # Main CLI
-make cli-build          # Build main CLI
-make cli-run ARGS="..." # Run main CLI
-make cli-test           # Test main CLI
+make build-cli          # Build main CLI
+make run-cli ARGS="..." # Run main CLI
+make test-cli           # Test main CLI
 
 # macOS SwiftUI app
 make build-app          # Build app
@@ -88,12 +88,12 @@ make run-app            # Launch app
 
 # Specialized CLIs (EPUB and PDF)
 make build-specialized  # Build both specialized CLIs
-make epub-build         # Build EPUB Mechanic CLI
-make pdf-build          # Build PDF Mechanic CLI
-make epub-test          # Test EPUB Mechanic CLI
-make pdf-test           # Test PDF Mechanic CLI
-make epub-run ARGS="..."# Run EPUB Mechanic CLI
-make pdf-run ARGS="..." # Run PDF Mechanic CLI
+make build-epub         # Build EPUB Mechanic CLI
+make build-pdf          # Build PDF Mechanic CLI
+make test-epub          # Test EPUB Mechanic CLI
+make test-pdf           # Test PDF Mechanic CLI
+make run-epub ARGS="..."# Run EPUB Mechanic CLI
+make run-pdf ARGS="..." # Run PDF Mechanic CLI
 
 # Build everything
 make build-all          # Build core + all CLIs + app
@@ -135,8 +135,6 @@ All Swift commands use sandboxed module caches via `SWIFT_MODULE_CACHE_PATH` and
 - `--no-confirm` - Auto-confirm all prompts
 - `--quiet` - Reduce output
 - `--report` - Generate Markdown report
-
-
 
 ### Benchmarking (scripts/)
 
@@ -228,7 +226,7 @@ Five SwiftPM packages in `EbookMechanic.xcworkspace`:
    - Detects junk prefixes, UTF-8 BOM, email wrappers
    - Simplified CLI focused on PDF operations
    - Depends on EbookMechanicCore
-   - 2 basic tests 
+   - 2 basic tests
 
 **Actor-Based Concurrency (FileScanner.swift):**
 
@@ -271,8 +269,6 @@ Creates comprehensive test fixtures with:
 - Empty folders for cleanup testing
 - Configurable author count and format selection
 - Force overwrite option for regeneration
-
-
 
 ## Common Development Patterns
 
@@ -441,4 +437,3 @@ This allows benchmarking, testing, and cross-validation between implementations.
 ## Makefile Commands Reference
 
 **(swift/Makefile):**
-

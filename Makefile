@@ -4,19 +4,19 @@
 .PHONY: help info version tree \
 		clean clean-all clean-cli clean-epub-mechanic-cli clean-pdf-mechanic-cli clean-ebook-mechanic-app \
 		clean-all clean-all-cli clean-all-epub-mechanic-cli clean-all-pdf-mechanic-cli \
-        build build-all build-cli build-epub-mechanic-cli build-pdf-mechanic-cli build-ebook-mechanic-app \
-		test-cli test-cli-epub-mechanic test-pdf-mechanic-cli test-ebook-mechanic-app \
-        test test-all test-cli test-epub-mechanic-cli test-pdf-mechanic test-ebook-mechanic-app test-coverage \
-        run-ebook-mechanic-cli run-epub-mechanic-cli run-pdf-mechanic-cli run-ebook-mechanic-app \
-        install install-ebook-mechanic-app install-ebook-mechanic-cli install-epub-mechanic-cli install-pdf-mechanic-cli \
+		build build-all build-cli build-epub-mechanic-cli build-pdf-mechanic-cli build-ebook-mechanic-app \
+		test test-cli test-cli-epub-mechanic test-pdf-mechanic-cli test-ebook-mechanic-app \
+		test-all test-cli test-epub-mechanic-cli test-pdf-mechanic test-ebook-mechanic-app test-coverage \
+		run run-ebook-mechanic-cli run-epub-mechanic-cli run-pdf-mechanic-cli run-ebook-mechanic-app \
+		install install-ebook-mechanic-app install-ebook-mechanic-cli install-epub-mechanic-cli install-pdf-mechanic-cli \
 		uninstall uninstall-cli uninstall-epub-mechanic-cli uninstall-pdf-mechanic-cli uninstall-app \
-        check check-ebook-mechanic-cli check-epub-mechanic-cli check-pdf-mechanic-cli check-all check-all-cli check-ebook-mechanic-app \
+		check check-ebook-mechanic-cli check-epub-mechanic-cli check-pdf-mechanic-cli check-all check-all-cli check-ebook-mechanic-app \
 		lint lint-ebook-mechanic-cli lint-epub-mechanic-cli lint-pdf-mechanic-cli \
-        sample-library \
+		sample-library \
 		benchmark \
-        docs docs-all docs-go docs-swift docs-serve \
-        swift-% \
-        completion-install
+		docs docs-all docs-swift docs-serve \
+		swift-% \
+		completion-install
 
 # ==================== Configuration ====================
 
@@ -30,10 +30,9 @@ COLOR_MAGENTA=\033[35m
 COLOR_CYAN=\033[36m
 
 # Directories
-GO_DIR=golang
 SWIFT_DIR=swift
-PYTHON_DIR=python
 SCRIPTS_DIR=scripts
+PYTHON_DIR=scripts
 APP_INSTALL_PATH?=/Applications/EbookMechanic.app
 APP_BUNDLE_NAME?=EbookMechanic.app
 
@@ -53,143 +52,143 @@ VERSION=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 
 ## help: Show this help message
 help:
-	@echo "$(COLOR_BOLD)╔════════════════════════════════════════════════════════════╗$(COLOR_RESET)"
-	@echo "$(COLOR_BOLD)║         EbookMechanic - Master Build System                ║$(COLOR_RESET)"
-	@echo "$(COLOR_BOLD)║   		  Ebook management toolkit                 ║$(COLOR_RESET)"
-	@echo "$(COLOR_BOLD)╚════════════════════════════════════════════════════════════╝$(COLOR_RESET)"
+	@echo "$(COLOR_BOLD)╔═══════════════════════════════════════════════════════════╗$(COLOR_RESET)"
+	@echo "$(COLOR_BOLD)║          EbookMechanic - Master Build System              ║$(COLOR_RESET)"
+	@echo "$(COLOR_BOLD)║              Ebook management toolkit                     ║$(COLOR_RESET)"
+	@echo "$(COLOR_BOLD)╚═══════════════════════════════════════════════════════════╝$(COLOR_RESET)"
 	@echo ""
 	@echo "$(COLOR_YELLOW)Usage:$(COLOR_RESET) make [target]"
 	@echo ""
 	@echo "$(COLOR_CYAN)🚀 Quick Start Commands:$(COLOR_RESET)"
-	@echo "  $(COLOR_GREEN)make build$(COLOR_RESET)              	    Build all implementations"
-	@echo "  $(COLOR_GREEN)make test$(COLOR_RESET)               	    Run all tests"
-	@echo "  $(COLOR_GREEN)make run-cli$(COLOR_RESET)            	    Run all-in-one CLI implementation"
-	@echo "  $(COLOR_GREEN)make run-app$(COLOR_RESET)            	    Launch Swift macOS App"
-	@echo "  $(COLOR_GREEN)make sample-library$(COLOR_RESET)     	    Generate test ebook library"
+	@printf "  $(COLOR_GREEN)%-35s$(COLOR_RESET) %s\n" "make build" "Build"
+	@printf "  $(COLOR_GREEN)%-35s$(COLOR_RESET) %s\n" "make test" "Run all tests"
+	@printf "  $(COLOR_GREEN)%-35s$(COLOR_RESET) %s\n" "make run-cli" "Run all-in-one CLI implementation"
+	@printf "  $(COLOR_GREEN)%-35s$(COLOR_RESET) %s\n" "make run-app" "Launch Swift macOS App"
+	@printf "  $(COLOR_GREEN)%-35s$(COLOR_RESET) %s\n" "make sample-library" "Generate test ebook library"
 	@echo ""
 	@echo "$(COLOR_CYAN)🏗️  Build Targets:$(COLOR_RESET)"
-	@echo "  $(COLOR_BLUE)build$(COLOR_RESET)                   	    Build both App and Swift CLI (all-in-one)"
-	@echo "  $(COLOR_BLUE)build-all$(COLOR_RESET)               	    Build everything (CLIs and App)"
-	@echo "  $(COLOR_BLUE)build-release$(COLOR_RESET)     			    Build optimized release binaries"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "build" "Build both App and Swift CLI (all-in-one)"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "build-all" "Build everything (CLIs and App)"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "build-release" "Build optimized release binaries"
 	@echo ""
 	@echo "$(COLOR_CYAN)🧪 Test Targets:$(COLOR_RESET)"
-	@echo "  $(COLOR_BLUE)test$(COLOR_RESET)                    	    Run all tests"
-	@echo "  $(COLOR_BLUE)test-all$(COLOR_RESET)                	    Run comprehensive test suites"
-	@echo "  $(COLOR_BLUE)test-cli$(COLOR_RESET)                	    Run all-in-one CLI tests only"
-	@echo "  $(COLOR_BLUE)test-ebook-mechanic-cli$(COLOR_RESET) 	    Run Ebook Mechanic CLI tests only"
-	@echo "  $(COLOR_BLUE)test-epub-mechanic-cli$(COLOR_RESET)  	    Run EPUB Mechanic CLI tests only"
-	@echo "  $(COLOR_BLUE)test-pdf-mechanic-cli$(COLOR_RESET)   	    Run PDF Mechanic CLI tests only"
-	@echo "  $(COLOR_BLUE)test-ebook-mechanic-app$(COLOR_RESET) 	    Run Ebook Mechanic macOS App tests only"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "test" "Run all tests"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "test-all" "Run comprehensive test suites"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "test-cli" "Run all-in-one CLI tests only"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "test-ebook-mechanic-cli" "Run Ebook Mechanic CLI tests only"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "test-epub-mechanic-cli" "Run EPUB Mechanic CLI tests only"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "test-pdf-mechanic-cli" "Run PDF Mechanic CLI tests only"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "test-ebook-mechanic-app" "Run Ebook Mechanic macOS App tests only"
 	@echo ""
 	@echo "$(COLOR_CYAN)🚀 Run Targets:$(COLOR_RESET)"
-	@echo "  $(COLOR_BLUE)run$(COLOR_RESET)                  	    	Run all-in-one CLI (TUI mode)"
-	@echo "  $(COLOR_BLUE)run-epub-mechanic-cli$(COLOR_RESET)       	Run EPUB Mechanic CLI"
-	@echo "  $(COLOR_BLUE)run-pdf-mechanic-cli$(COLOR_RESET)   	    	Run PDF Mechanic CLI"
-	@echo "  $(COLOR_BLUE)run-ebook-mechanic-cli$(COLOR_RESET) 	    	Run Ebook Mechanic CLI"
-	@echo "  $(COLOR_BLUE)run-ebook-mechanic-app$(COLOR_RESET) 		    Run Ebook Mechanic macOS App"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "run" "Run all-in-one CLI (TUI mode)"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "run-epub-mechanic-cli" "Run EPUB Mechanic CLI"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "run-pdf-mechanic-cli" "Run PDF Mechanic CLI"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "run-ebook-mechanic-cli" "Run Ebook Mechanic CLI"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "run-ebook-mechanic-app" "Run Ebook Mechanic macOS App"
 	@echo ""
 	@echo "$(COLOR_CYAN)📦 Installation:$(COLOR_RESET)"
-	@echo "  $(COLOR_BLUE)install$(COLOR_RESET)                     	Install all CLIs to system"
-	@echo "  $(COLOR_BLUE)install-ebook-mechanic-cli$(COLOR_RESET)  	Install Ebook Mechanic CLI"
-	@echo "  $(COLOR_BLUE)install-epub-mechanic-cli$(COLOR_RESET)   	Install EPUB Mechanic CLI"
-	@echo "  $(COLOR_BLUE)install-pdf-mechanic-cli$(COLOR_RESET)    	Install PDF Mechanic CLI"
-	@echo "  $(COLOR_BLUE)install-ebook-mechanic-app$(COLOR_RESET)  	Install Ebook Mechanic macOS App"
-	@echo "  $(COLOR_BLUE)install-completions$(COLOR_RESET)         	Install Shell Completions (auto-detect)"
-	@echo "  $(COLOR_BLUE)uninstall$(COLOR_RESET)                    	Remove all installed binaries"
-	@echo "  $(COLOR_BLUE)uninstall-ebook-mechanic-cli$(COLOR_RESET) 	uninstall Ebook Mechanic CLI"
-	@echo "  $(COLOR_BLUE)uninstall-epub-mechanic-cli$(COLOR_RESET)  	uninstall EPUB Mechanic CLI"
-	@echo "  $(COLOR_BLUE)uninstall-pdf-mechanic-cli$(COLOR_RESET)   	uninstall PDF Mechanic CLI"
-	@echo "  $(COLOR_BLUE)uninstall-ebook-mechanic-app$(COLOR_RESET) 	uninstall Ebook Mechanic macOS App"
-	@echo "  $(COLOR_BLUE)uninstall-completions$(COLOR_RESET)        	uninstall Shell Completions (auto-detect)"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "install" "Install all CLIs to system"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "install-ebook-mechanic-cli" "Install Ebook Mechanic CLI"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "install-epub-mechanic-cli" "Install EPUB Mechanic CLI"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "install-pdf-mechanic-cli" "Install PDF Mechanic CLI"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "install-ebook-mechanic-app" "Install Ebook Mechanic macOS App"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "install-completions" "Install Shell Completions (auto-detect)"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "uninstall" "Remove all installed binaries"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "uninstall-ebook-mechanic-cli" "Uninstall Ebook Mechanic CLI"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "uninstall-epub-mechanic-cli" "Uninstall EPUB Mechanic CLI"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "uninstall-pdf-mechanic-cli" "Uninstall PDF Mechanic CLI"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "uninstall-ebook-mechanic-app" "Uninstall Ebook Mechanic macOS App"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "uninstall-completions" "Uninstall Shell Completions (auto-detect)"
 	@echo ""
 	@echo "$(COLOR_CYAN)✅ Quality & Checks:$(COLOR_RESET)"
-	@echo "  $(COLOR_BLUE)check$(COLOR_RESET)                   	    Run all code quality checks"
-	@echo "  $(COLOR_BLUE)check-go$(COLOR_RESET)            	    	Run Go checks (fmt + vet + lint)"
-	@echo "  $(COLOR_BLUE)check-swift$(COLOR_RESET)           			Run Swift checks (format lint)"
-	@echo "  $(COLOR_BLUE)lint$(COLOR_RESET)                  			Run all linters"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "check" "Run all code quality checks"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "check-swift" "Run Swift checks (format lint)"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "lint" "Run all linters"
 	@echo ""
 	@echo "$(COLOR_CYAN)📚 Documentation:$(COLOR_RESET)"
-	@echo "  $(COLOR_BLUE)docs$(COLOR_RESET)                   			Generate documentation (Go + Swift)"
-	@echo "  $(COLOR_BLUE)docs-all$(COLOR_RESET)                		Generate all documentation with details"
-	@echo "  $(COLOR_BLUE)docs-go$(COLOR_RESET)                			Generate Go documentation (godoc)"
-	@echo "  $(COLOR_BLUE)docs-swift$(COLOR_RESET)             			Generate Swift DocC documentation"
-	@echo "  $(COLOR_BLUE)docs-serve$(COLOR_RESET)             			Serve documentation at http://localhost:8080"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "docs" "Generate documentation"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "docs-all" "Generate all documentation with details"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "docs-swift" "Generate Swift DocC documentation"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "docs-serve" "Serve documentation at http://localhost:8080"
 	@echo ""
 	@echo "$(COLOR_CYAN)🧹 Maintenance:$(COLOR_RESET)"
-	@echo "  $(COLOR_BLUE)clean$(COLOR_RESET)                   		Clean build artifacts (all languages)"
-	@echo "  $(COLOR_BLUE)clean-all$(COLOR_RESET)               		Deep clean (includes caches and completions)"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "clean" "Clean build artifacts (all languages)"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "clean-all" "Deep clean (includes caches and completions)"
 	@echo ""
 	@echo "$(COLOR_CYAN)🔬 Testing & Benchmarking:$(COLOR_RESET)"
-	@echo "  $(COLOR_BLUE)sample-library$(COLOR_RESET)          		Generate test ebook library with valid/corrupt files"
-	@echo "  $(COLOR_BLUE)benchmark$(COLOR_RESET)               		Run cross-implementation performance benchmark"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "sample-library" "Generate test ebook library with valid/corrupt files"
 	@echo ""
 	@echo "$(COLOR_CYAN)ℹ️  Information:$(COLOR_RESET)"
-	@echo "  $(COLOR_BLUE)info$(COLOR_RESET)                    		Show comprehensive project information"
-	@echo "  $(COLOR_BLUE)version$(COLOR_RESET)                     	Show version information"
-	@echo "  $(COLOR_BLUE)tree$(COLOR_RESET)                  			Display project directory structure"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "info" "Show comprehensive project information"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "version" "Show version information"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "tree" "Display project directory structure"
 	@echo ""
 	@echo "$(COLOR_YELLOW)Examples:$(COLOR_RESET)"
-	@echo "  make sample-library         					      		# Generate test library"
-	@echo "  make docs && make docs-serve             			   		# Generate and serve documentation"
+	@printf "  %-45s %s\n" "make sample-library" "# Generate test library"
+	@printf "  %-45s %s\n" "make docs && make docs-serve" "# Generate and serve documentation"
 	@echo ""
 	@echo "$(COLOR_YELLOW)Environment Variables:$(COLOR_RESET)"
-	@echo "  LIBRARY_DIR                          						Test library directory (default: test-library)"
-	@echo "  LIBRARY_AUTHORS                      						Number of authors (default: 10)"
-	@echo "  LIBRARY_FORMATS                      						Formats to generate (default: pdf,epub,mobi,azw3,azw4)"
+	@printf "  %-45s %s\n" "LIBRARY_DIR" "Test library directory (default: test-library)"
+	@printf "  %-45s %s\n" "LIBRARY_AUTHORS" "Number of authors (default: 10)"
+	@printf "  %-45s %s\n" "LIBRARY_FORMATS" "Formats to generate (default: pdf,epub,mobi,azw3,azw4)"
 	@echo ""
 
 ## info: Show comprehensive project information
 info:
 	@echo "$(COLOR_BOLD)╔════════════════════════════════════════════════════════════╗$(COLOR_RESET)"
-	@echo "$(COLOR_BOLD)║              EbookMechanic Project Information             ║$(COLOR_RESET)"
+	@echo "$(COLOR_BOLD)║          EbookMechanic Project Information                 ║$(COLOR_RESET)"
 	@echo "$(COLOR_BOLD)╚════════════════════════════════════════════════════════════╝$(COLOR_RESET)"
 	@echo ""
-	@echo "$(COLOR_CYAN)📦 Project:$(COLOR_RESET)     EbookMechanic"
-	@echo "$(COLOR_CYAN)🏷️  Version:$(COLOR_RESET)     $(VERSION)"
-	@echo "$(COLOR_CYAN)📅 Updated:$(COLOR_RESET)     $$(date '+%Y-%m-%d %H:%M:%S')"
+	@printf "$(COLOR_CYAN)%-20s$(COLOR_RESET) %s\n" "📦 Project:" "EbookMechanic"
+	@printf "$(COLOR_CYAN)%-23s$(COLOR_RESET) %s\n" "🏷️  Version:" "$(VERSION)"
+	@printf "$(COLOR_CYAN)%-20s$(COLOR_RESET) %s\n" "📅 Updated:" "$$(date '+%Y-%m-%d %H:%M:%S')"
 	@echo ""
 	@echo "$(COLOR_MAGENTA)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(COLOR_RESET)"
 	@echo "$(COLOR_CYAN)🔧 Implementations:$(COLOR_RESET)"
-	@echo "$(COLOR_MAGENTA)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(COLOR_RESET)"
+# 	@echo "$(COLOR_MAGENTA)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(COLOR_RESET)"
 	@echo ""
-	@echo "$(COLOR_GREEN)✅ Swift Implementation$(COLOR_RESET) (Active Development)"
-	@echo "   $(COLOR_BLUE)Location:$(COLOR_RESET)    $(SWIFT_DIR)/"
-	@echo "   $(COLOR_BLUE)All-In-One CLI Binary:$(COLOR_RESET)  $$(if [ -f $(SWIFT_DIR)/EbookMechanicCLI/.build/debug/EbookMechanicCLI ]; then echo '✓ Built'; else echo '✗ Not built'; fi)"
-	@echo "   $(COLOR_BLUE)EPUBMechanic CLI Binary:$(COLOR_RESET)  $$(if [ -f $(SWIFT_DIR)/EPUBMechanicCLI/.build/debug/EbookMechanicCLI ]; then echo '✓ Built'; else echo '✗ Not built'; fi)"
-	@echo "   $(COLOR_BLUE)PDFMechanic CLI Binary:$(COLOR_RESET)  $$(if [ -f $(SWIFT_DIR)/PDFMechanicMechanicCLI/.build/debug/PDFMechanicCLI ]; then echo '✓ Built'; else echo '✗ Not built'; fi)"
-	@echo "   $(COLOR_BLUE)EbookApp Binary:$(COLOR_RESET)  $$(if [ -f $(SWIFT_DIR)/EbookMechanicApp/.build/debug/EbookMechanicApp ]; then echo '✓ Built'; else echo '✗ Not built'; fi)"
-	@echo "   $(COLOR_BLUE)Swift:$(COLOR_RESET)       $$(swift --version 2>/dev/null | head -1 || echo 'Not installed')"
+	@echo "$(COLOR_GREEN)✅ CLI & APP $(COLOR_RESET) (Active Development)"
+	@printf "   $(COLOR_BLUE)%-25s$(COLOR_RESET) %s\n" "Location:" "$(SWIFT_DIR)/"
+	@printf "   $(COLOR_BLUE)%-25s$(COLOR_RESET) %s\n" "All-In-One CLI Binary:" "$$(if [ -f $(SWIFT_DIR)/EbookMechanicCLI/.build/debug/EbookMechanicCLI ]; then echo '✓ Built'; else echo '✗ Not built'; fi)"
+	@printf "   $(COLOR_BLUE)%-25s$(COLOR_RESET) %s\n" "EPUBMechanic CLI Binary:" "$$(if [ -f $(SWIFT_DIR)/EPUBMechanicCLI/.build/debug/EbookMechanicCLI ]; then echo '✓ Built'; else echo '✗ Not built'; fi)"
+	@printf "   $(COLOR_BLUE)%-25s$(COLOR_RESET) %s\n" "PDFMechanic CLI Binary:" "$$(if [ -f $(SWIFT_DIR)/PDFMechanicCLI/.build/debug/PDFMechanicCLI ]; then echo '✓ Built'; else echo '✗ Not built'; fi)"
+	@printf "   $(COLOR_BLUE)%-25s$(COLOR_RESET) %s\n" "EbookApp Binary:" "$$(if [ -f $(SWIFT_DIR)/EbookMechanicApp/.build/debug/EbookMechanicApp ]; then echo '✓ Built'; else echo '✗ Not built'; fi)"
+	@printf "   $(COLOR_BLUE)%-25s$(COLOR_RESET) %s\n" "Swift:" "$$(swift --version 2>/dev/null | head -1 || echo 'Not installed')"
 	@echo ""
 	@echo "$(COLOR_YELLOW)🐍 Python Scripts$(COLOR_RESET) (Test Library Generator)"
-	@echo "   $(COLOR_BLUE)Location:$(COLOR_RESET)    $(PYTHON_DIR)/"
-	@echo "   $(COLOR_BLUE)Purpose:$(COLOR_RESET)     Test library generation & benchmarking"
-	@echo "   $(COLOR_BLUE)Python:$(COLOR_RESET)      $$(python3 --version 2>/dev/null || echo 'Not installed')"
+	@printf "   $(COLOR_BLUE)%-25s$(COLOR_RESET) %s\n" "Location:" "$(PYTHON_DIR)/"
+	@printf "   $(COLOR_BLUE)%-25s$(COLOR_RESET) %s\n" "Purpose:" "Test library generation & benchmarking"
+	@printf "   $(COLOR_BLUE)%-25s$(COLOR_RESET) %s\n" "Python:" "$$(python3 --version 2>/dev/null || echo 'Not installed')"
 	@echo ""
 	@echo "$(COLOR_MAGENTA)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(COLOR_RESET)"
 	@echo "$(COLOR_CYAN)📚 Supported Formats:$(COLOR_RESET)"
-	@echo "$(COLOR_MAGENTA)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(COLOR_RESET)"
-	@echo "  📗 EPUB  - Electronic Publication (with Sigil normalization)"
-	@echo "  📕 MOBI  - Mobipocket"
-	@echo "  📘 AZW3  - Kindle Format 8"
-	@echo "  📙 AZW4  - Kindle PDF Wrapper"
-	@echo "  📄 PDF   - Portable Document Format"
+	@echo ""
+# 	@echo "$(COLOR_MAGENTA)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(COLOR_RESET)"
+	@printf "  %-10s %s\n" "📗 EPUB" "- Electronic Publication (with Sigil normalization)"
+	@printf "  %-10s %s\n" "📕 MOBI" "- Mobipocket"
+	@printf "  %-10s %s\n" "📘 AZW3" "- Kindle Format 8"
+	@printf "  %-10s %s\n" "📙 AZW4" "- Kindle PDF Wrapper"
+	@printf "  %-10s %s\n" "📄 PDF" "- Portable Document Format"
 	@echo ""
 	@echo "$(COLOR_MAGENTA)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(COLOR_RESET)"
 	@echo "$(COLOR_CYAN)✨ Features:$(COLOR_RESET)"
-	@echo "$(COLOR_MAGENTA)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(COLOR_RESET)"
-	@echo "  🔍 Corruption Detection   - Validates file integrity across all formats"
-	@echo "  🔧 Automatic Repair       - Fixes damaged files when possible"
-	@echo "  📚 EPUB Normalization     - Restructures EPUBs to Sigil standards"
-	@echo "  🗑️  Smart Cleanup          - Removes empty directories"
-	@echo "  📊 Markdown Reports       - Detailed analysis and statistics"
-	@echo "  🎨 Beautiful TUI          - Interactive terminal interface (Go)"
-	@echo "  🖥️  Native macOS App       - SwiftUI graphical interface (Swift)"
+# 	@echo "$(COLOR_MAGENTA)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(COLOR_RESET)"
+	@echo ""
+	@printf "  %-25s %s\n" "🔍 Corruption Detection" "- Validates file integrity across all formats"
+	@printf "  %-25s %s\n" "🔧 Automatic Repair" "- Fixes damaged files when possible"
+	@printf "  %-25s %s\n" "📚 EPUB Normalization" "- Restructures EPUBs to Sigil standards"
+	@printf "  %-25s %s\n" "🗑️  Smart Cleanup" "- Removes empty directories"
+	@printf "  %-25s %s\n" "📊 Markdown Reports" "- Detailed analysis and statistics"
+	@printf "  %-25s %s\n" "🎨 Beautiful TUI" "- Interactive terminal interface (Swift)"
+	@printf "  %-25s %s\n" "🖥️  Native macOS App" "- SwiftUI graphical interface (Swift)"
 	@echo ""
 	@echo "$(COLOR_MAGENTA)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(COLOR_RESET)"
 	@echo "$(COLOR_CYAN)📂 Repository Structure:$(COLOR_RESET)"
-	@echo "$(COLOR_MAGENTA)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(COLOR_RESET)"
-	@echo "  $(SWIFT_DIR)/       Swift workspace (Core + CLI + macOS App)"
-	@echo "  $(SCRIPTS_DIR)/     Python scripts & test library generator & Benchmark utilities"
+# 	@echo "$(COLOR_MAGENTA)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(COLOR_RESET)"
+	@echo ""
+	@printf "  %-25s %s\n" "$(SWIFT_DIR)/" "Swift workspace (Core + CLI + macOS App)"
+	@printf "  %-25s %s\n" "$(SCRIPTS_DIR)/" "Python scripts & test library generator & Benchmark utilities"
 	@echo ""
 
 ## version: Show version information
@@ -197,19 +196,17 @@ version:
 	@echo "$(COLOR_BOLD)EbookMechanic$(COLOR_RESET) version $(COLOR_GREEN)$(VERSION)$(COLOR_RESET)"
 	@echo ""
 	@echo "Git commit: $$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
-	@echo "Branch:     $$(git branch --show-current 2>/dev/null || echo 'unknown')"
+	@echo "Branch:	   $$(git branch --show-current 2>/dev/null || echo 'unknown')"
 	@echo "Build date: $$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 
 ## tree: Display project directory structure
 tree:
 	@echo "$(COLOR_BOLD)╔════════════════════════════════════════════════════════════╗$(COLOR_RESET)"
-	@echo "$(COLOR_BOLD)║              EbookMechanic Project Tree                    ║$(COLOR_RESET)"
+	@echo "$(COLOR_BOLD)║			   EbookMechanic Project Tree					 ║$(COLOR_RESET)"
 	@echo "$(COLOR_BOLD)╚════════════════════════════════════════════════════════════╝$(COLOR_RESET)"
 	@echo ""
 	@if command -v tree >/dev/null 2>&1; then \
-		tree -L 3 -C --dirsfirst \
-			-I '.git|.build|build|dist|coverage|node_modules|__pycache__|*.pyc|.DS_Store|*.xcuserstate|*.xcworkspace|DerivedData|.specstory|completions|.bench|test-library|CORRUPTED' \
-			-a --prune; \
+		tree -L 3 -d; \
 	else \
 		echo "$(COLOR_YELLOW)⚠ 'tree' command not found. Install with: brew install tree (macOS) or apt install tree (Linux)$(COLOR_RESET)"; \
 		echo ""; \
@@ -396,9 +393,9 @@ install-completions:
 	@echo "$(COLOR_GREEN)✓ Shell completions generated!$(COLOR_RESET)"
 	@echo ""
 	@echo "$(COLOR_YELLOW)To install completions:$(COLOR_RESET)"
-	@echo "  Bash:       cp $(SWIFT_DIR)/completions/ebook-mechanic.bash /usr/local/etc/bash_completion.d/"
-	@echo "  Zsh:        cp $(SWIFT_DIR)/completions/_ebook-mechanic /usr/local/share/zsh/site-functions/"
-	@echo "  Fish:       cp $(SWIFT_DIR)/completions/ebook-mechanic.fish ~/.config/fish/completions/"
+	@echo "  Bash:		 cp $(SWIFT_DIR)/completions/ebook-mechanic.bash /usr/local/etc/bash_completion.d/"
+	@echo "  Zsh:		 cp $(SWIFT_DIR)/completions/_ebook-mechanic /usr/local/share/zsh/site-functions/"
+	@echo "  Fish:		 cp $(SWIFT_DIR)/completions/ebook-mechanic.fish ~/.config/fish/completions/"
 
 ## uninstall: Remove all installed binaries
 uninstall:
@@ -455,7 +452,6 @@ check-swift:
 ## lint: Run all linters
 lint:
 	@echo "$(COLOR_BLUE)Running linters...$(COLOR_RESET)"
-	@$(MAKE) -C $(GO_DIR) lint || true
 	@$(MAKE) -C $(SWIFT_DIR) lint || true
 
 # ==================== Test Library & Benchmarking ====================
@@ -482,7 +478,6 @@ docs: docs-swift
 	@echo "$(COLOR_GREEN)✓ All documentation generated!$(COLOR_RESET)"
 	@echo ""
 	@echo "$(COLOR_CYAN)To view documentation:$(COLOR_RESET)"
-	@echo "  $(COLOR_BLUE)Go:$(COLOR_RESET)    make go-godoc (opens browser)"
 	@echo "  $(COLOR_BLUE)Swift:$(COLOR_RESET) make docs-serve (http://localhost:8080)"
 
 ## docs-all: Generate comprehensive documentation
@@ -527,7 +522,6 @@ clean:
 ## clean-all: Deep clean (includes caches and completions)
 clean-all:
 	@echo "$(COLOR_BLUE)Deep cleaning project...$(COLOR_RESET)"
-	@$(MAKE) -C $(GO_DIR) clean-all
 	@$(MAKE) -C $(SWIFT_DIR) clean-all
 	@rm -rf $(LIBRARY_DIR)
 	@rm -rf completions/
