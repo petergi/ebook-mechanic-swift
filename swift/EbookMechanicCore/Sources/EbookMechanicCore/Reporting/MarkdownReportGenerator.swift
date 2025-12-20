@@ -61,7 +61,24 @@ public struct MarkdownReportGenerator: Sendable {
                     }
                     builder.appendLine("#### \(statusEmoji) `\(relative)`\n")
                     builder.appendLine("- **Size:** \(ByteCountFormatter.readableString(from: file.size))")
-                    builder.appendLine("- **Reason:** \(file.reason)\n")
+                    builder.appendLine("- **Reason:** \(file.reason)")
+                    
+                    if let pdfDetails = file.pdfValidationDetails {
+                        builder.appendLine("- **PDF Structure Validation:**")
+                        builder.appendLine("  - Structure: \(pdfDetails.structureValid ? "✅ Valid" : "❌ Invalid")")
+                        builder.appendLine("  - Cross-Reference Table: \(pdfDetails.xrefValid ? "✅ Valid" : "❌ Invalid")")
+                        builder.appendLine("  - Page Tree: \(pdfDetails.pageTreeValid ? "✅ Valid" : "❌ Invalid")")
+                        if !pdfDetails.streamErrors.isEmpty {
+                            builder.appendLine("  - Stream Errors: \(pdfDetails.streamErrors.joined(separator: ", "))")
+                        }
+                        if let encryption = pdfDetails.encryptionInfo {
+                            builder.appendLine("  - Encryption: \(encryption)")
+                        }
+                        if let conforms = pdfDetails.conformsToStandard {
+                            builder.appendLine("  - Conforms To: \(conforms)")
+                        }
+                    }
+                    builder.appendEmptyLine()
                 }
             }
         } else {

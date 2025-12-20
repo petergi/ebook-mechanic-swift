@@ -20,14 +20,13 @@ public actor FileScanner {
         corruptedDirectoryName: String = "CORRUPTED",
         fileManager: FileManager = .default,
         useExternalEPUBValidator: Bool = false,
-        useExternalPDFValidator: Bool = false,
         reportFormats: [ReportFormat] = [.markdown],
         repairer: FileRepairer? = nil
     ) {
         self.rootDirectory = rootDirectory
         self.corruptedDirectoryName = corruptedDirectoryName
         self.fileManager = fileManager
-        self.validator = FileValidator(fileManager: fileManager, useExternalEPUBValidator: useExternalEPUBValidator, useExternalPDFValidator: useExternalPDFValidator)
+        self.validator = FileValidator(fileManager: fileManager, useExternalEPUBValidator: useExternalEPUBValidator)
         self.reportFormats = reportFormats
         self.repairer = repairer ?? FileRepairer(fileManager: fileManager, validator: validator)
     }
@@ -81,7 +80,7 @@ public actor FileScanner {
             if !validation.isValid {
                 let attributes = try fileManager.attributesOfItem(atPath: fileURL.path)
                 let size = (attributes[.size] as? NSNumber)?.int64Value ?? 0
-                result.corruptedFiles.append(CorruptedFile(url: fileURL, reason: validation.reason, size: size, status: validation.status))
+                result.corruptedFiles.append(CorruptedFile(url: fileURL, reason: validation.reason, size: size, status: validation.status, fingerprint: validation.fingerprint))
                 var breakdown = result.breakdowns[type] ?? FormatBreakdown()
                 breakdown.corrupted += 1
                 result.breakdowns[type] = breakdown

@@ -1,10 +1,4 @@
 import Foundation
-#if canImport(PDFKit)
-import PDFKit
-#endif
-#if canImport(AppKit)
-import AppKit
-#endif
 import CryptoKit
 
 public enum PDFVerifierError: Error {
@@ -13,86 +7,17 @@ public enum PDFVerifierError: Error {
 }
 
 public struct PDFVerifier {
-    /// Configuration for fingerprint calculation.
-    public struct Config: @unchecked Sendable {
-        public var thumbnailSize: CGSize
-        public var useTextExtraction: Bool
 
-        public static let `default` = Config(thumbnailSize: CGSize(width: 1024, height: 1024), useTextExtraction: true)
-
-        public init(thumbnailSize: CGSize = CGSize(width: 1024, height: 1024), useTextExtraction: Bool = true) {
-            self.thumbnailSize = thumbnailSize
-            self.useTextExtraction = useTextExtraction
+    // Placeholder: This will eventually be replaced by calls to pdfcpu library for a robust fingerprint.
+    // For now, it will use a simple file hash.
+    public static func fingerprintResult(for url: URL) -> FingerprintResult {
+        do {
+            let fileData = try Data(contentsOf: url)
+            let hash = sha256Hex(fileData)
+            return .fileHash(hash)
+        } catch {
+            return .unavailable("Failed to compute fingerprint: \(error.localizedDescription)")
         }
-    }
-
-    /// Compute a fingerprint result for a PDF file. Returns a `FingerprintResult` which
-    /// indicates whether a content-based fingerprint was produced, whether the file was
-    /// encrypted, or whether the raw file hash was used as a fallback.
-    public static func fingerprintResult(for url: URL, config: Config = .default) -> FingerprintResult {
-        // Read file bytes — use as fallback for fileHash
-        guard let fileData = try? Data(contentsOf: url) else {
-            return .unavailable("Cannot read file data")
-        }
-
-        #if canImport(PDFKit)
-        guard let doc = PDFDocument(data: fileData) else {
-            // Can't parse as a PDF — return raw file hash fallback
-            return .fileHash(sha256Hex(fileData))
-        }
-
-        if doc.isEncrypted {
-            return .encrypted
-        }
-
-        guard doc.pageCount > 0 else {
-            return .unavailable("Empty PDF document")
-        }
-
-        var parts: [String] = []
-
-        for idx in 0..<doc.pageCount {
-            guard let page = doc.page(at: idx) else { continue }
-
-            if config.useTextExtraction, let rawText = page.string, !rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                // Normalize whitespace and unicode
-                let normalized = rawText.precomposedStringWithCanonicalMapping
-                let collapsed = normalized
-                    .components(separatedBy: .whitespacesAndNewlines)
-                    .filter { !$0.isEmpty }
-                    .joined(separator: " ")
-                parts.append("TXT:")
-                parts.append(collapsed)
-            } else {
-                #if canImport(AppKit)
-                // Render a thumbnail to capture visual content
-                let image = page.thumbnail(of: config.thumbnailSize, for: .mediaBox)
-
-                if let tiff = image.tiffRepresentation {
-                    parts.append("IMG:")
-                    parts.append(sha256Hex(tiff))
-                } else if let rep = image.representations.first, let data = rep.bitmapRepresentationData() {
-                    parts.append("IMG:")
-                    parts.append(sha256Hex(data))
-                } else if let final = image.tiffRepresentation {
-                    parts.append("IMG:")
-                    parts.append(sha256Hex(final))
-                } else {
-                    parts.append("IMG:empty")
-                }
-                #else
-                parts.append("PAGE:")
-                parts.append(String(idx))
-                #endif
-            }
-        }
-
-        let combined = parts.joined(separator: "\n")
-        return .content(sha256Hex(Data(combined.utf8)))
-        #else
-        // PDFKit not available — return fileHash fallback
-        return .fileHash(sha256Hex(fileData))
-        #endif
     }
 
     private static func sha256Hex(_ data: Data) -> String {
@@ -100,15 +25,3 @@ public struct PDFVerifier {
         return digest.map { String(format: "%02x", $0) }.joined()
     }
 }
-
-// Helper to try to extract raw bitmap data from an NSImageRep if available
-#if canImport(AppKit)
-extension NSImageRep {
-    func bitmapRepresentationData() -> Data? {
-        if let bmp = self as? NSBitmapImageRep {
-            return bmp.representation(using: .png, properties: [:])
-        }
-        return nil
-    }
-}
-#endif

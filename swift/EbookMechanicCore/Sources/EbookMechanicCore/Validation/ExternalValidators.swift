@@ -51,12 +51,12 @@ public struct ExternalValidators {
             let output = String(data: data, encoding: .utf8) ?? ""
 
             if process.terminationStatus == 0 {
-                return ValidationResult(isValid: true, reason: "File is a valid PDF.")
+                return ValidationResult(isValid: true, reason: "File is a valid PDF.", status: .ok)
             } else {
-                return ValidationResult(isValid: false, reason: "File is not a valid PDF. pdfcpu output:\n\(output)")
+                return ValidationResult(isValid: false, reason: "File is not a valid PDF. pdfcpu output:\n\(output)", status: .validationError)
             }
         } catch {
-            return ValidationResult(isValid: false, reason: "Failed to run pdfcpu: \(error.localizedDescription)")
+            return ValidationResult(isValid: false, reason: "Failed to run pdfcpu: \(error.localizedDescription)", status: .validationError)
         }
     }
 }

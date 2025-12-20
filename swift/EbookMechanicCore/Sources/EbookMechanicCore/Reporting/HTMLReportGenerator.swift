@@ -191,6 +191,24 @@ struct HTMLReportGenerator {
                 case .corrupt: statusEmoji = "❌"; statusClass = "corrupt"
                 case .validationError: statusEmoji = "⚡"; statusClass = "validationError"
                 }
+                
+                var pdfDetailsHtml = ""
+                if let pdfDetails = file.pdfValidationDetails {
+                    pdfDetailsHtml = """
+                    <div class="pdf-validation-details">
+                        <p><strong>PDF Structure Validation:</strong></p>
+                        <ul>
+                            <li>Structure: <span class="badge \(pdfDetails.structureValid ? "ok" : "corrupt")">\(pdfDetails.structureValid ? "Valid" : "Invalid")</span></li>
+                            <li>Cross-Reference Table: <span class="badge \(pdfDetails.xrefValid ? "ok" : "corrupt")">\(pdfDetails.xrefValid ? "Valid" : "Invalid")</span></li>
+                            <li>Page Tree: <span class="badge \(pdfDetails.pageTreeValid ? "ok" : "corrupt")">\(pdfDetails.pageTreeValid ? "Valid" : "Invalid")</span></li>
+                            <li>Stream Errors: \(pdfDetails.streamErrors.isEmpty ? "None" : "<span class=\"badge corrupt\">\(pdfDetails.streamErrors.joined(separator: ", ").htmlEscaped())</span>")</li>
+                            <li>Encryption: \(pdfDetails.encryptionInfo?.htmlEscaped() ?? "None")</li>
+                            <li>Conforms To: \(pdfDetails.conformsToStandard?.htmlEscaped() ?? "N/A")</li>
+                        </ul>
+                    </div>
+                    """
+                }
+
                 details += """
                 <div class="file-detail status-\(statusClass)">
                     <div class="collapsible-header">
@@ -199,7 +217,9 @@ struct HTMLReportGenerator {
                     </div>
                     <div class="collapsible-content">
                         <p><strong>Size:</strong> \(ByteCountFormatter.readableString(from: file.size))</p>
-                        <p><strong>Reason:</strong> \(file.reason)</p>
+                        <p><strong>Reason:</strong> \(file.reason.htmlEscaped())</p>
+                        \(file.fingerprint?.description.htmlEscaped() ?? "")
+                        \(pdfDetailsHtml)
                     </div>
                 </div>
                 """

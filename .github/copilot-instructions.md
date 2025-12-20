@@ -1,104 +1,88 @@
 # Copilot Instructions for EbookMechanic
 
-## Project Architecture
+## Project Overview
 
-This is a Go CLI tool for ebook library management with a Bubble Tea TUI. The architecture follows a **flat, single-package design** with 6 main components:
+**EbookMechanic** is a Swift-native ebook library management toolkit with modular architecture. It validates ebook files (EPUB, MOBI, AZW3, AZW4, PDF), detects corruption, auto-repairs damage, normalizes EPUB structure, and generates reports. The project uses **Swift Package Manager (SPM)** with 5 independent packages and Swift 6 strict concurrency throughout.
 
-- `main.go` - Entry point + Bubble Tea TUI state machine
-- `scanner.go` - File system operations + concurrent scanning logic
-- `validator.go` - Format-specific ebook validation (EPUB/MOBI/AZW3/AZW4/PDF)
-- `repair.go` - Automatic file repair functionality
-- `normalize.go` - EPUB normalization to Sigil standards
-- `report.go` - Markdown report generation
+## Architecture
 
-## Key Design Patterns
+**Modular Package Structure** (all in `swift/`):
 
-**Phase-Based State Machine (main.go:50-61)** The TUI operates through sequential phases: `PhaseInit → PhaseScanning → PhaseMoving → PhaseNormalizing → PhaseScanningFolders → PhaseDeleting → PhaseGeneratingReport → PhaseDone`. Each phase transition is message-driven using Bubble Tea's `tea.Cmd` pattern.
+1. **EbookMechanicCore** - Core library with scanning/validation/repair logic using Swift actors
+2. **EbookMechanicCLI** - Full-featured CLI for all ebook types
+3. **EPUBMechanicCLI** - Lightweight EPUB-only CLI
+4. **PDFMechanicCLI** - Lightweight PDF/AZW4-only CLI
+5. **EbookMechanicApp** - Native macOS SwiftUI app
 
-**Two-Pass Scanner Algorithm (scanner.go)** Corruption scanning uses a two-pass approach: first count all ebook files for progress tracking, then validate each file. This prevents progress bar jumps and enables accurate completion percentages.
-
-**Bottom-Up Directory Traversal** Empty folder detection walks directories from deepest to shallowest, ensuring child directories are evaluated before parents. Use `filepath.Walk` with custom logic, not `filepath.WalkDir`.
-
-**Hardcoded CORRUPTED Directory Skipping** Always skip the `CORRUPTED/` directory in `filepath.Walk` callbacks using `filepath.SkipDir`. This prevents scanning previously moved corrupted files.
+**Key Design Principles**:
+- **Actor-based concurrency** (`FileScanner` is an `actor`) for thread-safe operations without mutex locks
+- **No external dependencies** - pure Swift implementation of ZIP handling, format validation, repair logic
+- **Single-responsibility separation** - `FileValidator`, `FileRepairer`, `EPUBArchiveNormalizer`, `MarkdownReportGenerator` are distinct types
+- **Sendable types everywhere** - models use `Sendable` for safe cross-actor communication
 
 ## Critical Implementation Details
 
-**File Format Validation (validator.go)**
+**File Format Validation** (`swift/EbookMechanicCore/Sources/EbookMechanicCore/Validation/`):
+- **EPUB**: Valid ZIP + `mimetype` file with exact content `application/epub+zip` + `META-INF/container.xml`
+- **MOBI/AZW3**: PalmDB header signature (`BOOKMOBI` or `TEXtREAd` at bytes 60-68)
+- **AZW4**: Uses PDF validation (Kindle PDF wrapper)
+- **PDF**: Header `%PDF-` AND `%%EOF` marker in last 1KB (detects email/FTP corruption, UTF-8 BOM, junk prefixes)
 
-- EPUB: Must be valid ZIP + contain `mimetype` file with exact content `application/epub+zip` + `META-INF/container.xml`
-- MOBI: Check bytes 60-68 for `BOOKMOBI` or `TEXtREAd` signature (PalmDB header format)
-- AZW3: Uses MOBI validation (Kindle Format 8)
-- AZW4: Uses PDF validation (Kindle PDF wrapper)
-- PDF: Validate `%PDF-` header AND `%%EOF` marker in last 1KB of file
+**Actor-Based Scanning** (`FileScanner.swift`):
+- `public actor FileScanner` - automatically enforces Sendable data flow
+- Use `progress` handler callback to send `ProgressEvent` during scanning
+- Automatically skips `CORRUPTED/` directory to avoid re-scanning moved files
+- `scanForCorruption()` and `deleteEmptyFolders()` are async methods
 
-**Auto-Repair Functionality (repair.go)**
+**Auto-Repair** (`swift/EbookMechanicCore/Sources/EbookMechanicCore/Repair/`):
+- **EPUB**: Adds missing `mimetype` and `META-INF/container.xml` if absent
+- **PDF**: Repairs header corruption (email wrappers, BOM, junk prefixes); restores `%%EOF` marker
+- Always creates `.backup` files before repairs
+- Returns `RepairResult` for each file with status and reason
 
-- EPUB: Adds missing `mimetype` file and `META-INF/container.xml` if absent
-- MOBI: Fixes header corruption and structure issues
-- PDF: Restores missing `%%EOF` marker
-- Always creates backups before attempting repairs
+**EPUB Normalization** (`EPUBArchiveNormalizer.swift`):
+- Pre-checks if EPUB is already normalized to avoid redundant work
+- Normalizes manifest IDs, file extensions (`.htm` → `.xhtml`), and ZIP structure
+- Uses `OPFValidator` and `HTMLValidator` for validation
+- Follows Sigil ebook editor standards
 
-**EPUB Normalization (normalize.go)**
+## Development Workflow
 
-- Smart Processing: Scans ALL EPUBs (not just corrupted), pre-checks if already normalized
-- File Extension Normalization: `.htm` → `.xhtml`, standardize image extensions
-- OPF Manifest Rebasing: Generate new IDs based on actual filenames using `generateIDFromFilename()`
-- HTML Prettification: Use `golang.org/x/net/html` to parse and format XHTML files properly
-- CSS Formatting: Normalize CSS file formatting for consistency
-- Backup Creation: Always create backups before normalization (`.backup` extension)
-- Sigil Standards: Follows Sigil ebook editor conventions for file structure and naming
-- Performance Optimization: `isEPUBNormalized()` pre-check function prevents redundant work
-- Force Override: `-force-normalize` flag bypasses pre-checks when needed
-
-**Concurrent Safety (scanner.go:36)** The `FileScanner` uses `sync.Mutex` to protect shared `ScanResult` data. Always acquire `fs.mu.Lock()` before modifying statistics or result arrays.
-
-**Directory Hierarchy Preservation** When moving corrupted files, preserve the original directory structure under `CORRUPTED/`. Use `filepath.Rel()` and `filepath.Join()` to maintain relative paths.
-
-## Development Commands
-
+**Build Targets** (from `swift/Makefile`):
 ```bash
-# Primary build command (creates optimized binary)
-make build
+make build-core          # Build core library
+make build-cli           # Build main CLI
+make build-app           # Build macOS SwiftUI app
+make build-specialized   # Build EPUB + PDF specialized CLIs
+make build-all           # Build everything
+```
 
-# Development iteration
-make run
+**Test Commands**:
+```bash
+make test-core          # Test core library (26 tests)
+make test-cli           # Test CLI (102 tests)
+make test-all           # Run all tests
+```
 
-# Cross-platform builds
-make build-all
-
-# Add dependencies
-go mod download && go mod tidy
+**Run/Install**:
+```bash
+make run-cli ARGS="-dir ~/Books"     # Run CLI
+make run-app                         # Launch SwiftUI app
+make install                         # Install all CLIs to /usr/local/bin
 ```
 
 ## Adding New Features
 
-**New Ebook Format**
+**New File Format**:
+1. Add case to `EbookFileType` enum in `Models.swift`
+2. Create validator function in `FileValidator.swift` (match pattern `validate(epub:)`)
+3. Add repair logic to `FileRepairer` if applicable
+4. Update tests in `EbookMechanicCoreTests/`
 
-1. Add extension to `EbookExtensions` map in `NewFileScanner()`
-2. Create `Validate[FORMAT]()` function in `validator.go`
-3. Add case to `ValidateFile()` switch statement
-4. Update statistics tracking in `ScanResult` struct
-
-**New TUI Phase**
-
-1. Add phase constant to `Phase` enum (main.go:50-61)
-2. Create corresponding message type (e.g., `type newPhaseCompleteMsg struct{}`)
-3. Handle message in `Update()` method for state transitions
-4. Add rendering logic to `View()` method
-
-**Scanner Operations**
-
-- Must return `tea.Cmd` for TUI integration
-- Use progress callbacks: check `if fs.progressCallback != nil` before calling
-- Always handle the CORRUPTED directory skip pattern
-- Wrap file operations in mutex locks for concurrent safety
-
-## Important File Paths
-
-- Ebook extensions: `.epub`, `.mobi`, `.azw3`, `.azw4`, `.pdf` (case-insensitive)
-- Corrupted files moved to: `{rootDir}/CORRUPTED/` (preserving structure)
-- Reports generated as: `ebook_mechanic_report_YYYY-MM-DD_HH-MM-SS.md`
-- Binary output: `ebook-mechanic` (via Makefile)
+**Extending CLI**:
+- All CLIs depend on `EbookMechanicCore` - add logic there, not in CLI
+- Use `ArgumentParser` pattern from existing CLIs
+- Update shell completions in `swift/completions/` if adding new flags
 
 ## Command-Line Interface
 
@@ -123,3 +107,92 @@ The tool supports both TUI and simple modes via flags:
 - Pre-checks if EPUBs are already normalized to avoid unnecessary work
 - Use `-force-normalize` to bypass pre-checks and normalize everything
 - Significantly improves performance for large libraries with mixed normalized/unnormalized files
+## Testing Patterns
+
+### Unit Tests (Validators & Transformers)
+
+Located in `EbookMechanicCoreTests/`, test individual components in isolation:
+
+**File Validation Tests** (`ValidationTests.swift`):
+- Test each format validator independently: `testValidateEPUB()`, `testValidateMOBI()`, etc.
+- Use `TestFixtures` helpers to create corrupted variants (missing files, wrong signatures, truncated headers)
+- Validate both **positive cases** (valid files pass) and **negative cases** (corruption detected with correct reason)
+- Example: `createEPUBWithoutMimetype()`, `createPDFWithoutEOF()` create specific corruption scenarios
+
+**Repair Tests** (`RepairTests.swift`, `EnhancedRepairTests.swift`):
+- Test repair logic in isolation: missing EPUB metadata, PDF header corruption, etc.
+- Verify `.backup` files are created before repair attempts
+- Confirm repaired files pass validation after repair
+- Example: Create a PDF without `%%EOF`, repair it, then validate it passes
+
+**Report Generation** (`ReportGeneratorTests.swift`):
+- Test markdown report formatting with mock data
+- No file I/O needed - pass in `ScanResult` structs directly
+
+### Integration Tests (Actor Workflows)
+
+Located in `ScannerTests.swift`, test multi-step workflows using actual `FileScanner` actor:
+
+**Actor Concurrency Pattern**:
+- All `FileScanner` methods are `async` - call them with `try await`
+- Test methods must be marked `async`: `func testScanForCorruptionAndEmptyFolders() async throws`
+- Create temporary directory (`temporaryRoot()`) for each test to avoid file system interference
+
+**Multi-Step Workflow Tests**:
+```swift
+// Example: Full pipeline test
+let scanner = FileScanner(rootDirectory: tempDir)
+let result = try await scanner.scanForCorruption()        // Step 1: detect corruption
+let (repairs, count) = await scanner.repairCorruptedFiles()  // Step 2: repair
+try await scanner.moveCorruptedFiles()                       // Step 3: organize
+try await scanner.deleteEmptyFolders()                       // Step 4: cleanup
+```
+
+**Key Integration Test Patterns**:
+- **Temporary filesystem setup** - Use `temporaryRoot()` and create ebook fixtures with `TestFixtures`
+- **Progress callback verification** (optional) - Pass progress handler to `scanForCorruption(progress:)` to verify progress events fire
+- **State preservation** - After calling `scanner.scanForCorruption()`, access results via `scanner.lastResult`
+- **Sequential operation chaining** - Verify that results from one operation feed correctly into the next
+
+### Test Fixture Library (`Support/TestHelpers.swift`)
+
+Essential helpers for creating realistic test files:
+
+**EPUB Fixtures**: 
+- `createValidEPUB()` - Proper ZIP + mimetype + container.xml (uncompressed mimetype)
+- `createEPUBWithoutMimetype()` - Missing mimetype file
+- `createEPUBWithLateMimetype()` - mimetype not first entry (invalid per EPUB spec)
+- `createEPUBMissingManifest()` - Missing manifest entries in OPF
+
+**PDF Fixtures**:
+- `createPDFWithHeader()` - Valid PDF with `%PDF-` and `%%EOF`
+- `createPDFWithoutEOF()` - Missing EOF marker
+- `createPDFWithJunkPrefix()` - Email/FTP corruption wrapper
+
+**MOBI/AZW Fixtures**:
+- `createMOBI(with: "BOOKMOBI")` - Valid MOBI signature
+- `createMOBI(with: "TEXtREAd")` - Valid TEXT format
+
+### When Adding New Features
+
+**Format Validation**: Add unit test in `ValidationTests.swift`
+```swift
+func testValidateNewFormat() throws {
+    let tempDir = try temporaryDirectory()
+    let validFile = tempDir.appendingPathComponent("valid.newformat")
+    try TestFixtures.createValidNewFormat(at: validFile)
+    XCTAssertTrue(validator.validate(url: validFile, as: .newformat).isValid)
+    
+    let corruptedFile = tempDir.appendingPathComponent("corrupt.newformat")
+    try TestFixtures.createCorruptNewFormat(at: corruptedFile)
+    XCTAssertFalse(validator.validate(url: corruptedFile, as: .newformat).isValid)
+}
+```
+
+**Repair Logic**: Test in isolation, then in `ScannerTests` with full workflow
+- Unit test: Repair algorithm produces correct output structure
+- Integration test: `scanner.repairCorruptedFiles()` finds and repairs the file
+
+**Actor Methods**: Always test async operations with `async throws` and `try await`
+- Don't create separate mocks - actors are efficient enough for tests with temporary directories
+- Verify actor isolation by confirming `Sendable` constraint compliance at compile time

@@ -103,8 +103,7 @@ public struct ScanResult: Sendable, Codable, Equatable {
 public struct ValidationResult: Sendable, Codable, Equatable {
     public var isValid: Bool
     public var reason: String
-    public var status: ValidationStatus // New property
-    /// Optional fingerprint result for formats where a content fingerprint can be computed (PDF).
+    public var status: ValidationStatus
     public var fingerprint: FingerprintResult?
 
     public init(isValid: Bool, reason: String, status: ValidationStatus = .validationError, fingerprint: FingerprintResult? = nil) {
@@ -239,6 +238,55 @@ public enum ReportFormat: String, CaseIterable, Codable, Hashable, Sendable {
     case html
 }
 
+/// Represents detailed results of a PDF structure validation.
+public struct PDFValidationResult: Sendable, Codable, Equatable {
+    public var structureValid: Bool
+    public var xrefValid: Bool
+    public var pageTreeValid: Bool
+    public var streamErrors: [String]
+    public var encryptionInfo: String?
+    public var conformsToStandard: String?
+
+    // Manually implement init(from:) and encode(to:) to handle missing/optional fields gracefully
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        structureValid = try container.decode(Bool.self, forKey: .structureValid)
+        xrefValid = try container.decode(Bool.self, forKey: .xrefValid)
+        pageTreeValid = try container.decode(Bool.self, forKey: .pageTreeValid)
+        streamErrors = try container.decodeIfPresent([String].self, forKey: .streamErrors) ?? []
+        encryptionInfo = try container.decodeIfPresent(String.self, forKey: .encryptionInfo)
+        conformsToStandard = try container.decodeIfPresent(String.self, forKey: .conformsToStandard)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(structureValid, forKey: .structureValid)
+        try container.encode(xrefValid, forKey: .xrefValid)
+        try container.encode(pageTreeValid, forKey: .pageTreeValid)
+        try container.encode(streamErrors, forKey: .streamErrors)
+        try container.encodeIfPresent(encryptionInfo, forKey: .encryptionInfo)
+        try container.encodeIfPresent(conformsToStandard, forKey: .conformsToStandard)
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case structureValid
+        case xrefValid
+        case pageTreeValid
+        case streamErrors
+        case encryptionInfo
+        case conformsToStandard
+    }
+
+    public init(structureValid: Bool, xrefValid: Bool, pageTreeValid: Bool, streamErrors: [String], encryptionInfo: String?, conformsToStandard: String?) {
+        self.structureValid = structureValid
+        self.xrefValid = xrefValid
+        self.pageTreeValid = pageTreeValid
+        self.streamErrors = streamErrors
+        self.encryptionInfo = encryptionInfo
+        self.conformsToStandard = conformsToStandard
+    }
+}
+
 public extension ISO8601DateFormatter {
     static func threadLocalString() -> String {
         let formatter = ISO8601DateFormatter()
@@ -246,3 +294,17 @@ public extension ISO8601DateFormatter {
         return formatter.string(from: Date()).replacingOccurrences(of: ":", with: "-")
     }
 }
+
+public extension String {
+    func htmlEscaped() -> String {
+        var result = self
+        result = result.replacingOccurrences(of: "&", with: "&amp;")
+        result = result.replacingOccurrences(of: "<", with: "&lt;")
+        result = result.replacingOccurrences(of: ">", with: "&gt;")
+        result = result.replacingOccurrences(of: "\"", with: "&quot;")
+        result = result.replacingOccurrences(of: "'", with: "&#039;")
+        return result
+    }
+}
+
+

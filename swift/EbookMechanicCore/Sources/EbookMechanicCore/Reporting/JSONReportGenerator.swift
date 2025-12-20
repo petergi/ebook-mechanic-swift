@@ -61,6 +61,7 @@ struct JSONReportGenerator: ReportGenerating {
         let size: Int64
         let status: ValidationStatus
         let fingerprint: FingerprintResult?
+        let pdfValidationDetails: PDFValidationResult?
 
         init(from corruptedFile: EbookMechanicCore.CorruptedFile) {
             self.url = corruptedFile.url.path
@@ -68,6 +69,7 @@ struct JSONReportGenerator: ReportGenerating {
             self.size = corruptedFile.size
             self.status = corruptedFile.status
             self.fingerprint = corruptedFile.fingerprint
+            self.pdfValidationDetails = corruptedFile.pdfValidationDetails
         }
     }
     

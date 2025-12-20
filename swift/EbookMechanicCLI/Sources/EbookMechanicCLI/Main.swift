@@ -11,7 +11,6 @@ struct EbookMechanicCLI {
                 rootDirectory: rootURL,
                 corruptedDirectoryName: configuration.corruptedDirectory,
                 useExternalEPUBValidator: configuration.useExternalEPUBValidator,
-                useExternalPDFValidator: configuration.useExternalPDFValidator,
                 reportFormats: configuration.reportFormats
             )
 
@@ -168,7 +167,6 @@ struct CLIConfiguration {
     var normalizeEPUBs: Bool = false
     var forceNormalize: Bool = false
     var useExternalEPUBValidator: Bool = false
-    var useExternalPDFValidator: Bool = false
     var reportFormats: [ReportFormat] = [.markdown]
 
     static func parse(arguments: [String] = CommandLine.arguments) throws -> CLIConfiguration {
@@ -216,8 +214,6 @@ struct CLIConfiguration {
                 config.normalizeEPUBs = true
             case "--use-epubcheck":
                 config.useExternalEPUBValidator = true
-            case "--use-pdfcpu":
-                config.useExternalPDFValidator = true
             case "--report-formats":
                 guard let value = iterator.next() else { throw CLIError.invalidArgument("Missing value for \(argument)") }
                 let formats = value.split(separator: ",").map { String($0).lowercased() }
@@ -262,7 +258,6 @@ struct CLIConfiguration {
               --normalize-epubs               Normalize EPUB files into canonical form
               --force-normalize               Force normalization even if already normalized
               --use-epubcheck                 Use epubcheck for EPUB validation
-              --use-pdfcpu                    Use pdfcpu for PDF validation
               --report-formats <formats>      Comma-separated report formats (markdown,json,csv,html)
             
             Shell Completion:

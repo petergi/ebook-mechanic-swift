@@ -6,6 +6,7 @@ public struct FileValidator: @unchecked Sendable {
     private let deepValidation: Bool
     private let useExternalEPUBValidator: Bool
     private let useExternalPDFValidator: Bool
+    private let useExternalPDFValidator: Bool
 
     public init(fileManager: FileManager = .default, deepValidation: Bool = false, useExternalEPUBValidator: Bool = false, useExternalPDFValidator: Bool = false) {
         self.fileManager = fileManager
@@ -172,12 +173,28 @@ public struct FileValidator: @unchecked Sendable {
             }
 
             if useExternalPDFValidator {
-                let externalResult = ExternalValidators.validatePdf(at: url.path)
-                if !externalResult.isValid {
-                    return ValidationResult(isValid: false, reason: externalResult.reason, status: .validationError)
+                let structureValidator = PDFStructureValidator()
+                switch structureValidator.validate(url: url) {
+                case .success(let pdfValidationResult):
+                    // If pdfcpu says it's valid, return success with details
+                    if pdfValidationResult.structureValid && pdfValidationResult.xrefValid && pdfValidationResult.pageTreeValid && pdfValidationResult.streamErrors.isEmpty {
+                        return ValidationResult(isValid: true, reason: "Valid PDF (pdfcpu validation)", status: .ok, fingerprint: fp, pdfValidationDetails: pdfValidationResult)
+                    } else {
+                        // If pdfcpu finds issues, mark as non-compliant
+                        var reasons: [String] = []
+                        if !pdfValidationResult.structureValid { reasons.append("Invalid structure") }
+                        if !pdfValidationResult.xrefValid { reasons.append("Invalid cross-reference table") }
+                        if !pdfValidationResult.pageTreeValid { reasons.append("Invalid page tree") }
+                        reasons.append(contentsOf: pdfValidationResult.streamErrors)
+                        if let encryption = pdfValidationResult.encryptionInfo { reasons.append("Encrypted: \(encryption)") }
+                        if let conforms = pdfValidationResult.conformsToStandard { reasons.append("Conforms to: \(conforms)") }
+                        return ValidationResult(isValid: false, reason: "PDF validation issues: \(reasons.joined(separator: ", "))", status: .nonCompliant, fingerprint: fp, pdfValidationDetails: pdfValidationResult)
+                    }
+                case .failure(let error):
+                    // If pdfcpu CLI execution fails, report as validation error
+                    return ValidationResult(isValid: false, reason: "PDF validation tool error: \(error.localizedDescription)", status: .validationError, fingerprint: fp)
                 }
             }
-
             // Compute content fingerprint (or fallback) and attach it to the validation result.
             let fp = PDFVerifier.fingerprintResult(for: url)
             switch fp {
