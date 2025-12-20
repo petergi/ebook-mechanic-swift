@@ -11,7 +11,8 @@ struct EbookMechanicCLI {
                 rootDirectory: rootURL,
                 corruptedDirectoryName: configuration.corruptedDirectory,
                 useExternalEPUBValidator: configuration.useExternalEPUBValidator,
-                useExternalPDFValidator: configuration.useExternalPDFValidator
+                useExternalPDFValidator: configuration.useExternalPDFValidator,
+                reportFormats: configuration.reportFormats
             )
 
             let printer = ProgressPrinter(verbose: configuration.verbose)
@@ -21,9 +22,6 @@ struct EbookMechanicCLI {
                 printer.printHeader("Empty Folder Analysis")
                 reportEmptyFolders(folders, printer: printer)
                 try await handleEmptyFolderCleanup(configuration: configuration, scanner: scanner, result: folders, printer: printer)
-                if configuration.generateReport {
-                    try await generateReport(using: scanner, configuration: configuration, printer: printer)
-                }
                 return
             }
 
@@ -57,7 +55,11 @@ struct EbookMechanicCLI {
             }
 
             if configuration.generateReport {
-                try await generateReport(using: scanner, configuration: configuration, printer: printer)
+                let generatedReportURLs = try await scanner.generateReport(into: URL(fileURLWithPath: configuration.directory))
+                printer.printHeader("Reports Generated")
+                for reportURL in generatedReportURLs {
+                    printer.printSuccess("Report generated at \(reportURL.path)")
+                }
             }
 
             printer.printFooter("EbookMechanic completed successfully")
@@ -103,11 +105,6 @@ struct EbookMechanicCLI {
         } else {
             printer.printInfo("Empty folders left untouched.")
         }
-    }
-
-    private static func generateReport(using scanner: FileScanner, configuration: CLIConfiguration, printer: ProgressPrinter) async throws {
-        let reportURL = try await scanner.generateReport(into: URL(fileURLWithPath: configuration.directory))
-        printer.printSuccess("Report generated at \(reportURL.path)")
     }
 
     private static func reportEmptyFolders(_ result: ScanResult, printer: ProgressPrinter) {
@@ -172,6 +169,7 @@ struct CLIConfiguration {
     var forceNormalize: Bool = false
     var useExternalEPUBValidator: Bool = false
     var useExternalPDFValidator: Bool = false
+    var reportFormats: [ReportFormat] = [.markdown]
 
     static func parse(arguments: [String] = CommandLine.arguments) throws -> CLIConfiguration {
         var config = CLIConfiguration()
@@ -220,6 +218,15 @@ struct CLIConfiguration {
                 config.useExternalEPUBValidator = true
             case "--use-pdfcpu":
                 config.useExternalPDFValidator = true
+            case "--report-formats":
+                guard let value = iterator.next() else { throw CLIError.invalidArgument("Missing value for \(argument)") }
+                let formats = value.split(separator: ",").map { String($0).lowercased() }
+                config.reportFormats = try formats.map { formatString in
+                    guard let format = ReportFormat(rawValue: formatString) else {
+                        throw CLIError.invalidArgument("Unknown report format: \(formatString). Available: markdown, json, csv, html")
+                    }
+                    return format
+                }
             default:
                 throw CLIError.invalidArgument("Unknown argument: \(argument)")
             }
@@ -256,6 +263,7 @@ struct CLIConfiguration {
               --force-normalize               Force normalization even if already normalized
               --use-epubcheck                 Use epubcheck for EPUB validation
               --use-pdfcpu                    Use pdfcpu for PDF validation
+              --report-formats <formats>      Comma-separated report formats (markdown,json,csv,html)
             
             Shell Completion:
               To enable shell completion, run the appropriate command:
@@ -396,7 +404,7 @@ struct ShellCompletion {
             cur="${COMP_WORDS[COMP_CWORD]}"
             prev="${COMP_WORDS[COMP_CWORD-1]}"
             
-            opts="-h --help -V --version --generate-completion -d --dir -c --corrupted-dir --corruption-only --empty-folders-only -r --repair --dry-run --no-confirm --quiet --report --normalize-epubs --force-normalize --use-epubcheck --use-pdfcpu"
+            opts="-h --help -V --version --generate-completion -d --dir -c --corrupted-dir --corruption-only --empty-folders-only -r --repair --dry-run --no-confirm --quiet --report --normalize-epubs --force-normalize --use-epubcheck --use-pdfcpu --report-formats"
             
             case "${prev}" in
                 -d|--dir|-c|--corrupted-dir)
@@ -447,6 +455,7 @@ struct ShellCompletion {
                 '--force-normalize[Force normalization even if already normalized]'
                 '--use-epubcheck[Use epubcheck for EPUB validation]'
                 '--use-pdfcpu[Use pdfcpu for PDF validation]'
+                '--report-formats[Comma-separated report formats]:formats:(markdown json csv html)'
             )
             
             _arguments -s -S $options
@@ -487,6 +496,9 @@ struct ShellCompletion {
         # External validators
         complete -c ebook-mechanic -l use-epubcheck -d 'Use epubcheck for EPUB validation'
         complete -c ebook-mechanic -l use-pdfcpu -d 'Use pdfcpu for PDF validation'
+        
+        # Report formats
+        complete -c ebook-mechanic -l report-formats -d 'Comma-separated report formats' -xa 'markdown json csv html'
         """
     
     private static let powershellCompletion = """
@@ -517,6 +529,7 @@ struct ShellCompletion {
                 @{ Name = '--force-normalize'; Description = 'Force normalization even if already normalized' }
                 @{ Name = '--use-epubcheck'; Description = 'Use epubcheck for EPUB validation' }
                 @{ Name = '--use-pdfcpu'; Description = 'Use pdfcpu for PDF validation' }
+                @{ Name = '--report-formats'; Description = 'Comma-separated report formats (markdown,json,csv,html)' }
             )
             
             # Get previous token to provide context-aware completion

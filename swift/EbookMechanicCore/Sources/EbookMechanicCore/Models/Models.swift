@@ -50,11 +50,15 @@ public struct CorruptedFile: Sendable, Codable, Equatable {
     public var url: URL
     public var reason: String
     public var size: Int64
+    public var status: ValidationStatus
+    public var fingerprint: FingerprintResult?
 
-    public init(url: URL, reason: String, size: Int64) {
+    public init(url: URL, reason: String, size: Int64, status: ValidationStatus, fingerprint: FingerprintResult? = nil) {
         self.url = url
         self.reason = reason
         self.size = size
+        self.status = status
+        self.fingerprint = fingerprint
     }
 }
 
@@ -99,14 +103,24 @@ public struct ScanResult: Sendable, Codable, Equatable {
 public struct ValidationResult: Sendable, Codable, Equatable {
     public var isValid: Bool
     public var reason: String
+    public var status: ValidationStatus // New property
     /// Optional fingerprint result for formats where a content fingerprint can be computed (PDF).
     public var fingerprint: FingerprintResult?
 
-    public init(isValid: Bool, reason: String, fingerprint: FingerprintResult? = nil) {
+    public init(isValid: Bool, reason: String, status: ValidationStatus = .validationError, fingerprint: FingerprintResult? = nil) {
         self.isValid = isValid
         self.reason = reason
+        self.status = status
         self.fingerprint = fingerprint
     }
+}
+
+/// Represents the detailed status of a validation check.
+public enum ValidationStatus: String, Codable, Sendable, CaseIterable {
+    case ok            // File is valid and compliant
+    case nonCompliant  // File is valid but does not meet spec (e.g., OPF issues)
+    case corrupt       // File structure is unreadable or severely damaged
+    case validationError // The validation tool itself failed to run
 }
 
 /// Content fingerprinting outcomes for supported formats.
@@ -118,6 +132,15 @@ public enum FingerprintResult: Sendable, Equatable, Codable {
     case fileHash(String)  // raw file hash fallback
     case encrypted         // file is encrypted/password-protected
     case unavailable(String) // reason why fingerprint couldn't be computed
+
+    public var description: String {
+        switch self {
+        case .content(let hash): return "Content: \(hash)"
+        case .fileHash(let hash): return "File Hash: \(hash)"
+        case .encrypted: return "Encrypted"
+        case .unavailable(let reason): return "Unavailable: \(reason)"
+        }
+    }
 
     private enum CodingKeys: String, CodingKey {
         case type
@@ -205,5 +228,21 @@ public struct RepairResult: Sendable, Codable, Equatable {
         self.message = message
         self.fixed = fixed
         self.fileURL = fileURL
+    }
+}
+
+/// Supported formats for generated reports.
+public enum ReportFormat: String, CaseIterable, Codable, Hashable, Sendable {
+    case markdown
+    case json
+    case csv
+    case html
+}
+
+public extension ISO8601DateFormatter {
+    static func threadLocalString() -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate, .withDashSeparatorInDate, .withTime, .withColonSeparatorInTime]
+        return formatter.string(from: Date()).replacingOccurrences(of: ":", with: "-")
     }
 }

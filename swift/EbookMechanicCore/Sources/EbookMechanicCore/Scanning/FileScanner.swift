@@ -10,6 +10,7 @@ public actor FileScanner {
 
     private let rootDirectory: URL
     private let corruptedDirectoryName: String
+    private let reportFormats: [ReportFormat]
 
     private(set) public var lastResult: ScanResult = ScanResult()
     private(set) public var lastRepairResults: [RepairResult] = []
@@ -20,12 +21,14 @@ public actor FileScanner {
         fileManager: FileManager = .default,
         useExternalEPUBValidator: Bool = false,
         useExternalPDFValidator: Bool = false,
+        reportFormats: [ReportFormat] = [.markdown],
         repairer: FileRepairer? = nil
     ) {
         self.rootDirectory = rootDirectory
         self.corruptedDirectoryName = corruptedDirectoryName
         self.fileManager = fileManager
         self.validator = FileValidator(fileManager: fileManager, useExternalEPUBValidator: useExternalEPUBValidator, useExternalPDFValidator: useExternalPDFValidator)
+        self.reportFormats = reportFormats
         self.repairer = repairer ?? FileRepairer(fileManager: fileManager, validator: validator)
     }
 
@@ -78,7 +81,7 @@ public actor FileScanner {
             if !validation.isValid {
                 let attributes = try fileManager.attributesOfItem(atPath: fileURL.path)
                 let size = (attributes[.size] as? NSNumber)?.int64Value ?? 0
-                result.corruptedFiles.append(CorruptedFile(url: fileURL, reason: validation.reason, size: size))
+                result.corruptedFiles.append(CorruptedFile(url: fileURL, reason: validation.reason, size: size, status: validation.status))
                 var breakdown = result.breakdowns[type] ?? FormatBreakdown()
                 breakdown.corrupted += 1
                 result.breakdowns[type] = breakdown
@@ -372,15 +375,21 @@ public actor FileScanner {
     }
 
     /// Generates a Markdown report summarising the scan.
-    public func generateReport(into directory: URL, fileName: String? = nil) throws -> URL {
-        try MarkdownReportGenerator().generate(
-            from: lastResult,
-            rootDirectory: rootDirectory,
-            corruptedDirectoryName: corruptedDirectoryName,
-            repairs: lastRepairResults,
-            into: directory,
-            fileName: fileName
-        )
+    public func generateReport(into directory: URL) throws -> [URL] {
+        var generatedReportURLs: [URL] = []
+        let timestamp = ISO8601DateFormatter.threadLocalString()
+
+        for format in reportFormats {
+            let reportFileName = "ebook_mechanic_report_\(timestamp).\(format.rawValue)"
+            let reportURL = directory.appendingPathComponent(reportFileName)
+            
+            let generator = ReportGeneratorFactory.generator(for: format)
+            let reportContent = try generator.generate(from: lastResult, rootDirectory: rootDirectory, corruptedDirectoryName: corruptedDirectoryName, repairs: lastRepairResults)
+            
+            try reportContent.write(to: reportURL, atomically: true, encoding: .utf8)
+            generatedReportURLs.append(reportURL)
+        }
+        return generatedReportURLs
     }
 
     private func directoryContainsEbookFiles(_ url: URL) throws -> Bool {
