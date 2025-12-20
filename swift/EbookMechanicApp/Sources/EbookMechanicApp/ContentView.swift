@@ -92,6 +92,13 @@ struct ContentView: View {
                     .disabled(viewModel.isScanning || options.dryRun)
             }
 
+            HStack(spacing: 16) {
+                Toggle("Use epubcheck", isOn: $options.useExternalEPUBValidator)
+                    .disabled(viewModel.isScanning)
+                Toggle("Use pdfcpu", isOn: $options.useExternalPDFValidator)
+                    .disabled(viewModel.isScanning)
+            }
+
             HStack(spacing: 12) {
                 TextField("Corrupted folder name", text: $options.corruptedDirectoryName)
                     .textFieldStyle(.roundedBorder)

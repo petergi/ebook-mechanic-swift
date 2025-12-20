@@ -4,10 +4,14 @@ import Foundation
 public struct FileValidator: @unchecked Sendable {
     private let fileManager: FileManager
     private let deepValidation: Bool
+    private let useExternalEPUBValidator: Bool
+    private let useExternalPDFValidator: Bool
 
-    public init(fileManager: FileManager = .default, deepValidation: Bool = false) {
+    public init(fileManager: FileManager = .default, deepValidation: Bool = false, useExternalEPUBValidator: Bool = false, useExternalPDFValidator: Bool = false) {
         self.fileManager = fileManager
         self.deepValidation = deepValidation
+        self.useExternalEPUBValidator = useExternalEPUBValidator
+        self.useExternalPDFValidator = useExternalPDFValidator
     }
 
     /// Validates the file located at `url`, inferring the type from its extension.
@@ -69,7 +73,7 @@ public struct FileValidator: @unchecked Sendable {
 
             if !opfResult.isValid {
                 let errorSummary = opfResult.errorMessages.first ?? "OPF validation failed"
-                return ValidationResult(isValid: false, reason: errorSummary)
+                return ValidationResult(isValid: false, reason: "Invalid HTML/XHTML content: \(errorSummary)")
             }
 
             // Optionally perform deep HTML validation
@@ -83,6 +87,13 @@ public struct FileValidator: @unchecked Sendable {
                 if !htmlResult.isValid {
                     let errorSummary = htmlResult.issues.first(where: { $0.severity == .error })?.message ?? "HTML validation failed"
                     return ValidationResult(isValid: false, reason: "Invalid HTML/XHTML content: \(errorSummary)")
+                }
+            }
+            
+            if useExternalEPUBValidator {
+                let externalResult = ExternalValidators.validateEpub(at: url.path)
+                if !externalResult.isValid {
+                    return externalResult
                 }
             }
 
@@ -158,6 +169,13 @@ public struct FileValidator: @unchecked Sendable {
 
             guard String(data: tail, encoding: .ascii)?.contains("%%EOF") == true else {
                 return ValidationResult(isValid: false, reason: "Missing %%EOF marker")
+            }
+
+            if useExternalPDFValidator {
+                let externalResult = ExternalValidators.validatePdf(at: url.path)
+                if !externalResult.isValid {
+                    return externalResult
+                }
             }
 
             // Compute content fingerprint (or fallback) and attach it to the validation result.

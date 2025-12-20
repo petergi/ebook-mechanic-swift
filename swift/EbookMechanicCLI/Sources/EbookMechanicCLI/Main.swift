@@ -9,7 +9,9 @@ struct EbookMechanicCLI {
             let rootURL = URL(fileURLWithPath: configuration.directory).resolvingSymlinksInPath()
             let scanner = FileScanner(
                 rootDirectory: rootURL,
-                corruptedDirectoryName: configuration.corruptedDirectory
+                corruptedDirectoryName: configuration.corruptedDirectory,
+                useExternalEPUBValidator: configuration.useExternalEPUBValidator,
+                useExternalPDFValidator: configuration.useExternalPDFValidator
             )
 
             let printer = ProgressPrinter(verbose: configuration.verbose)
@@ -168,6 +170,8 @@ struct CLIConfiguration {
     var generateReport: Bool = false
     var normalizeEPUBs: Bool = false
     var forceNormalize: Bool = false
+    var useExternalEPUBValidator: Bool = false
+    var useExternalPDFValidator: Bool = false
 
     static func parse(arguments: [String] = CommandLine.arguments) throws -> CLIConfiguration {
         var config = CLIConfiguration()
@@ -212,6 +216,10 @@ struct CLIConfiguration {
             case "--force-normalize":
                 config.forceNormalize = true
                 config.normalizeEPUBs = true
+            case "--use-epubcheck":
+                config.useExternalEPUBValidator = true
+            case "--use-pdfcpu":
+                config.useExternalPDFValidator = true
             default:
                 throw CLIError.invalidArgument("Unknown argument: \(argument)")
             }
@@ -246,6 +254,8 @@ struct CLIConfiguration {
               --report                        Generate a Markdown report in the scan directory
               --normalize-epubs               Normalize EPUB files into canonical form
               --force-normalize               Force normalization even if already normalized
+              --use-epubcheck                 Use epubcheck for EPUB validation
+              --use-pdfcpu                    Use pdfcpu for PDF validation
             
             Shell Completion:
               To enable shell completion, run the appropriate command:
@@ -386,7 +396,7 @@ struct ShellCompletion {
             cur="${COMP_WORDS[COMP_CWORD]}"
             prev="${COMP_WORDS[COMP_CWORD-1]}"
             
-            opts="-h --help -V --version --generate-completion -d --dir -c --corrupted-dir --corruption-only --empty-folders-only -r --repair --dry-run --no-confirm --quiet --report --normalize-epubs --force-normalize"
+            opts="-h --help -V --version --generate-completion -d --dir -c --corrupted-dir --corruption-only --empty-folders-only -r --repair --dry-run --no-confirm --quiet --report --normalize-epubs --force-normalize --use-epubcheck --use-pdfcpu"
             
             case "${prev}" in
                 -d|--dir|-c|--corrupted-dir)
@@ -435,6 +445,8 @@ struct ShellCompletion {
                 '--report[Generate a Markdown report]'
                 '--normalize-epubs[Normalize EPUB files]'
                 '--force-normalize[Force normalization even if already normalized]'
+                '--use-epubcheck[Use epubcheck for EPUB validation]'
+                '--use-pdfcpu[Use pdfcpu for PDF validation]'
             )
             
             _arguments -s -S $options
@@ -471,6 +483,10 @@ struct ShellCompletion {
         # EPUB normalization
         complete -c ebook-mechanic -l normalize-epubs -d 'Normalize EPUB files'
         complete -c ebook-mechanic -l force-normalize -d 'Force normalization even if already normalized'
+        
+        # External validators
+        complete -c ebook-mechanic -l use-epubcheck -d 'Use epubcheck for EPUB validation'
+        complete -c ebook-mechanic -l use-pdfcpu -d 'Use pdfcpu for PDF validation'
         """
     
     private static let powershellCompletion = """
@@ -499,6 +515,8 @@ struct ShellCompletion {
                 @{ Name = '--report'; Description = 'Generate a Markdown report' }
                 @{ Name = '--normalize-epubs'; Description = 'Normalize EPUB files' }
                 @{ Name = '--force-normalize'; Description = 'Force normalization even if already normalized' }
+                @{ Name = '--use-epubcheck'; Description = 'Use epubcheck for EPUB validation' }
+                @{ Name = '--use-pdfcpu'; Description = 'Use pdfcpu for PDF validation' }
             )
             
             # Get previous token to provide context-aware completion

@@ -38,6 +38,10 @@ struct ScanOptions {
     var normalizeEPUBs: Bool = false
     /// Re-normalize EPUBs even if they appear already normalized.
     var forceNormalize: Bool = false
+    /// Use epubcheck for EPUB validation.
+    var useExternalEPUBValidator: Bool = false
+    /// Use pdfcpu for PDF validation.
+    var useExternalPDFValidator: Bool = false
 }
 
 /// View model that orchestrates scanning and exposes UI-facing state.
@@ -96,7 +100,9 @@ final class ScanViewModel: ObservableObject {
         do {
             let scanner = FileScanner(
                 rootDirectory: options.directory,
-                corruptedDirectoryName: options.corruptedDirectoryName
+                corruptedDirectoryName: options.corruptedDirectoryName,
+                useExternalEPUBValidator: options.useExternalEPUBValidator,
+                useExternalPDFValidator: options.useExternalPDFValidator
             )
 
             let progressHandler: FileScanner.ProgressHandler = { [weak self] event in

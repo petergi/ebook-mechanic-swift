@@ -18,13 +18,14 @@ public actor FileScanner {
         rootDirectory: URL,
         corruptedDirectoryName: String = "CORRUPTED",
         fileManager: FileManager = .default,
-        validator: FileValidator = FileValidator(),
+        useExternalEPUBValidator: Bool = false,
+        useExternalPDFValidator: Bool = false,
         repairer: FileRepairer? = nil
     ) {
         self.rootDirectory = rootDirectory
         self.corruptedDirectoryName = corruptedDirectoryName
         self.fileManager = fileManager
-        self.validator = validator
+        self.validator = FileValidator(fileManager: fileManager, useExternalEPUBValidator: useExternalEPUBValidator, useExternalPDFValidator: useExternalPDFValidator)
         self.repairer = repairer ?? FileRepairer(fileManager: fileManager, validator: validator)
     }
 
