@@ -6,7 +6,6 @@ public struct FileValidator: @unchecked Sendable {
     private let deepValidation: Bool
     private let useExternalEPUBValidator: Bool
     private let useExternalPDFValidator: Bool
-    private let useExternalPDFValidator: Bool
 
     public init(fileManager: FileManager = .default, deepValidation: Bool = false, useExternalEPUBValidator: Bool = false, useExternalPDFValidator: Bool = false) {
         self.fileManager = fileManager
@@ -92,10 +91,7 @@ public struct FileValidator: @unchecked Sendable {
             }
             
             if useExternalEPUBValidator {
-                let externalResult = ExternalValidators.validateEpub(at: url.path)
-                if !externalResult.isValid {
-                    return ValidationResult(isValid: false, reason: externalResult.reason, status: .validationError)
-                }
+                return ExternalValidators.validateEpub(at: url.path)
             }
 
             // Include warnings as informational in the reason if needed
@@ -171,6 +167,8 @@ public struct FileValidator: @unchecked Sendable {
             guard String(data: tail, encoding: .ascii)?.contains("%%EOF") == true else {
                 return ValidationResult(isValid: false, reason: "Missing %%EOF marker", status: .corrupt)
             }
+            
+            let fp = PDFVerifier.fingerprintResult(for: url)
 
             if useExternalPDFValidator {
                 let structureValidator = PDFStructureValidator()
@@ -195,8 +193,8 @@ public struct FileValidator: @unchecked Sendable {
                     return ValidationResult(isValid: false, reason: "PDF validation tool error: \(error.localizedDescription)", status: .validationError, fingerprint: fp)
                 }
             }
+            
             // Compute content fingerprint (or fallback) and attach it to the validation result.
-            let fp = PDFVerifier.fingerprintResult(for: url)
             switch fp {
             case .content:
                 return ValidationResult(isValid: true, reason: "Valid PDF", status: .ok, fingerprint: fp)

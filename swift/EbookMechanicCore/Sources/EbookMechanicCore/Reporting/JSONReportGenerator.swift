@@ -62,6 +62,7 @@ struct JSONReportGenerator: ReportGenerating {
         let status: ValidationStatus
         let fingerprint: FingerprintResult?
         let pdfValidationDetails: PDFValidationResult?
+        let epubComplianceDetails: EPUBComplianceResult?
 
         init(from corruptedFile: EbookMechanicCore.CorruptedFile) {
             self.url = corruptedFile.url.path
@@ -70,6 +71,7 @@ struct JSONReportGenerator: ReportGenerating {
             self.status = corruptedFile.status
             self.fingerprint = corruptedFile.fingerprint
             self.pdfValidationDetails = corruptedFile.pdfValidationDetails
+            self.epubComplianceDetails = corruptedFile.epubComplianceDetails
         }
     }
     

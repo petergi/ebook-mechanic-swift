@@ -18,14 +18,14 @@ EbookMechanic is a powerful command-line tool suite for managing ebook libraries
 
 ## Features
 
-- 🔍 **Deep Validation** - Structural integrity checking for all supported formats
+- 🔍 **Deep Validation** - Structural integrity checking for all supported formats, with optional deep validation using `epubcheck` and `pdfcpu`.
 - 🔧 **Auto-Repair** - Automatic fixing of corrupted files
   - **PDF Repair:** Comprehensive header corruption detection and repair (handles email/FTP corruption, UTF-8 BOM, junk prefixes, missing binary markers)
   - **EPUB Repair:** Auto-adds missing mimetype and container.xml files
 - 📚 **EPUB Normalization** - Restructures EPUBs to Sigil/standard specifications
 - 🗑️ **Smart Cleanup** - Removes empty folders while preserving directory structure
 - 📊 **Progress Tracking** - Real-time progress with beautiful interfaces
-- 📄 **Detailed Reports** - Markdown reports with comprehensive statistics
+- 📄 **Detailed Reports** - Multi-format reports (Markdown, JSON, CSV, HTML) with comprehensive statistics.
 - 🔒 **Safe Operations** - Dry-run mode, backups, and confirmation prompts
 - ⚡ **High Performance** - Optimized scanning and concurrent processing
 
@@ -171,6 +171,12 @@ ebook-mechanic -no-confirm
 
 # Simple text output (no TUI)
 ebook-mechanic -no-tui
+
+# Use external validators
+ebook-mechanic --use-epubcheck --use-pdfcpu
+
+# Generate reports in multiple formats
+ebook-mechanic --report --report-formats json,csv,html
 ```
 
 ## Project Structure

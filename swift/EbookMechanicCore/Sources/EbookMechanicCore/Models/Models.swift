@@ -52,13 +52,17 @@ public struct CorruptedFile: Sendable, Codable, Equatable {
     public var size: Int64
     public var status: ValidationStatus
     public var fingerprint: FingerprintResult?
+    public var pdfValidationDetails: PDFValidationResult?
+    public var epubComplianceDetails: EPUBComplianceResult?
 
-    public init(url: URL, reason: String, size: Int64, status: ValidationStatus, fingerprint: FingerprintResult? = nil) {
+    public init(url: URL, reason: String, size: Int64, status: ValidationStatus, fingerprint: FingerprintResult? = nil, pdfValidationDetails: PDFValidationResult? = nil, epubComplianceDetails: EPUBComplianceResult? = nil) {
         self.url = url
         self.reason = reason
         self.size = size
         self.status = status
         self.fingerprint = fingerprint
+        self.pdfValidationDetails = pdfValidationDetails
+        self.epubComplianceDetails = epubComplianceDetails
     }
 }
 
@@ -105,13 +109,37 @@ public struct ValidationResult: Sendable, Codable, Equatable {
     public var reason: String
     public var status: ValidationStatus
     public var fingerprint: FingerprintResult?
+    public var pdfValidationDetails: PDFValidationResult?
+    public var epubComplianceDetails: EPUBComplianceResult?
 
-    public init(isValid: Bool, reason: String, status: ValidationStatus = .validationError, fingerprint: FingerprintResult? = nil) {
+    public init(isValid: Bool, reason: String, status: ValidationStatus = .validationError, fingerprint: FingerprintResult? = nil, pdfValidationDetails: PDFValidationResult? = nil, epubComplianceDetails: EPUBComplianceResult? = nil) {
         self.isValid = isValid
         self.reason = reason
         self.status = status
         self.fingerprint = fingerprint
+        self.pdfValidationDetails = pdfValidationDetails
+        self.epubComplianceDetails = epubComplianceDetails
     }
+}
+
+/// Represents a single validation issue found in an EPUB file.
+public struct EPUBValidationIssue: Sendable, Codable, Equatable {
+    public var severity: String
+    public var message: String
+    public var filePath: String?
+    public var lineNumber: Int?
+    public var ruleId: String?
+}
+
+/// Represents the detailed results of an EPUB compliance validation.
+public struct EPUBComplianceResult: Sendable, Codable, Equatable {
+    public var isCompliant: Bool
+    public var hasWarnings: Bool
+    public var errors: [EPUBValidationIssue]
+    public var warnings: [EPUBValidationIssue]
+    public var epubVersion: String
+    public var epubcheckVersion: String
+    public var conformsToAccessibility: Bool
 }
 
 /// Represents the detailed status of a validation check.

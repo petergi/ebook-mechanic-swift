@@ -80,7 +80,7 @@ public actor FileScanner {
             if !validation.isValid {
                 let attributes = try fileManager.attributesOfItem(atPath: fileURL.path)
                 let size = (attributes[.size] as? NSNumber)?.int64Value ?? 0
-                result.corruptedFiles.append(CorruptedFile(url: fileURL, reason: validation.reason, size: size, status: validation.status, fingerprint: validation.fingerprint))
+                result.corruptedFiles.append(CorruptedFile(url: fileURL, reason: validation.reason, size: size, status: validation.status, fingerprint: validation.fingerprint, epubComplianceDetails: validation.epubComplianceDetails))
                 var breakdown = result.breakdowns[type] ?? FormatBreakdown()
                 breakdown.corrupted += 1
                 result.breakdowns[type] = breakdown

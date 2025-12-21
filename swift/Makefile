@@ -635,3 +635,21 @@ update-all:
 	@echo "  • Documentation in .build/docc directories"
 	@echo ""
 	@echo "To serve documentation: make docc-serve"
+
+install-tools:
+	@echo "Checking for external tools..."
+	@if ! command -v epubcheck > /dev/null; then \
+		echo "epubcheck not found. Please install it."; \
+		echo "  On macOS: brew install epubcheck"; \
+		echo "  On Linux: sudo apt-get install epubcheck (or equivalent)"; \
+	else \
+		echo "epubcheck is installed."; \
+	fi
+	@if ! command -v pdfcpu > /dev/null; then \
+		echo "pdfcpu not found. Please install it."; \
+		echo "  On macOS: brew install pdfcpu"; \
+		echo "  On Linux: download from https://pdfcpu.io/download"; \
+	else \
+		echo "pdfcpu is installed."; \
+	fi
+
