@@ -42,6 +42,12 @@ struct ScanOptions {
     var useExternalEPUBValidator: Bool = false
     /// Use pdfcpu for PDF validation.
     var useExternalPDFValidator: Bool = false
+    /// The maximum number of concurrent validations to run.
+    var maxConcurrentValidations: Int = 1
+    /// Whether to use the validation cache.
+    var useCache: Bool = true
+    /// Whether to show performance metrics after the scan.
+    var showPerformanceMetrics: Bool = false
 }
 
 /// View model that orchestrates scanning and exposes UI-facing state.
@@ -70,6 +76,8 @@ final class ScanViewModel: ObservableObject {
     @Published var reportURL: URL?
     /// User-presentable error message if a failure occurs.
     @Published var errorMessage: String?
+    /// Performance metrics from the scan.
+    @Published var performanceMetrics: PerformanceMetrics?
 
     /// Resets all published state to defaults in preparation for a new scan.
     func reset() {
@@ -79,6 +87,7 @@ final class ScanViewModel: ObservableObject {
         statusMessages.removeAll()
         reportURL = nil
         errorMessage = nil
+        performanceMetrics = nil
         progressHeadline = ""
         progressDetail = ""
     }
@@ -98,11 +107,16 @@ final class ScanViewModel: ObservableObject {
         defer { isScanning = false }
 
         do {
+            let validator = FileValidator(
+                useExternalEPUBValidator: options.useExternalEPUBValidator,
+                useExternalPDFValidator: options.useExternalPDFValidator,
+                useCache: options.useCache
+            )
             let scanner = FileScanner(
                 rootDirectory: options.directory,
                 corruptedDirectoryName: options.corruptedDirectoryName,
-                useExternalEPUBValidator: options.useExternalEPUBValidator,
-                useExternalPDFValidator: options.useExternalPDFValidator
+                validator: validator,
+                maxConcurrentValidations: options.maxConcurrentValidations
             )
 
             let progressHandler: FileScanner.ProgressHandler = { [weak self] event in
@@ -114,7 +128,8 @@ final class ScanViewModel: ObservableObject {
                         self.progressDetail = url.lastPathComponent
                     case .scanningFiles:
                         self.progressHeadline = "Scanning Files"
-                        self.progressDetail = "\(event.completed)/\(event.total) processed"
+                        let concurrentCount = event.concurrentValidationCount > 0 ? " (\(event.concurrentValidationCount) concurrent)" : ""
+                        self.progressDetail = "\(event.completed)/\(event.total) processed\(concurrentCount)"
                     case .scanningFolders:
                         self.progressHeadline = "Scanning Folders"
                         self.progressDetail = "\(event.completed)/\(event.total)"
@@ -143,7 +158,8 @@ final class ScanViewModel: ObservableObject {
                     self.statusMessages.append("Scanned \(result.totalFiles) files")
                     if result.corruptedFiles.isEmpty {
                         self.statusMessages.append("No corrupted files found")
-                    } else {
+                    }
+                    else {
                         self.statusMessages.append("Detected \(result.corruptedFiles.count) corrupted file(s)")
                     }
                 }
@@ -199,6 +215,13 @@ final class ScanViewModel: ObservableObject {
                 await MainActor.run {
                     self.reportURL = url
                     self.statusMessages.append("Report generated at \(url.lastPathComponent)")
+                }
+            }
+
+            if options.showPerformanceMetrics {
+                let metrics = await scanner.performanceMetrics
+                await MainActor.run {
+                    self.performanceMetrics = metrics
                 }
             }
 

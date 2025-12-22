@@ -8,33 +8,27 @@
 import Foundation
 
 public struct ExternalValidators {
-    public static func validateEpub(at path: String) -> ValidationResult {
-        let epubCheckVersion = getEpubCheckVersion() ?? "Unknown"
+    private static let toolRunner = ExternalToolRunner()
+
+    public static func validateEpub(at path: String) async -> ValidationResult {
+        let url = URL(fileURLWithPath: path)
+        let size = (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? NSNumber)?.int64Value ?? 0
+        let epubCheckVersion = await getEpubCheckVersion() ?? "Unknown"
         
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        // Use -j for JSON output and -o for output file (we'll redirect to stdout)
-        process.arguments = ["epubcheck", "-j", path, "-"]
-
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = pipe
-
         do {
-            try process.run()
-            process.waitUntilExit()
-
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            let (terminationStatus, output) = try await toolRunner.runTool(
+                executableURL: URL(fileURLWithPath: "/usr/bin/env"),
+                arguments: ["epubcheck", "-j", path, "-"]
+            )
             
             // Even with errors, epubcheck can exit with 0, so we need to parse the JSON.
             // A non-zero exit code is a more severe failure.
-            if process.terminationStatus != 0 {
-                 let errorOutput = String(data: data, encoding: .utf8) ?? ""
-                 return ValidationResult(isValid: false, reason: "epubcheck tool failed to run: \(errorOutput)", status: .validationError)
+            if terminationStatus != 0 {
+                 return ValidationResult(originalIndex: 0, url: url, size: size, isValid: false, reason: "epubcheck tool failed to run: \(output)", status: .validationError)
             }
 
             let decoder = JSONDecoder()
-            let report = try decoder.decode(EpubCheckReport.self, from: data)
+            let report = try decoder.decode(EpubCheckReport.self, from: output.data(using: .utf8)!)
 
             var errors: [EPUBValidationIssue] = []
             var warnings: [EPUBValidationIssue] = []
@@ -66,61 +60,49 @@ public struct ExternalValidators {
 
             if !complianceResult.isCompliant {
                 let reason = "EPUB is not compliant. Found \(errors.count) errors."
-                return ValidationResult(isValid: false, reason: reason, status: .nonCompliant, epubComplianceDetails: complianceResult)
+                return ValidationResult(originalIndex: 0, url: url, size: size, isValid: false, reason: reason, status: .nonCompliant, epubComplianceDetails: complianceResult)
             } else if complianceResult.hasWarnings {
                 let reason = "EPUB is compliant but has \(warnings.count) warnings."
-                return ValidationResult(isValid: true, reason: reason, status: .nonCompliant, epubComplianceDetails: complianceResult)
+                return ValidationResult(originalIndex: 0, url: url, size: size, isValid: true, reason: reason, status: .nonCompliant, epubComplianceDetails: complianceResult)
             } else {
-                return ValidationResult(isValid: true, reason: "EPUB is compliant.", status: .ok, epubComplianceDetails: complianceResult)
+                return ValidationResult(originalIndex: 0, url: url, size: size, isValid: true, reason: "EPUB is compliant.", status: .ok, epubComplianceDetails: complianceResult)
             }
             
         } catch {
-            return ValidationResult(isValid: false, reason: "Failed to run or parse epubcheck output: \(error.localizedDescription)", status: .validationError)
+            return ValidationResult(originalIndex: 0, url: url, size: size, isValid: false, reason: "Failed to run or parse epubcheck output: \(error.localizedDescription)", status: .validationError)
         }
     }
 
-    private static func getEpubCheckVersion() -> String? {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        process.arguments = ["epubcheck", "--version"]
-
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = pipe
-
+    private static func getEpubCheckVersion() async -> String? {
         do {
-            try process.run()
-            process.waitUntilExit()
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let (terminationStatus, output) = try await toolRunner.runTool(
+                executableURL: URL(fileURLWithPath: "/usr/bin/env"),
+                arguments: ["epubcheck", "--version"]
+            )
+            
+            guard terminationStatus == 0 else { return nil }
+            return output.trimmingCharacters(in: .whitespacesAndNewlines)
         } catch {
             return nil
         }
     }
     
-    public static func validatePdf(at path: String) -> ValidationResult {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        process.arguments = ["pdfcpu", "validate", path]
-
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = pipe
-
+    public static func validatePdf(at path: String) async -> ValidationResult {
+        let url = URL(fileURLWithPath: path)
+        let size = (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? NSNumber)?.int64Value ?? 0
         do {
-            try process.run()
-            process.waitUntilExit()
+            let (terminationStatus, output) = try await toolRunner.runTool(
+                executableURL: URL(fileURLWithPath: "/usr/bin/env"),
+                arguments: ["pdfcpu", "validate", path]
+            )
 
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            let output = String(data: data, encoding: .utf8) ?? ""
-
-            if process.terminationStatus == 0 {
-                return ValidationResult(isValid: true, reason: "File is a valid PDF.", status: .ok)
+            if terminationStatus == 0 {
+                return ValidationResult(originalIndex: 0, url: url, size: size, isValid: true, reason: "File is a valid PDF.", status: .ok)
             } else {
-                return ValidationResult(isValid: false, reason: "File is not a valid PDF. pdfcpu output:\n\(output)", status: .validationError)
+                return ValidationResult(originalIndex: 0, url: url, size: size, isValid: false, reason: "File is not a valid PDF. pdfcpu output:\n\(output)", status: .validationError)
             }
         } catch {
-            return ValidationResult(isValid: false, reason: "Failed to run pdfcpu: \(error.localizedDescription)", status: .validationError)
+            return ValidationResult(originalIndex: 0, url: url, size: size, isValid: false, reason: "Failed to run pdfcpu: \(error.localizedDescription)", status: .validationError)
         }
     }
 }

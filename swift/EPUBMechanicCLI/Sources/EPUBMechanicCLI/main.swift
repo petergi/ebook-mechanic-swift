@@ -74,7 +74,7 @@ group.enter()
 Task {
     do {
         let rootURL = URL(fileURLWithPath: directory).resolvingSymlinksInPath()
-        let scanner = FileScanner(rootDirectory: rootURL, corruptedDirectoryName: "CORRUPTED")
+        let scanner = FileScanner(rootDirectory: rootURL, corruptedDirectoryName: "CORRUPTED", validator: FileValidator())
 
         // Capture configuration as constants for Sendable closures
         let isVerbose = verbose

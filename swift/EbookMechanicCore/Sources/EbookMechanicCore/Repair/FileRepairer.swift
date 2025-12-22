@@ -11,23 +11,23 @@ public struct FileRepairer: @unchecked Sendable {
     }
 
     /// Attempts to repair the file located at `url`.
-    public func repair(url: URL) -> RepairResult {
+    public func repair(url: URL) async -> RepairResult {
         guard let type = EbookFileType(pathExtension: url.pathExtension) else {
             return RepairResult(success: false, message: "Unknown file type, cannot repair", fixed: false, fileURL: url)
         }
 
         switch type {
         case .epub:
-            return repairEPUB(at: url)
+            return await repairEPUB(at: url)
         case .pdf, .azw4:
-            return repairPDF(at: url)
+            return await repairPDF(at: url)
         case .mobi, .azw3:
-            return repairMOBI(at: url)
+            return await repairMOBI(at: url)
         }
     }
 
-    private func repairEPUB(at url: URL) -> RepairResult {
-        let validation = validator.validate(url: url, as: .epub)
+    private func repairEPUB(at url: URL) async -> RepairResult {
+        let validation = await validator.validate(url: url, as: .epub)
         guard !validation.isValid else {
             return RepairResult(success: true, message: "File is already valid, no repair needed", fixed: false, fileURL: url)
         }
@@ -209,7 +209,7 @@ public struct FileRepairer: @unchecked Sendable {
             try fileManager.removeItem(at: url)
             try fileManager.moveItem(at: tempURL, to: url)
 
-            if validator.validate(url: url, as: .epub).isValid {
+            if await validator.validate(url: url, as: .epub).isValid {
                 try? fileManager.removeItem(at: backupURL)
                 return RepairResult(success: true, message: "EPUB repaired successfully", fixed: true, fileURL: url)
             }
@@ -222,8 +222,8 @@ public struct FileRepairer: @unchecked Sendable {
         }
     }
 
-    private func repairPDF(at url: URL) -> RepairResult {
-        let validation = validator.validate(url: url, as: .pdf)
+    private func repairPDF(at url: URL) async -> RepairResult {
+        let validation = await validator.validate(url: url, as: .pdf)
         guard !validation.isValid else {
             return RepairResult(success: true, message: "File is already valid, no repair needed", fixed: false, fileURL: url)
         }
@@ -261,7 +261,7 @@ public struct FileRepairer: @unchecked Sendable {
             return RepairResult(success: false, message: "Failed to write repaired file: \(error.localizedDescription)", fixed: false, fileURL: url)
         }
 
-        if validator.validate(url: url, as: .pdf).isValid {
+        if await validator.validate(url: url, as: .pdf).isValid {
             try? fileManager.removeItem(at: backupURL)
             return RepairResult(success: true, message: "PDF repaired successfully (added EOF marker)", fixed: true, fileURL: url)
         } else {
@@ -270,8 +270,8 @@ public struct FileRepairer: @unchecked Sendable {
         }
     }
 
-    private func repairMOBI(at url: URL) -> RepairResult {
-        let validation = validator.validate(url: url, as: .mobi)
+    private func repairMOBI(at url: URL) async -> RepairResult {
+        let validation = await validator.validate(url: url, as: .mobi)
         guard !validation.isValid else {
             return RepairResult(success: true, message: "File is already valid, no repair needed", fixed: false, fileURL: url)
         }

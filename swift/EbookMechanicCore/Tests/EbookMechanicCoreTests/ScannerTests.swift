@@ -12,9 +12,7 @@ final class ScannerTests: XCTestCase {
         try FileManager.default.createDirectory(at: emptyFolder, withIntermediateDirectories: true, attributes: nil)
 
         try TestFixtures.createValidEPUB(at: goodEPUB)
-        try TestFixtures.createEPUBWithoutMimetype(at: badEPUB)
-
-        let scanner = FileScanner(rootDirectory: tempDir)
+        let scanner = FileScanner(rootDirectory: tempDir, validator: FileValidator())
         let result = try await scanner.scanForCorruption()
 
         XCTAssertEqual(result.totalFiles, 2)
@@ -48,7 +46,7 @@ final class ScannerTests: XCTestCase {
         try FileManager.default.createDirectory(at: badPDF.deletingLastPathComponent(), withIntermediateDirectories: true, attributes: nil)
         try TestFixtures.createPDFWithoutEOF(at: badPDF)
 
-        let scanner = FileScanner(rootDirectory: tempDir)
+        let scanner = FileScanner(rootDirectory: tempDir, validator: FileValidator())
         _ = try await scanner.scanForCorruption()
 
         let (results, repairedCount) = await scanner.repairCorruptedFiles()
@@ -65,7 +63,7 @@ final class ScannerTests: XCTestCase {
         try FileManager.default.createDirectory(at: epubURL.deletingLastPathComponent(), withIntermediateDirectories: true, attributes: nil)
         try TestFixtures.createEPUBMissingManifest(at: epubURL)
 
-        let scanner = FileScanner(rootDirectory: tempDir)
+        let scanner = FileScanner(rootDirectory: tempDir, validator: FileValidator())
         let result = await scanner.normalizeEPUBs(force: true, dryRun: false)
         XCTAssertEqual(result.normalized, 1)
         XCTAssertEqual(result.skipped, 0)

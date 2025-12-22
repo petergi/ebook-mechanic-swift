@@ -77,6 +77,11 @@ public struct ScanResult: Sendable, Codable, Equatable {
     public var emptyFolders: [URL]
     public var totalFolders: Int
     public var foldersWithEbooks: Int
+    public var totalProcessedFiles: Int = 0 // New property
+    public var totalCorruptedFiles: Int = 0 // New property
+    public var totalWarnings: Int = 0       // New property
+    public var totalErrors: Int = 0         // New property
+
 
     public init(
         totalFiles: Int = 0,
@@ -84,7 +89,11 @@ public struct ScanResult: Sendable, Codable, Equatable {
         breakdowns: [EbookFileType: FormatBreakdown] = [:],
         emptyFolders: [URL] = [],
         totalFolders: Int = 0,
-        foldersWithEbooks: Int = 0
+        foldersWithEbooks: Int = 0,
+        totalProcessedFiles: Int = 0,
+        totalCorruptedFiles: Int = 0,
+        totalWarnings: Int = 0,
+        totalErrors: Int = 0
     ) {
         self.totalFiles = totalFiles
         self.corruptedFiles = corruptedFiles
@@ -92,6 +101,10 @@ public struct ScanResult: Sendable, Codable, Equatable {
         self.emptyFolders = emptyFolders
         self.totalFolders = totalFolders
         self.foldersWithEbooks = foldersWithEbooks
+        self.totalProcessedFiles = totalProcessedFiles
+        self.totalCorruptedFiles = totalCorruptedFiles
+        self.totalWarnings = totalWarnings
+        self.totalErrors = totalErrors
     }
 
     /// Convenience accessor for a format's breakdown, defaulting to zero counts when absent.
@@ -105,6 +118,9 @@ public struct ScanResult: Sendable, Codable, Equatable {
 /// Indicates whether the file is valid and may include a content fingerprint
 /// for supported formats.
 public struct ValidationResult: Sendable, Codable, Equatable {
+    public var originalIndex: Int
+    public var url: URL
+    public var size: Int64
     public var isValid: Bool
     public var reason: String
     public var status: ValidationStatus
@@ -112,7 +128,10 @@ public struct ValidationResult: Sendable, Codable, Equatable {
     public var pdfValidationDetails: PDFValidationResult?
     public var epubComplianceDetails: EPUBComplianceResult?
 
-    public init(isValid: Bool, reason: String, status: ValidationStatus = .validationError, fingerprint: FingerprintResult? = nil, pdfValidationDetails: PDFValidationResult? = nil, epubComplianceDetails: EPUBComplianceResult? = nil) {
+    public init(originalIndex: Int, url: URL, size: Int64, isValid: Bool, reason: String, status: ValidationStatus = .validationError, fingerprint: FingerprintResult? = nil, pdfValidationDetails: PDFValidationResult? = nil, epubComplianceDetails: EPUBComplianceResult? = nil) {
+        self.originalIndex = originalIndex
+        self.url = url
+        self.size = size
         self.isValid = isValid
         self.reason = reason
         self.status = status
@@ -232,12 +251,14 @@ public struct ProgressEvent: Sendable, Equatable {
     public var completed: Int
     public var total: Int
     public var currentItem: String
+    public var concurrentValidationCount: Int?
 
-    public init(stage: Stage, completed: Int, total: Int, currentItem: String) {
+    public init(stage: Stage, completed: Int, total: Int, currentItem: String, concurrentValidationCount: Int? = nil) {
         self.stage = stage
         self.completed = completed
         self.total = total
         self.currentItem = currentItem
+        self.concurrentValidationCount = concurrentValidationCount
     }
 }
 
@@ -333,6 +354,17 @@ public extension String {
         result = result.replacingOccurrences(of: "'", with: "&#039;")
         return result
     }
+}
+
+/// Struct to hold performance metrics from a scan.
+public struct PerformanceMetrics: Sendable, Codable, Equatable {
+    public var filesPerSecond: Double = 0.0
+    public var totalValidationTime: TimeInterval = 0.0
+    public var averageValidationTimePerFile: TimeInterval = 0.0
+    public var externalToolCallCount: Int = 0
+    public var cacheHitRate: Double = 0.0
+    public var parallelEfficiencyRatio: Double = 0.0
+    public var validationTimeByFormat: [EbookFileType: TimeInterval] = [:]
 }
 
 

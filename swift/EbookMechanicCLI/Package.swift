@@ -1,4 +1,4 @@
-// swift-tools-version: 6.2
+// swift-tools-version:5.5
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -6,11 +6,11 @@ import PackageDescription
 let package = Package(
     name: "EbookMechanicCLI",
     platforms: [
-        .macOS(.v13),
+        .macOS(.v12),
     ],
     dependencies: [
         .package(path: "../EbookMechanicCore"),
-        .package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.1.0"),
+        .package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.0.0"),
     ],
     targets: [
         .executableTarget(
@@ -23,6 +23,5 @@ let package = Package(
             name: "EbookMechanicCLITests",
             dependencies: ["EbookMechanicCLI"]
         ),
-    ],
-    swiftLanguageModes: [.v6]
+    ]
 )

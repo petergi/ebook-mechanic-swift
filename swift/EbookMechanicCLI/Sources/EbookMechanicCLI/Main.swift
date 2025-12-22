@@ -7,11 +7,16 @@ struct EbookMechanicCLI {
         do {
             let configuration = try CLIConfiguration.parse()
             let rootURL = URL(fileURLWithPath: configuration.directory).resolvingSymlinksInPath()
+            let validator = FileValidator(
+                useExternalEPUBValidator: configuration.useExternalEPUBValidator,
+                useCache: !configuration.noCache
+            )
             let scanner = FileScanner(
                 rootDirectory: rootURL,
                 corruptedDirectoryName: configuration.corruptedDirectory,
-                useExternalEPUBValidator: configuration.useExternalEPUBValidator,
-                reportFormats: configuration.reportFormats
+                reportFormats: configuration.reportFormats,
+                validator: validator,
+                maxConcurrentValidations: configuration.maxConcurrent
             )
 
             let printer = ProgressPrinter(verbose: configuration.verbose)
@@ -59,6 +64,12 @@ struct EbookMechanicCLI {
                 for reportURL in generatedReportURLs {
                     printer.printSuccess("Report generated at \(reportURL.path)")
                 }
+            }
+
+            if configuration.performanceStats {
+                let metrics = await scanner.performanceMetrics
+                printer.printHeader("Performance Statistics")
+                printer.printPerformanceMetrics(metrics)
             }
 
             printer.printFooter("EbookMechanic completed successfully")
@@ -168,6 +179,9 @@ struct CLIConfiguration {
     var forceNormalize: Bool = false
     var useExternalEPUBValidator: Bool = false
     var reportFormats: [ReportFormat] = [.markdown]
+    var maxConcurrent: Int?
+    var noCache: Bool = false
+    var performanceStats: Bool = false
 
     static func parse(arguments: [String] = CommandLine.arguments) throws -> CLIConfiguration {
         var config = CLIConfiguration()
@@ -223,6 +237,13 @@ struct CLIConfiguration {
                     }
                     return format
                 }
+            case "--max-concurrent":
+                guard let value = iterator.next(), let intValue = Int(value) else { throw CLIError.invalidArgument("Missing or invalid value for \(argument)") }
+                config.maxConcurrent = intValue
+            case "--no-cache":
+                config.noCache = true
+            case "--performance-stats":
+                config.performanceStats = true
             default:
                 throw CLIError.invalidArgument("Unknown argument: \(argument)")
             }
@@ -259,6 +280,9 @@ struct CLIConfiguration {
               --force-normalize               Force normalization even if already normalized
               --use-epubcheck                 Use epubcheck for EPUB validation
               --report-formats <formats>      Comma-separated report formats (markdown,json,csv,html)
+              --max-concurrent <N>            Maximum concurrent validations (default: system-determined)
+              --no-cache                      Disable validation result caching
+              --performance-stats             Show performance statistics at the end
             
             Shell Completion:
               To enable shell completion, run the appropriate command:
@@ -297,7 +321,8 @@ struct ProgressPrinter: @unchecked Sendable {
         case .validatingFile(let url):
             emit("🔍 Inspecting \(url.lastPathComponent)...")
         case .scanningFiles:
-            emit("   Progress: \(event.completed)/\(event.total)")
+            let concurrentCount = event.concurrentValidationCount > 0 ? " (\(event.concurrentValidationCount) concurrent)" : ""
+            emit("   Progress: \(event.completed)/\(event.total)\(concurrentCount)")
         case .scanningFolders:
             emit("📂 Checking folders (\(event.completed)/\(event.total))")
         case .movingCorruptedFiles:
@@ -363,6 +388,15 @@ struct ProgressPrinter: @unchecked Sendable {
             emit("  \(icon) [\(index + 1)] \(path)")
             emit("     ↳ \(result.message)")
         }
+    }
+
+    func printPerformanceMetrics(_ metrics: PerformanceMetrics) {
+        emit("• Total validation time: \(String(format: "%.2f", metrics.totalValidationTime))s")
+        emit("• Files per second: \(String(format: "%.2f", metrics.filesPerSecond))")
+        emit("• Average validation time: \(String(format: "%.3f", metrics.averageValidationTime))s")
+        emit("• Cache hits: \(metrics.cacheHits)")
+        emit("• Cache misses: \(metrics.cacheMisses)")
+        emit("• Cache hit rate: \(String(format: "%.2f", metrics.cacheHitRate * 100))%")
     }
 
     private func emit(_ text: String) {

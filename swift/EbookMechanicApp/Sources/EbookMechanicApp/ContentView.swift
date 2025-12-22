@@ -99,6 +99,19 @@ struct ContentView: View {
                     .disabled(viewModel.isScanning)
             }
 
+            HStack(spacing: 16) {
+                Text("Max Concurrent: \(options.maxConcurrentValidations)")
+                Slider(value: Binding(get: { Double(options.maxConcurrentValidations) }, set: { options.maxConcurrentValidations = Int($0) }), in: 1...16, step: 1)
+                    .disabled(viewModel.isScanning)
+            }
+
+            HStack(spacing: 16) {
+                Toggle("Use Cache", isOn: $options.useCache)
+                    .disabled(viewModel.isScanning)
+                Toggle("Show Performance Stats", isOn: $options.showPerformanceMetrics)
+                    .disabled(viewModel.isScanning)
+            }
+
             HStack(spacing: 12) {
                 TextField("Corrupted folder name", text: $options.corruptedDirectoryName)
                     .textFieldStyle(.roundedBorder)
@@ -150,6 +163,9 @@ struct ContentView: View {
             summaryCard
             corruptedList
             emptyFolderList
+            if viewModel.performanceMetrics != nil {
+                performanceMetricsCard
+            }
         }
     }
 
@@ -167,7 +183,8 @@ struct ContentView: View {
                     Text("\(status) \(type.fileExtension.dropFirst().uppercased()): \(breakdown.corrupted)/\(breakdown.total)")
                         .font(.caption)
                 }
-            } else {
+            }
+            else {
                 Text("Run a scan to see results")
                     .foregroundStyle(.secondary)
             }
@@ -188,6 +205,29 @@ struct ContentView: View {
         }
         .padding()
         .frame(maxWidth: 260, alignment: .leading)
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private var performanceMetricsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Performance", systemImage: "speedometer")
+                .font(.headline)
+            if let metrics = viewModel.performanceMetrics {
+                Text("Total validation time: \(String(format: "%.2f", metrics.totalValidationTime))s")
+                Text("Files per second: \(String(format: "%.2f", metrics.filesPerSecond))")
+                Text("Average validation time: \(String(format: "%.3f", metrics.averageValidationTime))s")
+                Divider()
+                Text("Cache hits: \(metrics.cacheHits)")
+                Text("Cache misses: \(metrics.cacheMisses)")
+                Text("Cache hit rate: \(String(format: "%.2f", metrics.cacheHitRate * 100))%")
+            } else {
+                Text("No performance data available.")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }

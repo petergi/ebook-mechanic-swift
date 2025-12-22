@@ -5,35 +5,43 @@ public actor FileScanner {
     public typealias ProgressHandler = @Sendable (ProgressEvent) -> Void
 
     private let fileManager: FileManager
-    private let validator: FileValidator
+    private let validator: FileValidatorProtocol
     private let repairer: FileRepairer
 
     private let rootDirectory: URL
     private let corruptedDirectoryName: String
     private let reportFormats: [ReportFormat]
+    private let maxConcurrentValidations: Int
+    private let validationBatchSize: Int
 
     private(set) public var lastResult: ScanResult = ScanResult()
     private(set) public var lastRepairResults: [RepairResult] = []
+    private(set) public var performanceMetrics = PerformanceMetrics()
 
     public init(
         rootDirectory: URL,
         corruptedDirectoryName: String = "CORRUPTED",
         fileManager: FileManager = .default,
-        useExternalEPUBValidator: Bool = false,
         reportFormats: [ReportFormat] = [.markdown],
+        maxConcurrentValidations: Int = ProcessInfo.processInfo.activeProcessorCount,
+        validationBatchSize: Int? = nil,
+        validator: FileValidatorProtocol,
         repairer: FileRepairer? = nil
     ) {
         self.rootDirectory = rootDirectory
         self.corruptedDirectoryName = corruptedDirectoryName
         self.fileManager = fileManager
-        self.validator = FileValidator(fileManager: fileManager, useExternalEPUBValidator: useExternalEPUBValidator)
         self.reportFormats = reportFormats
+        self.maxConcurrentValidations = maxConcurrentValidations
+        self.validationBatchSize = validationBatchSize ?? maxConcurrentValidations * 2
+        self.validator = validator
         self.repairer = repairer ?? FileRepairer(fileManager: fileManager, validator: validator)
     }
 
     /// Performs a corruption scan across the root directory.
     @discardableResult
-    public func scanForCorruption(progress: ProgressHandler? = nil) throws -> ScanResult {
+    public func scanForCorruption(progress: ProgressHandler? = nil) async throws -> ScanResult {
+        let startTime = Date()
         let enumerator = fileManager.enumerator(at: rootDirectory, includingPropertiesForKeys: [.isRegularFileKey, .isDirectoryKey, .fileSizeKey], options: [.skipsHiddenFiles])
         guard let enumerator else {
             return lastResult
@@ -43,7 +51,7 @@ public actor FileScanner {
 
         var selectedFiles: [URL] = []
 
-        for case let fileURL as URL in enumerator {
+        while let fileURL = enumerator.nextObject() as? URL {
             if fileURL.standardizedFileURL.path.hasPrefix(corruptedDirURL.path) {
                 enumerator.skipDescendants()
                 continue
@@ -58,41 +66,127 @@ public actor FileScanner {
         }
 
         var result = ScanResult(
-            totalFiles: 0,
+            totalFiles: selectedFiles.count,
             corruptedFiles: [],
             breakdowns: Dictionary(uniqueKeysWithValues: EbookFileType.allCases.map { ($0, FormatBreakdown()) })
         )
+        
+        var validatedFiles: [ValidationResult] = []
+        let semaphore = SimpleSemaphore(count: maxConcurrentValidations)
+        var validationTimes: [EbookFileType: [TimeInterval]] = [:]
+        var externalToolCalls = 0
+        var cacheHits = 0
 
-        for (index, fileURL) in selectedFiles.enumerated() {
-            let type = EbookFileType(pathExtension: fileURL.pathExtension)!
 
-            result.totalFiles += 1
+        await withThrowingTaskGroup(of: ValidationResult.self) { group in
+            var filesToProcess = selectedFiles.map { (false, $0) } // (isSubmitted, fileURL)
+            var submittedCount = 0
+            var completedCount = 0
+
+            // Function to submit a new task if available and within batch limit
+            func submitNextTask() async {
+                guard submittedCount < selectedFiles.count else { return }
+
+                if let indexToSubmit = filesToProcess.firstIndex(where: { !$0.0 }) {
+                    filesToProcess[indexToSubmit].0 = true
+                    submittedCount += 1
+                    
+                    let fileURL = filesToProcess[indexToSubmit].1
+
+                    group.addTask {
+                        await semaphore.wait() // Wait for a slot in the concurrency limit
+                        
+                        let concurrentCount = await self.maxConcurrentValidations - semaphore.currentCount
+                        progress?(ProgressEvent(
+                            stage: .validatingFile(fileURL),
+                            completed: completedCount, // Use completed count for progress
+                            total: selectedFiles.count,
+                            currentItem: fileURL.lastPathComponent,
+                            concurrentValidationCount: concurrentCount
+                        ))
+                        
+                        let validationStartTime = Date()
+                        
+                        let attributes = try? FileManager.default.attributesOfItem(atPath: fileURL.path)
+                        let size = (attributes?[.size] as? NSNumber)?.int64Value ?? 0
+                        let modDate = (attributes?[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0
+                        
+                        if let cachedResult = await self.validator.cache.get(forKey: ValidationCache.cacheKey(for: fileURL, size: size, modDate: modDate)) {
+                            cacheHits += 1
+                            semaphore.signal()
+                            return cachedResult
+                        }
+
+                        let validation = await self.validator.validate(url: fileURL)
+                        let validationTime = Date().timeIntervalSince(validationStartTime)
+
+                        if self.validator.useExternalEPUBValidator || self.validator.useExternalPDFValidator {
+                            externalToolCalls += 1
+                        }
+
+                        let fileType = EbookFileType(pathExtension: fileURL.pathExtension)!
+                        if validationTimes[fileType] == nil {
+                            validationTimes[fileType] = []
+                        }
+                        validationTimes[fileType]?.append(validationTime)
+                        
+                        semaphore.signal()
+                        return validation
+                    }
+                }
+            }
+
+            // Initially fill the task group up to the batch size
+            for _ in 0..<min(validationBatchSize, selectedFiles.count) {
+                await submitNextTask()
+            }
+            
+            // Process results as they come and submit new tasks
+            do {
+                for try await validation in group {
+                    validatedFiles.append(validation)
+                    completedCount += 1
+                    
+                    let concurrentCount = await self.maxConcurrentValidations - semaphore.currentCount
+                    progress?(ProgressEvent(
+                        stage: .scanningFiles, // Or a more specific 'validationComplete' stage
+                        completed: completedCount,
+                        total: selectedFiles.count,
+                        currentItem: validation.url.lastPathComponent,
+                        concurrentValidationCount: concurrentCount
+                    ))
+                    
+                    await submitNextTask() // Submit a new task to keep the pipeline full
+                }
+            } catch {
+                // Handle or propagate the error
+                print("Error during validation: \(error)")
+            }
+        }
+        
+        for validation in validatedFiles {
+            let type = EbookFileType(pathExtension: validation.url.pathExtension)!
             result.breakdowns[type, default: FormatBreakdown()].total += 1
-
-            progress?(ProgressEvent(
-                stage: .validatingFile(fileURL),
-                completed: index,
-                total: selectedFiles.count,
-                currentItem: fileURL.lastPathComponent
-            ))
-
-            let validation = validator.validate(url: fileURL, as: type)
             if !validation.isValid {
-                let attributes = try fileManager.attributesOfItem(atPath: fileURL.path)
-                let size = (attributes[.size] as? NSNumber)?.int64Value ?? 0
-                result.corruptedFiles.append(CorruptedFile(url: fileURL, reason: validation.reason, size: size, status: validation.status, fingerprint: validation.fingerprint, epubComplianceDetails: validation.epubComplianceDetails))
+                result.corruptedFiles.append(CorruptedFile(url: validation.url, reason: validation.reason, size: validation.size, status: validation.status, fingerprint: validation.fingerprint, pdfValidationDetails: validation.pdfValidationDetails, epubComplianceDetails: validation.epubComplianceDetails))
                 var breakdown = result.breakdowns[type] ?? FormatBreakdown()
                 breakdown.corrupted += 1
                 result.breakdowns[type] = breakdown
             }
-
-            progress?(ProgressEvent(
-                stage: .scanningFiles,
-                completed: index + 1,
-                total: selectedFiles.count,
-                currentItem: fileURL.lastPathComponent
-            ))
         }
+
+        let totalValidationTime = Date().timeIntervalSince(startTime)
+        let totalFiles = Double(selectedFiles.count)
+        
+        self.performanceMetrics = PerformanceMetrics(
+            filesPerSecond: totalFiles / totalValidationTime,
+            totalValidationTime: totalValidationTime,
+            averageValidationTimePerFile: totalValidationTime / totalFiles,
+            externalToolCallCount: externalToolCalls,
+            cacheHitRate: totalFiles > 0 ? Double(cacheHits) / totalFiles : 0,
+            parallelEfficiencyRatio: totalFiles > 0 ? (totalValidationTime / totalFiles) / (totalValidationTime / (totalFiles * Double(maxConcurrentValidations))) : 0,
+            validationTimeByFormat: validationTimes.mapValues { $0.reduce(0, +) / Double($0.count) }
+        )
 
         lastResult = result
         return result
@@ -355,7 +449,7 @@ public actor FileScanner {
                 currentItem: corrupted.url.lastPathComponent
             ))
 
-            let result = repairer.repair(url: corrupted.url)
+            let result = await repairer.repair(url: corrupted.url)
             outcomes.append(result)
             if result.fixed {
                 repairedCount += 1
