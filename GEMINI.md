@@ -18,6 +18,7 @@ The project is well-structured, with a clear separation of concerns, a comprehen
 
 My purpose is to assist in the development and maintenance of the EbookMechanic project. I can help with a variety of tasks, including:
 
+*   **Performance Optimization**: Implemented a parallel validation system using Swift actors and a `TaskGroup` to significantly improve scanning performance. This includes a `ValidationQueue` for fair task distribution and a caching mechanism in the `FileValidator` to avoid re-validating unchanged files.
 *   **Code Generation:** Writing new code for features, bug fixes, or improvements in Swift.
 *   **Code Refactoring:** Improving the structure and quality of the existing codebase.
 *   **Test Generation:** Creating new unit tests and UI tests to ensure the project's reliability.
