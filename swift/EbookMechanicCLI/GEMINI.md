@@ -19,7 +19,7 @@ This package depends on `EbookMechanicCore` for its underlying functionality.
 
 My purpose is to assist in the development and maintenance of the `EbookMechanicCLI` package. I can help with a variety of tasks, including:
 
-*   **Adding New Commands and Options:** Extending the CLI with new commands and options to expose new features from the core library.
+*   **Adding New Commands and Options:** Extending the CLI with new commands and options to expose new features from the core library, such as `--max-concurrent`, `--no-cache`, and `--performance-stats`.
 *   **Improving the User Interface:** Enhancing the usability and appearance of the command-line interface.
 *   **Implementing New Features:** Adding new features to the CLI, such as new reporting formats or output options.
 *   **Writing Tests:** Creating new tests to ensure the correctness of the CLI's behavior.

@@ -19,7 +19,7 @@ This package depends on `EbookMechanicCore` for its underlying functionality and
 
 My purpose is to assist in the development and maintenance of the `EbookMechanicApp` package. I can help with a variety of tasks, including:
 
-*   **UI/UX Development:** Designing and implementing new views and improving the overall user experience of the app.
+*   **UI/UX Development:** Designing and implementing new views and improving the overall user experience of the app. This includes adding controls for configuring parallel validation and caching, and displaying performance metrics.
 *   **Feature Implementation:** Adding new features to the app, such as those listed in the "Future Enhancements" section of the README.
 *   **State Management:** Improving the state management of the app to ensure a robust and predictable user experience.
 *   **Writing UI Tests:** Creating new UI tests to ensure the correctness of the app's user interface and behavior.

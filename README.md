@@ -28,6 +28,9 @@ EbookMechanic is a powerful command-line tool suite for managing ebook libraries
 - 📄 **Detailed Reports** - Multi-format reports (Markdown, JSON, CSV, HTML) with comprehensive statistics.
 - 🔒 **Safe Operations** - Dry-run mode, backups, and confirmation prompts
 - ⚡ **High Performance** - Optimized scanning and concurrent processing
+  - **Parallel Validation**: Concurrently validate multiple ebooks to maximize performance.
+  - **Caching**: Avoid re-validating unchanged files with an intelligent caching layer.
+  - **Performance Statistics**: Get detailed performance metrics to analyze and optimize your scans.
 
 ## Implementations
 
@@ -177,6 +180,9 @@ ebook-mechanic --use-epubcheck --use-pdfcpu
 
 # Generate reports in multiple formats
 ebook-mechanic --report --report-formats json,csv,html
+
+# Run with parallel validation and performance stats
+ebook-mechanic --max-concurrent 8 --performance-stats
 ```
 
 ## Project Structure

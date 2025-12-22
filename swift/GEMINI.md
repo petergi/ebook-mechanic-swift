@@ -18,6 +18,7 @@ The Swift implementation is built using modern Swift practices, including actor-
 
 My purpose is to assist in the development and maintenance of the Swift implementation of the EbookMechanic project. I can help with a variety of tasks, including:
 
+*   **Performance Optimization**: Implemented a parallel validation system using Swift actors and a `TaskGroup` to significantly improve scanning performance. This includes a `ValidationQueue` for fair task distribution and a caching mechanism in the `FileValidator` to avoid re-validating unchanged files.
 *   **Swift Code Generation:** Writing new Swift code for features, bug fixes, or improvements.
 *   **Code Refactoring:** Improving the structure and quality of the existing Swift codebase.
 *   **Test Generation:** Creating new unit tests and UI tests for the Swift packages.

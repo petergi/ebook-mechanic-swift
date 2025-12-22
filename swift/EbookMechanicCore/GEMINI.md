@@ -21,6 +21,7 @@ This package is written in pure Swift, has no external dependencies, and is desi
 My purpose is to assist in the development and maintenance of the `EbookMechanicCore` package. I can help with a variety of tasks, including:
 
 *   **Adding Support for New Formats:** Extending the validation and repair capabilities to support new ebook formats.
+*   **Performance Optimization**: Implemented a parallel validation system using Swift actors and a `TaskGroup` in the `FileScanner`. This includes a `ValidationQueue` for fair task distribution and a caching mechanism in the `FileValidator` to avoid re-validating unchanged files.
 *   **Improving Existing Algorithms:** Enhancing the performance and accuracy of the file scanning, validation, and repair algorithms.
 *   **Writing Unit Tests:** Creating new unit tests to ensure the reliability and correctness of the core logic.
 *   **Refactoring Code:** Improving the structure and quality of the codebase while maintaining its performance and correctness.
