@@ -46,6 +46,8 @@ struct ScanOptions {
     var maxConcurrentValidations: Int = 1
     /// Whether to use the validation cache.
     var useCache: Bool = true
+    /// Selected report formats to generate.
+    var selectedReportFormats: Set<ReportFormat> = [.markdown]
     /// Whether to show performance metrics after the scan.
     var showPerformanceMetrics: Bool = false
 }

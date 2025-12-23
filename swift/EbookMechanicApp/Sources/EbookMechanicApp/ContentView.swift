@@ -104,7 +104,20 @@ struct ContentView: View {
                 Slider(value: Binding(get: { Double(options.maxConcurrentValidations) }, set: { options.maxConcurrentValidations = Int($0) }), in: 1...16, step: 1)
                     .disabled(viewModel.isScanning)
             }
-
+            
+            VStack(alignment: .leading) {
+                Text("Report Formats:")
+                HStack {
+                    ForEach(ReportFormat.allCases, id: \.self) { format in
+                        Toggle(format.rawValue.capitalized, isOn: Binding(
+                            get: { options.selectedReportFormats.contains(format) },
+                            set: { if $0 { options.selectedReportFormats.insert(format) } else { options.selectedReportFormats.remove(format) } }
+                        ))
+                        .disabled(viewModel.isScanning)
+                    }
+                }
+            }
+            
             HStack(spacing: 16) {
                 Toggle("Use Cache", isOn: $options.useCache)
                     .disabled(viewModel.isScanning)
