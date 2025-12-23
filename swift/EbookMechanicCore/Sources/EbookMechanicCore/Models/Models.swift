@@ -73,6 +73,7 @@ public struct CorruptedFile: Sendable, Codable, Equatable {
 public struct ScanResult: Sendable, Codable, Equatable {
     public var totalFiles: Int
     public var corruptedFiles: [CorruptedFile]
+    public var okFiles: [ValidationResult]
     public var breakdowns: [EbookFileType: FormatBreakdown]
     public var emptyFolders: [URL]
     public var totalFolders: Int
@@ -86,6 +87,7 @@ public struct ScanResult: Sendable, Codable, Equatable {
     public init(
         totalFiles: Int = 0,
         corruptedFiles: [CorruptedFile] = [],
+        okFiles: [ValidationResult] = [],
         breakdowns: [EbookFileType: FormatBreakdown] = [:],
         emptyFolders: [URL] = [],
         totalFolders: Int = 0,
@@ -97,6 +99,7 @@ public struct ScanResult: Sendable, Codable, Equatable {
     ) {
         self.totalFiles = totalFiles
         self.corruptedFiles = corruptedFiles
+        self.okFiles = okFiles
         self.breakdowns = breakdowns
         self.emptyFolders = emptyFolders
         self.totalFolders = totalFolders

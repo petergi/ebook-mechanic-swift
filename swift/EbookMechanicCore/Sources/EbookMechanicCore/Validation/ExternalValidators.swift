@@ -105,6 +105,18 @@ public struct ExternalValidators {
             return ValidationResult(originalIndex: 0, url: url, size: size, isValid: false, reason: "Failed to run pdfcpu: \(error.localizedDescription)", status: .validationError)
         }
     }
+    
+    public static func optimizePDF(at path: String) async -> (Bool, String) {
+        do {
+            let (terminationStatus, output) = try await toolRunner.runTool(
+                executableURL: URL(fileURLWithPath: "/usr/bin/env"),
+                arguments: ["pdfcpu", "optimize", path]
+            )
+            return (terminationStatus == 0, output)
+        } catch {
+            return (false, "Failed to run pdfcpu: \(error.localizedDescription)")
+        }
+    }
 }
 
 // MARK: - EpubCheck JSON Structures

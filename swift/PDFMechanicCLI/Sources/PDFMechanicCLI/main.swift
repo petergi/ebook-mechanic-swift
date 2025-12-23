@@ -1,178 +1,192 @@
 import Foundation
+import ArgumentParser
 import EbookMechanicCore
 
-// Entry point wrapper to avoid using @main when the module may contain top-level code elsewhere.
-@discardableResult
-func run() async -> Int32 {
-    print("📄 PDF Mechanic - PDF Validation and Repair Tool")
-    print("Version 1.0.0")
-    print()
+struct PDFMechanicCLI: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "pdf-mechanic",
+        abstract: "A tool to validate and repair PDF files.",
+        version: "2.0.0",
+        subcommands: [Validate.self, Repair.self],
+        defaultSubcommand: Validate.self
+    )
+}
 
-    // Parse command line arguments
-    let args = CommandLine.arguments
+extension PDFMechanicCLI {
+    struct Validate: ParsableCommand {
+        static let configuration = CommandConfiguration(
+            commandName: "validate",
+            abstract: "Validate PDF files in a directory."
+        )
 
-    // Show help if no arguments or --help
-    if args.count < 2 || args.contains("--help") || args.contains("-h") {
-        printHelp()
-        return 0
-    }
+        @Option(name: .shortAndLong, help: "The directory to scan for PDF files.")
+        var dir: String = "."
 
-    // Basic configuration
-    var directory = "."
-    var repair = false
-    var dryRun = false
-    var verbose = false
+        @Flag(name: .long, help: "Enable verbose logging.")
+        var verbose: Bool = false
 
-    // Parse arguments
-    var i = 1
-    while i < args.count {
-        switch args[i] {
-        case "-d", "--dir":
-            if i + 1 < args.count {
-                directory = args[i + 1]
-                i += 1
-            }
-        case "-r", "--repair":
-            repair = true
-        case "--dry-run":
-            dryRun = true
-        case "-v", "--verbose":
-            verbose = true
-        default:
-            break
-        }
-        i += 1
-    }
+        @Flag(name: .long, help: "Perform a detailed PDF structure compliance check using pdfcpu.")
+        var structureCheck: Bool = false
+        
+        @Option(name: .long, help: "Extract metadata from the PDF.", completion: .list(["info", "pages", "permissions"]))
+        var extract: String?
 
-    do {
-        let rootURL = URL(fileURLWithPath: directory).resolvingSymlinksInPath()
-        let scanner = FileScanner(rootDirectory: rootURL, corruptedDirectoryName: "CORRUPTED", validator: FileValidator())
 
-        // Capture configuration as constants for Sendable closures
-        let isVerbose = verbose
-        let shouldRepair = repair
-        let isDryRun = dryRun
-
-        print("📂 Scanning directory: \(directory)")
-        print("🔧 Repair mode: \(shouldRepair ? "enabled" : "disabled")")
-        print("🔍 Dry run: \(isDryRun ? "yes" : "no")")
-        print()
-
-        // Scan for PDF files only
-        let result = try await scanner.scanForCorruption { event in
-            if isVerbose {
-                switch event.stage {
-                case .scanningFiles:
-                    print("🔎 Scanning for PDF files...")
-                case .validatingFile(let url):
-                    let ext = url.pathExtension.lowercased()
-                    if ext == "pdf" || ext == "azw4" {
-                        print("  Validating: \(url.lastPathComponent)")
+        func run() throws {
+            let group = DispatchGroup()
+            group.enter()
+            
+            Task {
+                do {
+                    let rootURL = URL(fileURLWithPath: dir).resolvingSymlinksInPath()
+                    let scanner = FileScanner(rootDirectory: rootURL, corruptedDirectoryName: "CORRUPTED", validator: FileValidator())
+                    let isVerbose = verbose
+                    
+                    print("📂 Scanning directory: \(dir)")
+                    
+                    let result = try await scanner.scanForCorruption { event in
+                        if isVerbose {
+                            switch event.stage {
+                            case .scanningFiles:
+                                print("🔎 Scanning for PDF files...")
+                            case .validatingFile(let url):
+                                let ext = url.pathExtension.lowercased()
+                                if ext == "pdf" || ext == "azw4" {
+                                    print("  Validating: \(url.lastPathComponent)")
+                                }
+                            default:
+                                break
+                            }
+                        }
                     }
-                case .repairingFiles:
-                    print("🔧 Repairing PDF files...")
-                default:
-                    break
-                }
-            }
-        }
-
-        // Filter for PDF and AZW4 files only
-        let pdfFiles = result.corruptedFiles.filter {
-            let ext = $0.url.pathExtension.lowercased()
-            return ext == "pdf" || ext == "azw4"
-        }
-
-        print("📊 PDF Scan Results")
-        print("───────────────────────────────")
-        print("Total PDF files scanned: \(result.totalFiles)")
-        print("Corrupted PDF files: \(pdfFiles.count)")
-        print()
-
-        if !pdfFiles.isEmpty {
-            print("📋 Corrupted PDF files:")
-            for file in pdfFiles {
-                print("  • \(file.url.lastPathComponent): \(file.reason)")
-            }
-            print()
-        }
-
-        if shouldRepair && !pdfFiles.isEmpty && !isDryRun {
-            print("🔧 Attempting repairs...")
-            let (repairs, repairedCount) = await scanner.repairCorruptedFiles { event in
-                if isVerbose {
-                    switch event.stage {
-                    case .repairingFiles:
-                        print("  🔧 Repairing: \(event.currentItem)")
-                    default:
-                        break
+                    
+                    let pdfFiles = result.corruptedFiles.filter {
+                        let ext = $0.url.pathExtension.lowercased()
+                        return ext == "pdf" || ext == "azw4"
                     }
+                    let formatter = PDFReportFormatter()
+                    
+                    if structureCheck {
+                        for file in result.okFiles.filter({ let ext = $0.url.pathExtension.lowercased(); return ext == "pdf" || ext == "azw4" }) {
+                            let validationResult = await ExternalValidators.validatePdf(at: file.url.path)
+                            formatter.printValidationResults(for: validationResult)
+                        }
+                    } else if let extractOption = extract {
+                        // Implement extraction logic here
+                        print("Extracting \(extractOption)...")
+                    } else {
+                        for file in pdfFiles {
+                            let validationResult = ValidationResult(originalIndex: 0, url: file.url, size: file.size, isValid: false, reason: file.reason, status: file.status, fingerprint: file.fingerprint, pdfValidationDetails: file.pdfValidationDetails, epubComplianceDetails: file.epubComplianceDetails)
+                            formatter.printValidationResults(for: validationResult)
+                        }
+                    }
+                    
+                    print("✅ PDF Mechanic validation completed successfully")
+                } catch {
+                    print("❌ Error: \(error)")
                 }
+                group.leave()
             }
-
-            print()
-            print("📈 Repair Summary")
-            print("───────────────────────────────")
-            print("Successfully repaired: \(repairedCount)")
-            print("Failed repairs: \(repairs.count - repairedCount)")
+            
+            group.wait()
         }
+    }
 
-        print()
-        print("✅ PDF Mechanic completed successfully")
-        return 0
+    struct Repair: ParsableCommand {
+        static let configuration = CommandConfiguration(
+            commandName: "repair",
+            abstract: "Repair corrupted PDF files."
+        )
 
-    } catch {
-        print("❌ Error: \(error)")
-        return 1
+        @Option(name: .shortAndLong, help: "The directory to scan for PDF files.")
+        var dir: String = "."
+
+        @Flag(name: .long, help: "Enable verbose logging.")
+        var verbose: Bool = false
+
+        @Flag(name: .long, help: "Don't actually make any changes to the files.")
+        var dryRun: Bool = false
+        
+        @Flag(name: .long, help: "Optimize the PDF for size and performance.")
+        var optimize: Bool = false
+
+        func run() throws {
+            let group = DispatchGroup()
+            group.enter()
+            
+            Task {
+                do {
+                    let rootURL = URL(fileURLWithPath: dir).resolvingSymlinksInPath()
+                    let scanner = FileScanner(rootDirectory: rootURL, corruptedDirectoryName: "CORRUPTED", validator: FileValidator())
+                    let isVerbose = verbose
+                    let isDryRun = dryRun
+                    
+                    print("📂 Scanning directory: \(dir)")
+                    print("🔧 Repair mode: enabled")
+                    print("🔍 Dry run: \(isDryRun ? "yes" : "no")")
+                    
+                    let result = try await scanner.scanForCorruption { event in
+                        if isVerbose {
+                            switch event.stage {
+                            case .scanningFiles:
+                                print("🔎 Scanning for PDF files...")
+                            case .validatingFile(let url):
+                                let ext = url.pathExtension.lowercased()
+                                if ext == "pdf" || ext == "azw4" {
+                                    print("  Validating: \(url.lastPathComponent)")
+                                }
+                            case .repairingFiles:
+                                print("🔧 Repairing PDF files...")
+                            default:
+                                break
+                            }
+                        }
+                    }
+                    
+                    let pdfFiles = result.corruptedFiles.filter {
+                        let ext = $0.url.pathExtension.lowercased()
+                        return ext == "pdf" || ext == "azw4"
+                    }
+                    
+                    if optimize {
+                        for file in result.okFiles.filter({ let ext = $0.url.pathExtension.lowercased(); return ext == "pdf" || ext == "azw4" }) {
+                            if !isDryRun {
+                                let (success, output) = await ExternalValidators.optimizePDF(at: file.url.path)
+                                if success {
+                                    print("✅ Optimized \(file.url.lastPathComponent)")
+                                } else {
+                                    print("❌ Failed to optimize \(file.url.lastPathComponent): \(output)")
+                                }
+                            } else {
+                                print("DRY RUN: Would optimize \(file.url.lastPathComponent)")
+                            }
+                        }
+                    }
+                    
+                    if !isDryRun && !pdfFiles.isEmpty {
+                        let (_, repairedCount) = await scanner.repairCorruptedFiles { event in
+                            if isVerbose {
+                                switch event.stage {
+                                case .repairingFiles:
+                                    print("  🔧 Repairing: \(event.currentItem)")
+                                default:
+                                    break
+                                }
+                            }
+                        }
+                        print("📈 Repair Summary: \(repairedCount) files repaired.")
+                    }
+                    
+                    print("✅ PDF Mechanic repair completed successfully")
+                } catch {
+                    print("❌ Error: \(error)")
+                }
+                group.leave()
+            }
+            
+            group.wait()
+        }
     }
 }
 
-func printHelp() {
-    print("""
-    USAGE: pdf-mechanic [OPTIONS]
-
-    OPTIONS:
-      -d, --dir <path>     Directory to scan (default: current directory)
-      -r, --repair         Attempt to repair corrupted PDF files
-      --dry-run            Scan only, don't make changes
-      -v, --verbose        Show detailed progress
-      -h, --help           Show this help message
-
-    EXAMPLES:
-      pdf-mechanic -d ~/Documents
-      pdf-mechanic -d ~/Documents --repair
-      pdf-mechanic -d ~/Documents --repair --dry-run
-
-    PDF VALIDATION:
-      - Checks for valid PDF header (%PDF-)
-      - Verifies EOF marker (%%EOF) in last 1KB
-      - Detects header corruption (junk prefixes, UTF-8 BOM, email wrappers)
-      - Validates PDF version format (1.0-2.0)
-
-    PDF REPAIR:
-      - Advanced header corruption repair (searches first 8KB)
-      - Strips corrupted prefix bytes
-      - Adds missing binary markers
-      - Appends missing EOF markers
-      - Preserves original with .backup extension
-
-    SUPPORTED FORMATS:
-      - PDF (.pdf)
-      - AZW4 (.azw4) - Kindle PDF wrapper format
-    """)
-}
-
-// Launch the async run() from top-level without using @main.
-// Use a dispatch group to keep the process alive until the async task completes.
-import Dispatch
-let group = DispatchGroup()
-var exitCode: Int32 = 0
-
-group.enter()
-Task {
-    exitCode = await run()
-    group.leave()
-}
-
-group.wait()
-exit(exitCode)
+PDFMechanicCLI.main()

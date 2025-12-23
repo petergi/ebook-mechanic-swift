@@ -5,7 +5,7 @@ public actor FileScanner {
     public typealias ProgressHandler = @Sendable (ProgressEvent) -> Void
 
     private let fileManager: FileManager
-    private let validator: FileValidatorProtocol
+    private let validator: FileValidator
     private let repairer: FileRepairer
 
     private let rootDirectory: URL
@@ -25,7 +25,7 @@ public actor FileScanner {
         reportFormats: [ReportFormat] = [.markdown],
         maxConcurrentValidations: Int = ProcessInfo.processInfo.activeProcessorCount,
         validationBatchSize: Int? = nil,
-        validator: FileValidatorProtocol,
+        validator: FileValidator,
         repairer: FileRepairer? = nil
     ) {
         self.rootDirectory = rootDirectory
@@ -172,6 +172,8 @@ public actor FileScanner {
                 var breakdown = result.breakdowns[type] ?? FormatBreakdown()
                 breakdown.corrupted += 1
                 result.breakdowns[type] = breakdown
+            } else {
+                result.okFiles.append(validation)
             }
         }
 
@@ -483,6 +485,10 @@ public actor FileScanner {
             generatedReportURLs.append(reportURL)
         }
         return generatedReportURLs
+    }
+    
+    public func getPerformanceMetrics() -> PerformanceMetrics {
+        return performanceMetrics
     }
 
     private func directoryContainsEbookFiles(_ url: URL) throws -> Bool {

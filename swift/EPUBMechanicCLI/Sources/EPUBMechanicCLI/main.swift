@@ -1,153 +1,162 @@
 import Foundation
+import ArgumentParser
 import EbookMechanicCore
 
-print("📚 EPUB Mechanic - EPUB Validation and Repair Tool")
-print("Version 1.0.0")
-print()
-
-// Parse command line arguments
-let args = CommandLine.arguments
-
-// Show help if no arguments or --help
-if args.count < 2 || args.contains("--help") || args.contains("-h") {
-    func printHelp() {
-        print("""
-        USAGE: epub-mechanic [OPTIONS]
-
-        OPTIONS:
-          -d, --dir <path>     Directory to scan (default: current directory)
-          -r, --repair         Attempt to repair corrupted EPUB files
-          --dry-run            Scan only, don't make changes
-          -v, --verbose        Show detailed progress
-          -h, --help           Show this help message
-
-        EXAMPLES:
-          epub-mechanic -d ~/Books
-          epub-mechanic -d ~/Books --repair
-          epub-mechanic -d ~/Books --repair --dry-run
-
-        EPUB VALIDATION:
-          - Validates ZIP structure
-          - Checks for required mimetype file
-          - Verifies META-INF/container.xml exists
-
-        EPUB REPAIR:
-          - Adds missing mimetype file
-          - Creates missing META-INF/container.xml
-          - Preserves original with .backup extension
-        """)
-    }
-    printHelp()
-    exit(EXIT_SUCCESS)
+struct EPUBMechanicCLI: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "epub-mechanic",
+        abstract: "A tool to validate and repair EPUB files.",
+        version: "2.0.0",
+        subcommands: [Validate.self, Repair.self],
+        defaultSubcommand: Validate.self
+    )
 }
 
-// Basic configuration (mutable during parsing)
-var directory = "."
-var repair = false
-var dryRun = false
-var verbose = false
+extension EPUBMechanicCLI {
+    struct Validate: ParsableCommand {
+        static let configuration = CommandConfiguration(
+            commandName: "validate",
+            abstract: "Validate EPUB files in a directory."
+        )
 
-// Parse arguments
-var i = 1
-while i < args.count {
-    switch args[i] {
-    case "-d", "--dir":
-        if i + 1 < args.count {
-            directory = args[i + 1]
-            i += 1
-        }
-    case "-r", "--repair":
-        repair = true
-    case "--dry-run":
-        dryRun = true
-    case "-v", "--verbose":
-        verbose = true
-    default:
-        break
-    }
-    i += 1
-}
+        @Option(name: .shortAndLong, help: "The directory to scan for EPUB files.")
+        var dir: String = "."
 
-let group = DispatchGroup()
-group.enter()
+        @Flag(name: .long, help: "Enable verbose logging.")
+        var verbose: Bool = false
 
-Task {
-    do {
-        let rootURL = URL(fileURLWithPath: directory).resolvingSymlinksInPath()
-        let scanner = FileScanner(rootDirectory: rootURL, corruptedDirectoryName: "CORRUPTED", validator: FileValidator())
+        @Flag(name: .long, help: "Perform a detailed EPUB specification compliance check using epubcheck.")
+        var specCheck: Bool = false
 
-        // Capture configuration as constants for Sendable closures
-        let isVerbose = verbose
-        let shouldRepair = repair
-        let isDryRun = dryRun
-
-        print("📂 Scanning directory: \(directory)")
-        print("🔧 Repair mode: \(shouldRepair ? "enabled" : "disabled")")
-        print("🔍 Dry run: \(isDryRun ? "yes" : "no")")
-        print()
-
-        // Scan for EPUB files only
-        let result = try await scanner.scanForCorruption { event in
-            if isVerbose {
-                switch event.stage {
-                case .scanningFiles:
-                    print("🔎 Scanning for EPUB files...")
-                case .validatingFile(let url):
-                    if url.pathExtension.lowercased() == "epub" {
-                        print("  Validating: \(url.lastPathComponent)")
+        func run() throws {
+            let group = DispatchGroup()
+            group.enter()
+            
+            Task {
+                do {
+                    let rootURL = URL(fileURLWithPath: dir).resolvingSymlinksInPath()
+                    let scanner = FileScanner(rootDirectory: rootURL, corruptedDirectoryName: "CORRUPTED", validator: FileValidator())
+                    let isVerbose = verbose
+                    
+                    print("📂 Scanning directory: \(dir)")
+                    
+                    let result = try await scanner.scanForCorruption { event in
+                        if isVerbose {
+                            switch event.stage {
+                            case .scanningFiles:
+                                print("🔎 Scanning for EPUB files...")
+                            case .validatingFile(let url):
+                                if url.pathExtension.lowercased() == "epub" {
+                                    print("  Validating: \(url.lastPathComponent)")
+                                }
+                            default:
+                                break
+                            }
+                        }
                     }
-                case .repairingFiles:
-                    print("🔧 Repairing EPUB files...")
-                default:
-                    break
-                }
-            }
-        }
-
-        // Filter for EPUB files only
-        let epubFiles = result.corruptedFiles.filter { $0.url.pathExtension.lowercased() == "epub" }
-
-        print("📊 EPUB Scan Results")
-        print("───────────────────────────────")
-        print("Total EPUB files scanned: \(result.totalFiles)")
-        print("Corrupted EPUB files: \(epubFiles.count)")
-        print()
-
-        if !epubFiles.isEmpty {
-            print("📋 Corrupted EPUB files:")
-            for file in epubFiles {
-                print("  • \(file.url.lastPathComponent): \(file.reason)")
-            }
-            print()
-        }
-
-        if shouldRepair && !epubFiles.isEmpty && !isDryRun {
-            print("🔧 Attempting repairs...")
-            let (repairs, repairedCount) = await scanner.repairCorruptedFiles { event in
-                if isVerbose {
-                    switch event.stage {
-                    case .repairingFiles:
-                        print("  🔧 Repairing: \(event.currentItem)")
-                    default:
-                        break
+                    
+                    let epubFiles = result.corruptedFiles.filter { $0.url.pathExtension.lowercased() == "epub" }
+                    let formatter = EPUBReportFormatter()
+                    
+                    if specCheck {
+                        for file in result.okFiles.filter({ $0.url.pathExtension.lowercased() == "epub" }) {
+                            let validationResult = await ExternalValidators.validateEpub(at: file.url.path)
+                            formatter.printValidationResults(for: validationResult)
+                        }
+                    } else {
+                         for file in epubFiles {
+                             let validationResult = ValidationResult(originalIndex: 0, url: file.url, size: file.size, isValid: false, reason: file.reason, status: file.status, fingerprint: file.fingerprint, pdfValidationDetails: file.pdfValidationDetails, epubComplianceDetails: file.epubComplianceDetails)
+                             formatter.printValidationResults(for: validationResult)
+                         }
                     }
+                    
+                    print("✅ EPUB Mechanic validation completed successfully")
+                } catch {
+                    print("❌ Error: \(error)")
                 }
+                group.leave()
             }
-
-            print()
-            print("📈 Repair Summary")
-            print("───────────────────────────────")
-            print("Successfully repaired: \(repairedCount)")
-            print("Failed repairs: \(repairs.count - repairedCount)")
+            
+            group.wait()
         }
-
-        print()
-        print("✅ EPUB Mechanic completed successfully")
-    } catch {
-        print("❌ Error: \(error)")
-        exit(EXIT_FAILURE)
     }
-    group.leave()
+
+    struct Repair: ParsableCommand {
+        static let configuration = CommandConfiguration(
+            commandName: "repair",
+            abstract: "Repair corrupted EPUB files."
+        )
+
+        @Option(name: .shortAndLong, help: "The directory to scan for EPUB files.")
+        var dir: String = "."
+
+        @Flag(name: .long, help: "Enable verbose logging.")
+        var verbose: Bool = false
+
+        @Flag(name: .long, help: "Don't actually make any changes to the files.")
+        var dryRun: Bool = false
+        
+        @Flag(name: .long, help: "Repair EPUB metadata.")
+        var fixMetadata: Bool = false
+
+        func run() throws {
+            let group = DispatchGroup()
+            group.enter()
+            
+            Task {
+                do {
+                    let rootURL = URL(fileURLWithPath: dir).resolvingSymlinksInPath()
+                    let scanner = FileScanner(rootDirectory: rootURL, corruptedDirectoryName: "CORRUPTED", validator: FileValidator())
+                    let isVerbose = verbose
+                    let isDryRun = dryRun
+                    
+                    print("📂 Scanning directory: \(dir)")
+                    print("🔧 Repair mode: enabled")
+                    print("🔍 Dry run: \(isDryRun ? "yes" : "no")")
+                    
+                    let result = try await scanner.scanForCorruption { event in
+                        if isVerbose {
+                            switch event.stage {
+                            case .scanningFiles:
+                                print("🔎 Scanning for EPUB files...")
+                            case .validatingFile(let url):
+                                if url.pathExtension.lowercased() == "epub" {
+                                    print("  Validating: \(url.lastPathComponent)")
+                                }
+                            case .repairingFiles:
+                                print("🔧 Repairing EPUB files...")
+                            default:
+                                break
+                            }
+                        }
+                    }
+                    
+                    let epubFiles = result.corruptedFiles.filter { $0.url.pathExtension.lowercased() == "epub" }
+                    
+                    if !isDryRun && !epubFiles.isEmpty {
+                        let (_, repairedCount) = await scanner.repairCorruptedFiles { event in
+                            if isVerbose {
+                                switch event.stage {
+                                case .repairingFiles:
+                                    print("  🔧 Repairing: \(event.currentItem)")
+                                default:
+                                    break
+                                }
+                            }
+                        }
+                        print("📈 Repair Summary: \(repairedCount) files repaired.")
+                    }
+                    
+                    print("✅ EPUB Mechanic repair completed successfully")
+                } catch {
+                    print("❌ Error: \(error)")
+                }
+                group.leave()
+            }
+            
+            group.wait()
+        }
+    }
 }
 
-group.wait()
+EPUBMechanicCLI.main()

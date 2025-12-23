@@ -33,7 +33,7 @@ extension ContentView {
             progressDetail: viewModel.progressDetail,
             isProgressVisible: viewModel.isScanning,
             statusMessages: viewModel.statusMessages,
-            reportFileName: viewModel.reportURL?.lastPathComponent,
+            reportFileName: viewModel.reportURLs?.first?.lastPathComponent,
             corruptedFileNames: viewModel.corruptedFiles.map { $0.url.lastPathComponent },
             corruptedReasons: viewModel.corruptedFiles.map { $0.reason },
             emptyFolderPaths: viewModel.emptyFolders.map { $0.path },

@@ -201,7 +201,7 @@ public struct FileValidator: FileValidatorProtocol, @unchecked Sendable {
 
             if useExternalPDFValidator {
                 let structureValidator = PDFStructureValidator()
-                switch await structureValidator.validate(url: url) {
+                switch structureValidator.validate(url: url) {
                 case .success(let pdfValidationResult):
                     // If pdfcpu says it's valid, return success with details
                     if pdfValidationResult.structureValid && pdfValidationResult.xrefValid && pdfValidationResult.pageTreeValid && pdfValidationResult.streamErrors.isEmpty {

@@ -73,10 +73,8 @@ final class ScanViewModel: ObservableObject {
     /// Human-readable log of notable events during the scan.
     @Published var statusMessages: [String] = []
     /// Location of the generated Markdown report, when `generateReport` is enabled.
-    @Published var reportURL: URL?
-    /// User-presentable error message if a failure occurs.
+    @Published var reportURLs: [URL]?
     @Published var errorMessage: String?
-    /// Performance metrics from the scan.
     @Published var performanceMetrics: PerformanceMetrics?
 
     /// Resets all published state to defaults in preparation for a new scan.
@@ -85,7 +83,7 @@ final class ScanViewModel: ObservableObject {
         emptyFolders = []
         summary = nil
         statusMessages.removeAll()
-        reportURL = nil
+        reportURLs = nil
         errorMessage = nil
         performanceMetrics = nil
         progressHeadline = ""
@@ -110,13 +108,13 @@ final class ScanViewModel: ObservableObject {
             let validator = FileValidator(
                 useExternalEPUBValidator: options.useExternalEPUBValidator,
                 useExternalPDFValidator: options.useExternalPDFValidator,
-                useCache: options.useCache
+                cacheSize: options.useCache ? 1000 : 0
             )
             let scanner = FileScanner(
                 rootDirectory: options.directory,
                 corruptedDirectoryName: options.corruptedDirectoryName,
-                validator: validator,
-                maxConcurrentValidations: options.maxConcurrentValidations
+                maxConcurrentValidations: options.maxConcurrentValidations,
+                validator: validator
             )
 
             let progressHandler: FileScanner.ProgressHandler = { [weak self] event in
@@ -128,7 +126,7 @@ final class ScanViewModel: ObservableObject {
                         self.progressDetail = url.lastPathComponent
                     case .scanningFiles:
                         self.progressHeadline = "Scanning Files"
-                        let concurrentCount = event.concurrentValidationCount > 0 ? " (\(event.concurrentValidationCount) concurrent)" : ""
+                        let concurrentCount = (event.concurrentValidationCount ?? 0) > 0 ? " (\(event.concurrentValidationCount ?? 0) concurrent)" : ""
                         self.progressDetail = "\(event.completed)/\(event.total) processed\(concurrentCount)"
                     case .scanningFolders:
                         self.progressHeadline = "Scanning Folders"
@@ -169,11 +167,11 @@ final class ScanViewModel: ObservableObject {
                     let (repairs, repairedCount) = await scanner.repairCorruptedFiles(progress: progressHandler)
                     await MainActor.run {
                         self.statusMessages.append("Repair attempts: \(repairs.count), fixed: \(repairedCount)")
-                        self.corruptedFiles = repairs.enumerated().compactMap { index, result in
+                        self.corruptedFiles = repairs.enumerated().compactMap { (index, result) -> CorruptedFile? in
                             guard index < scanResult.corruptedFiles.count else { return nil }
                             var file = scanResult.corruptedFiles[index]
                             if result.fixed {
-                                file = CorruptedFile(url: file.url, reason: "Fixed", size: file.size)
+                                file = CorruptedFile(url: file.url, reason: "Fixed", size: file.size, status: .ok)
                             }
                             return file
                         }
@@ -211,15 +209,17 @@ final class ScanViewModel: ObservableObject {
             }
 
             if options.generateReport {
-                let url = try await scanner.generateReport(into: options.directory)
+                let urls = try await scanner.generateReport(into: options.directory)
                 await MainActor.run {
-                    self.reportURL = url
-                    self.statusMessages.append("Report generated at \(url.lastPathComponent)")
+                    self.reportURLs = urls
+                    for url in urls {
+                        self.statusMessages.append("Report generated at \(url.lastPathComponent)")
+                    }
                 }
             }
 
             if options.showPerformanceMetrics {
-                let metrics = await scanner.performanceMetrics
+                let metrics = await scanner.getPerformanceMetrics()
                 await MainActor.run {
                     self.performanceMetrics = metrics
                 }

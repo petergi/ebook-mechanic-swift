@@ -1,12 +1,23 @@
 import Foundation
 
+actor ExecutionLock {
+    private(set) var concurrentExecutions = 0
+    private(set) var maxConcurrentExecutions = 0
+    
+    func increment() {
+        concurrentExecutions += 1
+        maxConcurrentExecutions = max(maxConcurrentExecutions, concurrentExecutions)
+    }
+    
+    func decrement() {
+        concurrentExecutions -= 1
+    }
+}
+
 actor ExternalToolRunner {
     private let semaphore: SimpleSemaphore
     private let maxConcurrentExternalTools: Int
-    
-    internal var maxConcurrentExecutions = 0
-    private var concurrentExecutions = 0
-    private let executionLock = NSLock()
+    private let executionLock = ExecutionLock()
 
     init(maxConcurrentExternalTools: Int = 4) {
         self.maxConcurrentExternalTools = maxConcurrentExternalTools
@@ -17,15 +28,12 @@ actor ExternalToolRunner {
         await semaphore.wait()
         defer { semaphore.signal() }
 
-        executionLock.lock()
-        concurrentExecutions += 1
-        maxConcurrentExecutions = max(maxConcurrentExecutions, concurrentExecutions)
-        executionLock.unlock()
+        await executionLock.increment()
 
         defer {
-            executionLock.lock()
-            concurrentExecutions -= 1
-            executionLock.unlock()
+            Task {
+                await executionLock.decrement()
+            }
         }
 
         return try await withCheckedThrowingContinuation { continuation in

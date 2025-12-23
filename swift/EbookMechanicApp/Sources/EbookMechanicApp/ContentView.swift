@@ -189,10 +189,12 @@ struct ContentView: View {
                     .foregroundStyle(.secondary)
             }
 
-            if let reportURL = viewModel.reportURL {
+            if let reportURLs = viewModel.reportURLs {
                 Divider()
-                Label("Report saved to \(reportURL.lastPathComponent)", systemImage: "doc.text")
-                    .font(.caption)
+                ForEach(reportURLs, id: \.self) { reportURL in
+                    Label("Report saved to \(reportURL.lastPathComponent)", systemImage: "doc.text")
+                        .font(.caption)
+                }
             }
 
             if !viewModel.statusMessages.isEmpty {
@@ -216,10 +218,8 @@ struct ContentView: View {
             if let metrics = viewModel.performanceMetrics {
                 Text("Total validation time: \(String(format: "%.2f", metrics.totalValidationTime))s")
                 Text("Files per second: \(String(format: "%.2f", metrics.filesPerSecond))")
-                Text("Average validation time: \(String(format: "%.3f", metrics.averageValidationTime))s")
+                Text("Average validation time: \(String(format: "%.3f", metrics.averageValidationTimePerFile))s")
                 Divider()
-                Text("Cache hits: \(metrics.cacheHits)")
-                Text("Cache misses: \(metrics.cacheMisses)")
                 Text("Cache hit rate: \(String(format: "%.2f", metrics.cacheHitRate * 100))%")
             } else {
                 Text("No performance data available.")
