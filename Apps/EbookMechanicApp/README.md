@@ -276,20 +276,20 @@ The app architecture uses platform-agnostic SwiftUI, making iOS/iPadOS ports str
 ```bash
 # Clean and rebuild
 make clean-all
-make app-build
+make -f Makefile.swift build-app
 ```
 
 ### App Won't Launch
 
 ```bash
 # Check build output
-make app-build
+make -f Makefile.swift build-app
 
 # Verify binary exists
-ls -la EbookMechanicApp/.build/debug/
+ls -la Apps/EbookMechanicApp/.build/debug/
 
 # Run with verbose output
-swift run --package-path EbookMechanicApp EbookMechanicApp
+swift run --package-path Apps/EbookMechanicApp EbookMechanicApp
 ```
 
 ### UI Not Updating

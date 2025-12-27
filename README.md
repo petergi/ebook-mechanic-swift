@@ -140,47 +140,47 @@ make install
 ebook-mechanic
 
 # Scan specific directory
-ebook-mechanic -dir ~/Books
+ebook-mechanic --dir ~/Books
 
 # Dry run (preview only)
-ebook-mechanic -dir ~/Books -dry-run
+ebook-mechanic --dir ~/Books --dry-run
 
 # Repair corrupted files
-ebook-mechanic -dir ~/Books -repair
+ebook-mechanic --dir ~/Books --repair
 
 # Normalize EPUB files
-ebook-mechanic -dir ~/Books -normalize-epub
+ebook-mechanic --dir ~/Books --normalize-epubs
 ```
 
 ### Advanced Options
 
 ```bash
 # Check corruption only (skip empty folders)
-ebook-mechanic -corruption-only -repair
+ebook-mechanic --corruption-only --repair
 
 # Check empty folders only
-ebook-mechanic -empty-folders-only
+ebook-mechanic --empty-folders-only
 
 # Force EPUB normalization (even if already normalized)
-ebook-mechanic -normalize-epub -force-normalize
+ebook-mechanic --normalize-epubs --force-normalize
 
 # Keep backup files after operations
-ebook-mechanic -normalize-epub -keep-backups
+ebook-mechanic --normalize-epubs --dry-run
 
 # Skip confirmation prompts
-ebook-mechanic -no-confirm
+ebook-mechanic --no-confirm
 
 # Simple text output (no TUI)
-ebook-mechanic -no-tui
+ebook-mechanic --quiet
 
 # Use external validators
-ebook-mechanic --use-epubcheck --use-pdfcpu
+ebook-mechanic --use-epubcheck
 
 # Generate reports in multiple formats
-ebook-mechanic --report --report-formats json,csv,html
+ebook-mechanic --report --report-format json
 
 # Run with parallel validation and performance stats
-ebook-mechanic --max-concurrent 8 --performance-stats
+ebook-mechanic --performance-stats
 ```
 
 ### Specialized CLI Examples

@@ -184,13 +184,19 @@ swift run --package-path Packages/EbookMechanicCLI EbookMechanicCLI --help
 | Flag | Short | Description | Default |
 |------|-------|-------------|---------|
 | `--dir` | `-d` | Directory to scan | `.` (current) |
+| `--corrupted-dir` | `-c` | Directory for corrupted files | `CORRUPTED` |
 | `--dry-run` | | Scan only, no modifications | `false` |
 | `--repair` | `-r` | Attempt to repair corrupted files | `false` |
 | `--corruption-only` | | Only check for corrupted files | `false` |
 | `--empty-folders-only` | | Only check for empty folders | `false` |
 | `--no-confirm` | | Skip confirmation prompts | `false` |
 | `--quiet` | | Reduce output verbosity | `false` |
-| `--report` | | Generate Markdown report | `false` |
+| `--report` | | Generate a report | `false` |
+| `--report-format` | | Report format (markdown/json/csv/html) | `markdown` |
+| `--normalize-epubs` | | Normalize EPUB files | `false` |
+| `--force-normalize` | | Force normalization | `false` |
+| `--use-epubcheck` | | Use epubcheck for EPUB validation | `false` |
+| `--performance-stats` | | Show performance statistics | `false` |
 
 ## Usage Examples
 
@@ -223,8 +229,8 @@ make -f Makefile.swift normalize
 make -f Makefile.swift normalize-force
 
 # Or use CLI directly
-ebook-mechanic normalize ~/Books/book.epub --dry-run
-ebook-mechanic normalize ~/Books/book.epub --force-normalize
+ebook-mechanic --dir ~/Books --normalize-epubs --dry-run
+ebook-mechanic --dir ~/Books --normalize-epubs --force-normalize
 ```
 
 ### Targeted Operations
