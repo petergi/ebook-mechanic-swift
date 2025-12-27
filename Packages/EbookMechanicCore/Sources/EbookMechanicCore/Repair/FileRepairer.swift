@@ -164,19 +164,33 @@ public struct FileRepairer: @unchecked Sendable {
 
       func createMinimalOPF(htmlFiles: [ZipEntry]) -> Data {
         let package = XMLElement(name: "package")
-        package.addAttribute(XMLNode.attribute(withName: "version", stringValue: "2.0"))
-        package.addAttribute(
-          XMLNode.attribute(withName: "unique-identifier", stringValue: "BookId"))
-        package.addNamespace(
-          XMLNode.namespace(withName: "", stringValue: "http://www.idpf.org/2007/opf"))
+        if let versionAttribute = XMLNode.attribute(withName: "version", stringValue: "2.0")
+          as? XMLNode
+        {
+          package.addAttribute(versionAttribute)
+        }
+        if let idAttribute = XMLNode.attribute(withName: "unique-identifier", stringValue: "BookId")
+          as? XMLNode
+        {
+          package.addAttribute(idAttribute)
+        }
+        if let namespace = XMLNode.namespace(withName: "", stringValue: "http://www.idpf.org/2007/opf")
+          as? XMLNode
+        {
+          package.addNamespace(namespace)
+        }
 
         let metadata = XMLElement(name: "metadata")
-        metadata.addNamespace(
-          XMLNode.namespace(withName: "dc", stringValue: "http://purl.org/dc/elements/1.1/"))
+        if let namespace = XMLNode.namespace(
+          withName: "dc", stringValue: "http://purl.org/dc/elements/1.1/"
+        ) as? XMLNode {
+          metadata.addNamespace(namespace)
+        }
         let title = XMLElement(name: "dc:title", stringValue: "Repaired EPUB")
         let identifier = XMLElement(name: "dc:identifier", stringValue: UUID().uuidString)
-        identifier.addAttribute(
-          XMLNode.attribute(withName: "id", stringValue: "BookId"))
+        if let attribute = XMLNode.attribute(withName: "id", stringValue: "BookId") as? XMLNode {
+          identifier.addAttribute(attribute)
+        }
         let language = XMLElement(name: "dc:language", stringValue: "en")
         metadata.addChild(title)
         metadata.addChild(identifier)
@@ -189,16 +203,25 @@ public struct FileRepairer: @unchecked Sendable {
         for (index, htmlFile) in htmlFiles.enumerated() {
           let id = "item-\(index + 1)"
           let item = XMLElement(name: "item")
-          item.addAttribute(XMLNode.attribute(withName: "id", stringValue: id))
-          item.addAttribute(
-            XMLNode.attribute(withName: "href", stringValue: htmlFile.name))
-          item.addAttribute(
-            XMLNode.attribute(withName: "media-type", stringValue: "application/xhtml+xml")
-          )
+          if let attribute = XMLNode.attribute(withName: "id", stringValue: id) as? XMLNode {
+            item.addAttribute(attribute)
+          }
+          if let attribute = XMLNode.attribute(withName: "href", stringValue: htmlFile.name)
+            as? XMLNode
+          {
+            item.addAttribute(attribute)
+          }
+          if let attribute = XMLNode.attribute(
+            withName: "media-type", stringValue: "application/xhtml+xml"
+          ) as? XMLNode {
+            item.addAttribute(attribute)
+          }
           manifest.addChild(item)
 
           let itemref = XMLElement(name: "itemref")
-          itemref.addAttribute(XMLNode.attribute(withName: "idref", stringValue: id))
+          if let attribute = XMLNode.attribute(withName: "idref", stringValue: id) as? XMLNode {
+            itemref.addAttribute(attribute)
+          }
           spine.addChild(itemref)
         }
 

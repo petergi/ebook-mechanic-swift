@@ -41,6 +41,8 @@ Notes:
 3. Confirm branch exists:
    - `git branch --list | rg safety/pre-refactor`
 
+Status: safety branch now exists locally.
+
 Rollback:
 
 - `git checkout safety/pre-refactor`

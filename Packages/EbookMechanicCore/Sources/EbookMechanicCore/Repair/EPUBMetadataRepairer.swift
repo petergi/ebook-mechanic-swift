@@ -116,8 +116,11 @@ public struct EPUBMetadataRepairer: @unchecked Sendable {
     let identifierId = ensureIdentifier(in: metadata, dcNamespace: dcNamespace)
     if let identifierId {
       if package.attribute(forName: "unique-identifier")?.stringValue == nil {
-        package.addAttribute(
-          XMLNode.attribute(withName: "unique-identifier", stringValue: identifierId))
+        if let attribute = XMLNode.attribute(
+          withName: "unique-identifier", stringValue: identifierId
+        ) as? XMLNode {
+          package.addAttribute(attribute)
+        }
         changed = true
       }
     }
@@ -164,8 +167,9 @@ public struct EPUBMetadataRepairer: @unchecked Sendable {
   private func ensureDublinCoreNamespace(on metadata: XMLElement, dcNamespace: String) {
     let existing = metadata.namespace(forPrefix: "dc")?.stringValue
     if existing == nil {
-      let namespace = XMLNode.namespace(withName: "dc", stringValue: dcNamespace)
-      metadata.addNamespace(namespace)
+      if let namespace = XMLNode.namespace(withName: "dc", stringValue: dcNamespace) as? XMLNode {
+        metadata.addNamespace(namespace)
+      }
     }
   }
 
@@ -187,8 +191,9 @@ public struct EPUBMetadataRepairer: @unchecked Sendable {
   private func ensureIdentifier(in metadata: XMLElement, dcNamespace: String) -> String? {
     if let identifier = metadata.elements(forLocalName: "identifier", uri: dcNamespace).first {
       if identifier.attribute(forName: "id") == nil {
-        identifier.addAttribute(
-          XMLNode.attribute(withName: "id", stringValue: "BookId"))
+        if let attribute = XMLNode.attribute(withName: "id", stringValue: "BookId") as? XMLNode {
+          identifier.addAttribute(attribute)
+        }
         return "BookId"
       }
       return identifier.attribute(forName: "id")?.stringValue
@@ -196,7 +201,9 @@ public struct EPUBMetadataRepairer: @unchecked Sendable {
 
     let identifierValue = UUID().uuidString
     let identifier = XMLElement(name: "dc:identifier", stringValue: identifierValue)
-    identifier.addAttribute(XMLNode.attribute(withName: "id", stringValue: "BookId"))
+    if let attribute = XMLNode.attribute(withName: "id", stringValue: "BookId") as? XMLNode {
+      identifier.addAttribute(attribute)
+    }
     metadata.addChild(identifier)
     return "BookId"
   }
@@ -241,8 +248,11 @@ public struct EPUBMetadataRepairer: @unchecked Sendable {
     let isoFormatter = ISO8601DateFormatter()
     isoFormatter.formatOptions = [.withInternetDateTime]
     let modified = XMLElement(name: "meta", stringValue: isoFormatter.string(from: Date()))
-    modified.addAttribute(
-      XMLNode.attribute(withName: "property", stringValue: "dcterms:modified"))
+    if let attribute = XMLNode.attribute(
+      withName: "property", stringValue: "dcterms:modified"
+    ) as? XMLNode {
+      modified.addAttribute(attribute)
+    }
     metadata.addChild(modified)
     return true
   }
