@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workspace
+   version = "1.0">
+   <FileRef
+      location = "group:Packages/EbookMechanicCore">
+   </FileRef>
+   <FileRef
+      location = "group:Packages/EbookMechanicCLI">
+   </FileRef>
+   <FileRef
+      location = "group:Apps/EbookMechanicApp">
+   </FileRef>
+   <FileRef
+      location = "group:Packages/EbookMechanicEPUBCLI">
+   </FileRef>
+   <FileRef
+      location = "group:Packages/EbookMechanicPDFCLI">
+   </FileRef>
+   <FileRef
+      location = "group:README.md">
+   </FileRef>
+   <Group
+      location = "container:"
+      name = "Docs">
+      <FileRef
+         location = "group:Docs/Swift/PDFVerifier.md">
+      </FileRef>
+      <FileRef
+         location = "group:Docs/Swift/TASKS.md">
+      </FileRef>
+      <FileRef
+         location = "group:Docs/Swift/PLAN.md">
+      </FileRef>
+      <FileRef
+         location = "group:Docs/Swift/ADR.md">
+      </FileRef>
+      <FileRef
+         location = "group:Docs/Swift/COMPLETIONS.md">
+      </FileRef>
+      <FileRef
+         location = "group:Docs/Swift/DOCC_SETUP.md">
+      </FileRef>
+   </Group>
+</Workspace>

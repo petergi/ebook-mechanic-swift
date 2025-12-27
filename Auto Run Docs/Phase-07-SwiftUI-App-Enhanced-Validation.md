@@ -4,7 +4,7 @@ This phase updates the native macOS SwiftUI app to display the enhanced validati
 
 ## Tasks
 
-- [ ] Update swift/EbookMechanicApp/Sources/EbookMechanicApp/ScanOptions.swift to add @Published properties: useExternalTools (bool), selectedReportFormats (Set of ReportFormat), maxConcurrentValidations (int), showPerformanceStats (bool)
+- [ ] Update Apps/EbookMechanicApp/Sources/EbookMechanicApp/ScanOptions.swift to add @Published properties: useExternalTools (bool), selectedReportFormats (Set of ReportFormat), maxConcurrentValidations (int), showPerformanceStats (bool)
 - [ ] Add UI controls to ContentView.swift for external tools toggle with system check indicator (green dot if tools found, yellow if missing with "Install" button), report format multi-select picker using checkboxes, concurrency slider with label showing current value, performance stats toggle
 - [ ] Create ValidationDetailView.swift as sheet/popover displaying full validation results for selected file: format-specific details (EPUB compliance issues, PDF structure validation), color-coded status with icons, expandable sections for errors/warnings, copy-to-clipboard buttons for error messages
 - [ ] Update ScanViewModel.swift to expose validationResults dictionary mapping file URLs to full ValidationResult objects, track EPUBComplianceResult and PDFValidationResult separately, provide computed properties for result filtering and grouping

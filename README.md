@@ -34,7 +34,7 @@ EbookMechanic is a powerful command-line tool suite for managing ebook libraries
 
 ## Implementations
 
-### 🔶 [Swift Implementation](./swift/)
+### 🔶 [Swift Implementation](./Docs/Swift/README.md)
 
 **Best for:** macOS users, native app experience, Swift ecosystem integration
 
@@ -46,8 +46,6 @@ EbookMechanic is a powerful command-line tool suite for managing ebook libraries
 - **Advanced PDF Repair:** Comprehensive header corruption detection and repair with two-phase repair process (128+ comprehensive tests)
 
 ```bash
-cd swift/
-
 make run-app      # Launch macOS app
 ```
 
@@ -102,13 +100,13 @@ make help
 Each implementation can also be used independently:
 
 ```bash
-# CLI(s) 
-cd swift && make build-cli && make run-cli                                  # All-in-one cli
-cd swift && make build-epub && make run-epub                                # EPUB Mechanic cli 
-cd swift && make build-pdf && make run-pdf                                  # PDF Mechanic cli 
+# CLI(s)
+make -f Makefile.swift build-cli && make -f Makefile.swift run-cli          # All-in-one cli
+make -f Makefile.swift build-epub && make -f Makefile.swift run-epub        # EPUB Mechanic cli
+make -f Makefile.swift build-pdf && make -f Makefile.swift run-pdf          # PDF Mechanic cli
 
 # APP
-cd swift && make build-app && make run-app                                  # SwiftUI macOS app
+make -f Makefile.swift build-app && make -f Makefile.swift run-app          # SwiftUI macOS app
 ```
 
 ## Installation
@@ -210,22 +208,23 @@ pdf-mechanic repair --optimize
 ```text
 EbookMechanic/
 ├── Makefile                    # Master build system (start here)
+├── Makefile.swift              # Swift build targets
 ├── README.md                   # This file
 ├── CLAUDE.md                   # AI assistant instructions
 │
-│
-├── swift/                      # Swift implementation
-│   ├── Makefile                # Swift-specific build system
-│   ├── README.md               # Swift implementation docs
-│   ├── EbookMechanicCore/      # Core library package
-│   ├── EbookMechanicCLI/       # All-in-one Command-line interface
-│   ├── EPUBMechanic/           # EPUBMechanic Command-line interface
-│   ├── PDFMechanicCLI/         # PDFMechanic Command-line interface
+├── Apps/                       # Swift app targets
 │   └── EbookMechanicApp/       # macOS SwiftUI app
+├── Packages/                   # Swift packages
+│   ├── EbookMechanicCore/      # Core library package
+│   ├── EbookMechanicCLI/       # All-in-one command-line interface
+│   ├── EbookMechanicEPUBCLI/   # EPUB-focused command-line interface
+│   └── EbookMechanicPDFCLI/    # PDF-focused command-line interface
+├── Docs/                       # Documentation
+│   └── Swift/                  # Swift implementation docs
 │
-└── scripts/                        # Shared utilities
-│   ├──  generate_test_library.py   # Test fixture generator
-│   └── benchmark.sh                # Cross-implementation benchmarks
+└── Scripts/                    # Shared utilities
+    ├── generate_test_library.py    # Test fixture generator
+    └── benchmark.sh                # Cross-implementation benchmarks
 ```
 
 ## Development
@@ -262,7 +261,7 @@ make sample-library LIBRARY_AUTHORS=20 LIBRARY_FORMATS=pdf,epub
 
 ### Implementation-Specific Docs
 
-- **Swift:** [swift/README.md](./swift/README.md) - Swift workspace and app documentation
+- **Swift:** [Docs/Swift/README.md](./Docs/Swift/README.md) - Swift workspace and app documentation
 
 ### Generate Documentation
 
@@ -345,4 +344,4 @@ Free to use and modify.
 
 ---
 
-**Quick Links:** [Go README](./golang/README.md) | [Swift README](./swift/README.md) | [Python README](./python/README.md) | [Master Makefile](./Makefile)
+**Quick Links:** [Go README](./golang/README.md) | [Swift README](./Docs/Swift/README.md) | [Python README](./python/README.md) | [Master Makefile](./Makefile)

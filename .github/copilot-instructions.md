@@ -6,12 +6,12 @@
 
 ## Architecture
 
-**Modular Package Structure** (all in `swift/`):
+**Modular Package Structure** (under `Apps/` and `Packages/`):
 
 1. **EbookMechanicCore** - Core library with scanning/validation/repair logic using Swift actors
 2. **EbookMechanicCLI** - Full-featured CLI for all ebook types
-3. **EPUBMechanicCLI** - Lightweight EPUB-only CLI
-4. **PDFMechanicCLI** - Lightweight PDF/AZW4-only CLI
+3. **EbookMechanicEPUBCLI** - Lightweight EPUB-only CLI
+4. **EbookMechanicPDFCLI** - Lightweight PDF/AZW4-only CLI
 5. **EbookMechanicApp** - Native macOS SwiftUI app
 
 **Key Design Principles**:
@@ -22,7 +22,7 @@
 
 ## Critical Implementation Details
 
-**File Format Validation** (`swift/EbookMechanicCore/Sources/EbookMechanicCore/Validation/`):
+**File Format Validation** (`Packages/EbookMechanicCore/Sources/EbookMechanicCore/Validation/`):
 - **EPUB**: Valid ZIP + `mimetype` file with exact content `application/epub+zip` + `META-INF/container.xml`
 - **MOBI/AZW3**: PalmDB header signature (`BOOKMOBI` or `TEXtREAd` at bytes 60-68)
 - **AZW4**: Uses PDF validation (Kindle PDF wrapper)
@@ -34,7 +34,7 @@
 - Automatically skips `CORRUPTED/` directory to avoid re-scanning moved files
 - `scanForCorruption()` and `deleteEmptyFolders()` are async methods
 
-**Auto-Repair** (`swift/EbookMechanicCore/Sources/EbookMechanicCore/Repair/`):
+**Auto-Repair** (`Packages/EbookMechanicCore/Sources/EbookMechanicCore/Repair/`):
 - **EPUB**: Adds missing `mimetype` and `META-INF/container.xml` if absent
 - **PDF**: Repairs header corruption (email wrappers, BOM, junk prefixes); restores `%%EOF` marker
 - Always creates `.backup` files before repairs
@@ -48,27 +48,27 @@
 
 ## Development Workflow
 
-**Build Targets** (from `swift/Makefile`):
+**Build Targets** (from `Makefile.swift`):
 ```bash
-make build-core          # Build core library
-make build-cli           # Build main CLI
-make build-app           # Build macOS SwiftUI app
-make build-specialized   # Build EPUB + PDF specialized CLIs
-make build-all           # Build everything
+make -f Makefile.swift build-core          # Build core library
+make -f Makefile.swift build-cli           # Build main CLI
+make -f Makefile.swift build-app           # Build macOS SwiftUI app
+make -f Makefile.swift build-specialized   # Build EPUB + PDF specialized CLIs
+make -f Makefile.swift build-all           # Build everything
 ```
 
 **Test Commands**:
 ```bash
-make test-core          # Test core library (26 tests)
-make test-cli           # Test CLI (102 tests)
-make test-all           # Run all tests
+make -f Makefile.swift test-core          # Test core library (26 tests)
+make -f Makefile.swift test-cli           # Test CLI (102 tests)
+make -f Makefile.swift test-all           # Run all tests
 ```
 
 **Run/Install**:
 ```bash
-make run-cli ARGS="-dir ~/Books"     # Run CLI
-make run-app                         # Launch SwiftUI app
-make install                         # Install all CLIs to /usr/local/bin
+make -f Makefile.swift run-cli ARGS="-dir ~/Books"     # Run CLI
+make -f Makefile.swift run-app                         # Launch SwiftUI app
+make -f Makefile.swift install                         # Install all CLIs to /usr/local/bin
 ```
 
 ## Adding New Features
@@ -82,7 +82,7 @@ make install                         # Install all CLIs to /usr/local/bin
 **Extending CLI**:
 - All CLIs depend on `EbookMechanicCore` - add logic there, not in CLI
 - Use `ArgumentParser` pattern from existing CLIs
-- Update shell completions in `swift/completions/` if adding new flags
+- Update shell completions in `completions/` if adding new flags
 
 ## Command-Line Interface
 

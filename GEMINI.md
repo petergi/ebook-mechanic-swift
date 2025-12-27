@@ -9,10 +9,10 @@ Based on the project's documentation, I understand that EbookMechanic is a compr
 The project has a modular architecture, with a core library in Swift (`EbookMechanicCore`) that provides the main functionality. This core library is used by several clients:
 
 *   A full-featured command-line interface (`EbookMechanicCLI`).
-*   Specialized command-line tools for EPUB (`EPUBMechanicCLI`) and PDF (`PDFMechanicCLI`) files.
+*   Specialized command-line tools for EPUB (`EbookMechanicEPUBCLI`) and PDF (`EbookMechanicPDFCLI`) files.
 *   A native macOS application with a SwiftUI interface (`EbookMechanicApp`).
 
-The project is well-structured, with a clear separation of concerns, a comprehensive test suite, and a robust build system based on Makefiles.
+The project is well-structured, with a clear separation of concerns, a comprehensive test suite, and a robust build system based on `Makefile.swift`.
 
 ## My Role
 

@@ -12,114 +12,85 @@ EbookMechanic is a multi-language ebook library management toolkit with implemen
 
 The repository is organized into directories:
 
-- **swift/** - Native Swift implementation with CLI(s) + macOS SwiftUI app
-- **scripts/** - Cross-language benchmarking utilities and test library generator
+- **Apps/** + **Packages/** - Native Swift implementation with CLI(s) + macOS SwiftUI app
+- **Scripts/** - Cross-language benchmarking utilities and test library generator
 
 ## Repository Structure
 
 ```text
 EbookMechanic/
-├──swift/
-   ├── Makefile                      # Build automation
-   ├── README.md                     # This file
-   ├── EbookMechanic.xcworkspace     # Xcode workspace (optional)
-   │
-   ├── EbookMechanicCore/            # Core library package
-   │   ├── Package.swift
-   │   ├── Sources/
-   │   │   └── EbookMechanicCore/
-   │   │       ├── FileScanner.swift
-   │   │       ├── FileValidator.swift
-   │   │       ├── FileRepairer.swift
-   │   │       ├── ZipArchive.swift
-   │   │       ├── MarkdownReportGenerator.swift
-   │   │       └── Models.swift
-   │   └── Tests/
-   │       └── EbookMechanicCoreTests/
-   │
-   ├── EbookMechanicCLI/             # Command-line interface
-   │   ├── Package.swift
-   │   ├── Sources/
-   │   │   └── EbookMechanicCLI/
-   │   │       ├── main.swift
-   │   │       ├── CLIConfiguration.swift
-   │   │       └── ProgressPrinter.swift
-   │   └── Tests/
-   │       └── EbookMechanicCLITests/
-   │
-   ├── EbookMechanicApp/             # macOS SwiftUI app
-   │   ├── Package.swift
-   │   ├── Sources/
-   │   │   └── EbookMechanicApp/
-   │   │       ├── EbookMechanicApp.swift
-   │   │       ├── ContentView.swift
-   │   │       ├── ScanViewModel.swift
-   │   │       └── ScanOptions.swift
-   │   └── Tests/
-   │       └── EbookMechanicAppTests/
-   │
-   └── completions/                  # Generated shell completions
-       ├── ebook-mechanic.bash
-       ├── _ebook-mechanic
-       ├── ebook-mechanic.fish
-       └── ebook-mechanic.ps1
+├── Apps/
+│  └── EbookMechanicApp/             # macOS SwiftUI app (SwiftPM)
+├── Packages/
+│  ├── EbookMechanicCore/            # Core library package
+│  ├── EbookMechanicCLI/             # Command-line interface
+│  ├── EbookMechanicEPUBCLI/         # EPUB-focused CLI
+│  └── EbookMechanicPDFCLI/          # PDF-focused CLI
+├── Docs/
+│  └── Swift/                        # Swift documentation
+├── Scripts/                         # Benchmarking + helper scripts
+├── EbookMechanic.xcworkspace        # Xcode workspace (optional)
+├── Makefile.swift                   # Swift build automation
+└── completions/                     # Generated shell completions
+   ├── ebook-mechanic.bash
+   ├── _ebook-mechanic
+   ├── ebook-mechanic.fish
+   └── ebook-mechanic.ps1
 ```
 
 ## Build & Test Commands
 
-Swift Implementation (swift/)
+Swift Implementation (repo root, Makefile.swift)
 
 ```bash
-cd swift
-
 # Core library
-make build-core         # Build core library
-make test-core          # Run core tests
+make -f Makefile.swift build-core         # Build core library
+make -f Makefile.swift test-core          # Run core tests
 
 # Main CLI
-make build-cli          # Build main CLI
-make run-cli ARGS="..." # Run main CLI
-make test-cli           # Test main CLI
+make -f Makefile.swift build-cli          # Build main CLI
+make -f Makefile.swift run-cli ARGS="..." # Run main CLI
+make -f Makefile.swift test-cli           # Test main CLI
 
 # macOS SwiftUI app
-make build-app          # Build app
-make test-app           # Test app
-make run-app            # Launch app
+make -f Makefile.swift build-app          # Build app
+make -f Makefile.swift test-app           # Test app
+make -f Makefile.swift run-app            # Launch app
 
 # Specialized CLIs (EPUB and PDF)
-make build-specialized  # Build both specialized CLIs
-make build-epub         # Build EPUB Mechanic CLI
-make build-pdf          # Build PDF Mechanic CLI
-make test-epub          # Test EPUB Mechanic CLI
-make test-pdf           # Test PDF Mechanic CLI
-make run-epub ARGS="..."# Run EPUB Mechanic CLI
-make run-pdf ARGS="..." # Run PDF Mechanic CLI
+make -f Makefile.swift build-specialized  # Build both specialized CLIs
+make -f Makefile.swift build-epub         # Build EPUB Mechanic CLI
+make -f Makefile.swift build-pdf          # Build PDF Mechanic CLI
+make -f Makefile.swift test-epub          # Test EPUB Mechanic CLI
+make -f Makefile.swift test-pdf           # Test PDF Mechanic CLI
+make -f Makefile.swift run-epub ARGS="..."# Run EPUB Mechanic CLI
+make -f Makefile.swift run-pdf ARGS="..." # Run PDF Mechanic CLI
 
 # Build everything
-make build-all          # Build core + all CLIs + app
-make test-all           # Test everything
-make build-release      # Optimized release builds
+make -f Makefile.swift build-all          # Build core + all CLIs + app
+make -f Makefile.swift test-all           # Test everything
+make -f Makefile.swift build-release      # Optimized release builds
 
 # Install CLIs
-make install            # Install main CLI (debug)
-make install-release    # Install main CLI (release)
-make install-specialized# Install EPUB + PDF CLIs
-make epub-install       # Install EPUB CLI (debug)
-make epub-install-release # Install EPUB CLI (release)
-make pdf-install        # Install PDF CLI (debug)
-make pdf-install-release  # Install PDF CLI (release)
+make -f Makefile.swift install              # Install main CLI (debug)
+make -f Makefile.swift install-release      # Install main CLI (release)
+make -f Makefile.swift install-specialized  # Install EPUB + PDF CLIs
+make -f Makefile.swift install-epub         # Install EPUB CLI (debug)
+make -f Makefile.swift install-epub-release # Install EPUB CLI (release)
+make -f Makefile.swift install-pdf          # Install PDF CLI (debug)
+make -f Makefile.swift install-pdf-release  # Install PDF CLI (release)
 
 # Uninstall
-make uninstall          # Uninstall main CLI
-make uninstall-specialized # Uninstall specialized CLIs
-make epub-uninstall     # Uninstall EPUB CLI
-make pdf-uninstall      # Uninstall PDF CLI
+make -f Makefile.swift uninstall             # Uninstall main CLI
+make -f Makefile.swift uninstall-specialized # Uninstall specialized CLIs
+make -f Makefile.swift uninstall-epub        # Uninstall EPUB CLI
+make -f Makefile.swift uninstall-pdf         # Uninstall PDF CLI
 
 # Utilities
-make workspace          # Open Xcode workspace
-make clean              # Remove build artifacts
-make clean-all          # Deep clean (includes docs/completions)
-make info               # Show build information
+make -f Makefile.swift workspace          # Open Xcode workspace
+make -f Makefile.swift clean              # Remove build artifacts
+make -f Makefile.swift clean-all          # Deep clean (includes docs/completions)
+make -f Makefile.swift info               # Show build information
 ```
 
 **Swift module cache environment:**
@@ -136,14 +107,14 @@ All Swift commands use sandboxed module caches via `SWIFT_MODULE_CACHE_PATH` and
 - `--quiet` - Reduce output
 - `--report` - Generate Markdown report
 
-### Benchmarking (scripts/)
+### Benchmarking (Scripts/)
 
 ```bash
 # Run 5 iterations per implementation
-./scripts/benchmark.sh --iterations 5
+./Scripts/benchmark.sh --iterations 5
 
 # Custom settings
-./scripts/benchmark.sh \
+./Scripts/benchmark.sh \
   --iterations 5 \
   --authors 10 \
   --formats pdf,epub,mobi \
@@ -154,7 +125,7 @@ All Swift commands use sandboxed module caches via `SWIFT_MODULE_CACHE_PATH` and
 The benchmark script:
 
 1. Builds all Swift CLIs (release mode)
-2. Generates fresh libraries per iteration using `scripts/generate_test_library.py`
+2. Generates fresh libraries per iteration using `Scripts/generate_test_library.py`
 3. Runs both implementations in dry-run mode
 4. Reports per-run timings and averages
 
@@ -162,14 +133,14 @@ The benchmark script:
 
 ```bash
 # Generate sample library with 10 authors, all formats
-python3 scripts/generate_test_library.py \
+python3 Scripts/generate_test_library.py \
   --output test-library \
   --authors 10 \
   --formats pdf,epub,mobi,azw3,azw4 \
   --force
 
 # Minimal library (PDF and EPUB only)
-python3 scripts/generate_test_library.py \
+python3 Scripts/generate_test_library.py \
   --output fixtures \
   --authors 3 \
   --formats pdf,epub \
@@ -189,7 +160,7 @@ The generator creates:
 **Workspace Structure:**
 Five SwiftPM packages in `EbookMechanic.xcworkspace`:
 
-1. **EbookMechanicCore** (swift/EbookMechanicCore/) - Core library
+1. **EbookMechanicCore** (Packages/EbookMechanicCore/) - Core library
    - `FileScanner` - Actor-based scanner for thread-safe concurrency
    - `FileValidator` - Format-specific validators
    - `FileRepairer` - Automatic repair engine (EPUB manifest, comprehensive PDF header/EOF repair)
@@ -198,7 +169,7 @@ Five SwiftPM packages in `EbookMechanic.xcworkspace`:
    - `MarkdownReportGenerator` - Report generation
    - 26 comprehensive tests
 
-2. **EbookMechanicCLI** (swift/EbookMechanicCLI/) - Full-featured command-line interface
+2. **EbookMechanicCLI** (Packages/EbookMechanicCLI/) - Full-featured command-line interface
    - Flag parsing with configuration struct
    - Progress printer with emoji feedback
    - Interactive prompts with auto-confirm mode
@@ -206,21 +177,21 @@ Five SwiftPM packages in `EbookMechanic.xcworkspace`:
    - Depends on EbookMechanicCore
    - 102 tests for CLI functionality
 
-3. **EbookMechanicApp** (swift/EbookMechanicApp/) - macOS SwiftUI app
+3. **EbookMechanicApp** (Apps/EbookMechanicApp/) - macOS SwiftUI app
    - `ScanViewModel` - Observable view model shared with CLI logic
    - `ContentView` - Gradient UI with live progress, toggle controls
    - Directory picker using `NSOpenPanel`
    - Scrollable corrupted/empty folder lists
    - 3 view-model tests
 
-4. **EPUBMechanicCLI** (swift/EPUBMechanicCLI/) - Specialized EPUB utility
+4. **EbookMechanicEPUBCLI** (Packages/EbookMechanicEPUBCLI/) - Specialized EPUB utility
    - EPUB-only validation (ZIP + mimetype + container.xml)
    - Automatic repair of missing EPUB metadata
    - Simplified CLI focused on EPUB operations
    - Depends on EbookMechanicCore
    - 2 basic tests
 
-5. **PDFMechanicCLI** (swift/PDFMechanicCLI/) - Specialized PDF utility
+5. **EbookMechanicPDFCLI** (Packages/EbookMechanicPDFCLI/) - Specialized PDF utility
    - PDF + AZW4 validation (header + EOF markers)
    - Advanced PDF header corruption repair
    - Detects junk prefixes, UTF-8 BOM, email wrappers
@@ -274,7 +245,7 @@ Creates comprehensive test fixtures with:
 
 ### Adding a New Ebook Format
 
-**Swift (swift/EbookMechanicCore/):**
+**Swift (Packages/EbookMechanicCore/):**
 
 1. Add case to `EbookFileType` enum (Models.swift)
 2. Implement validator in FileValidator.swift
@@ -368,7 +339,7 @@ Core library includes comprehensive PDF repair test coverage with real-world cor
 ## Performance Characteristics
 
 **Multi-Implementation Benchmarking:**
-Use `scripts/benchmark.sh` to compare all implementations on identical generated libraries. Typical results on 10,000 files:
+Use `Scripts/benchmark.sh` to compare all implementations on identical generated libraries. Typical results on 10,000 files:
 
 - **Go:** ~5-10 seconds (compiled, goroutines, Bubble Tea TUI)
 - **Swift:** ~8-12 seconds (compiled, actor-based concurrency)
@@ -396,8 +367,8 @@ Use `scripts/benchmark.sh` to compare all implementations on identical generated
 **Build Artifacts:**
 
 - Go binaries: `golang/build/ebook-mechanic`, `golang/dist/ebook-mechanic-*`
-- Swift builds: `swift/*/‌.build/` (per-package subdirectories)
-- Benchmark cache: `swift/.bench/`
+- Swift builds: `Packages/*/.build/` and `Apps/*/.build/`
+- Benchmark cache: `.bench/`
 
 **Extensions:**
 
@@ -436,4 +407,4 @@ This allows benchmarking, testing, and cross-validation between implementations.
 
 ## Makefile Commands Reference
 
-**(swift/Makefile):**
+**(Makefile.swift):**
