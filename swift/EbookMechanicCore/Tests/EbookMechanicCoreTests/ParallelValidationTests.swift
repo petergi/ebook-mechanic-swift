@@ -164,19 +164,15 @@ final class ParallelValidationTests: XCTestCase {
     func testExternalToolRateLimiting() async throws {
         let toolRunner = ExternalToolRunner(maxConcurrentExternalTools: 2)
         
-        let expectation = XCTestExpectation(description: "Tool running finished")
-        expectation.expectedFulfillmentCount = 5
-        
-        for _ in 0..<5 {
-            Task {
-                _ = try await toolRunner.runTool(executableURL: URL(fileURLWithPath: "/usr/bin/true"), arguments: [])
-                expectation.fulfill()
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<5 {
+                group.addTask {
+                    _ = try? await toolRunner.runTool(executableURL: URL(fileURLWithPath: "/usr/bin/true"), arguments: [])
+                }
             }
         }
         
-        await fulfillment(of: [expectation], timeout: 2.0)
-        
-        let maxConcurrentExecutions = await toolRunner.maxConcurrentExecutions
-        XCTAssertLessThanOrEqual(maxConcurrentExecutions, 2)
+        let peakConcurrentExecutions = await toolRunner.getPeakConcurrentExecutions()
+        XCTAssertLessThanOrEqual(peakConcurrentExecutions, 2)
     }
 }

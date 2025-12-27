@@ -24,11 +24,11 @@ final class ScanOptionsTests: XCTestCase {
         let viewModel = ScanViewModel()
         viewModel.progressHeadline = "Progress"
         viewModel.progressDetail = "Detail"
-        viewModel.corruptedFiles = [CorruptedFile(url: URL(fileURLWithPath: "/tmp/file.epub"), reason: "Invalid", size: 10)]
+        viewModel.corruptedFiles = [CorruptedFile(url: URL(fileURLWithPath: "/tmp/file.epub"), reason: "Invalid", size: 10, status: .corrupt)]
         viewModel.emptyFolders = [URL(fileURLWithPath: "/tmp/empty")]
         viewModel.summary = ScanResult(totalFiles: 1)
         viewModel.statusMessages = ["Message"]
-        viewModel.reportURL = URL(fileURLWithPath: "/tmp/report.md")
+        viewModel.reportURLs = [URL(fileURLWithPath: "/tmp/report.md")]
         viewModel.errorMessage = "error"
 
         viewModel.reset()
@@ -39,7 +39,7 @@ final class ScanOptionsTests: XCTestCase {
         XCTAssertTrue(viewModel.emptyFolders.isEmpty)
         XCTAssertNil(viewModel.summary)
         XCTAssertTrue(viewModel.statusMessages.isEmpty)
-        XCTAssertNil(viewModel.reportURL)
+        XCTAssertNil(viewModel.reportURLs)
         XCTAssertNil(viewModel.errorMessage)
     }
 
@@ -150,10 +150,11 @@ final class ScanOptionsTests: XCTestCase {
         XCTAssertTrue(viewModel.statusMessages.contains { $0.contains("EPUB normalization:") })
         XCTAssertTrue(viewModel.statusMessages.contains { $0.contains("Report generated at") })
 
-        let reportURL = try XCTUnwrap(viewModel.reportURL)
+        let reportURLs = try XCTUnwrap(viewModel.reportURLs)
+        let reportURL = try XCTUnwrap(reportURLs.first)
         XCTAssertTrue(FileManager.default.fileExists(atPath: reportURL.path))
         XCTAssertEqual(reportURL.deletingLastPathComponent().standardizedFileURL, tempDir.standardizedFileURL)
-        XCTAssertEqual(reportURL.pathExtension, "md")
+        XCTAssertEqual(reportURL.pathExtension, "markdown")
     }
 }
 

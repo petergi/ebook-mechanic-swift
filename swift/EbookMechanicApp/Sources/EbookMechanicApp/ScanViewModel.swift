@@ -79,6 +79,34 @@ final class ScanViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var performanceMetrics: PerformanceMetrics?
 
+    /// Files that passed structure validation but failed spec compliance
+    var nonCompliantFiles: [ValidationResult] {
+        summary?.okFiles.filter { $0.status == .nonCompliant } ?? []
+    }
+
+    /// Files that have warnings but are otherwise valid
+    var filesWithWarnings: [ValidationResult] {
+        summary?.okFiles.filter { result in
+            result.epubComplianceDetails?.hasWarnings == true ||
+            !(result.pdfValidationDetails?.streamErrors.isEmpty ?? true)
+        } ?? []
+    }
+
+    /// Errors that can occur during scan view model operations
+    enum ScanViewModelError: LocalizedError {
+        case noScanData
+        case reportGenerationFailed(String)
+
+        var errorDescription: String? {
+            switch self {
+            case .noScanData:
+                return "No scan data available. Please run a scan first."
+            case .reportGenerationFailed(let reason):
+                return "Failed to generate report: \(reason)"
+            }
+        }
+    }
+
     /// Resets all published state to defaults in preparation for a new scan.
     func reset() {
         corruptedFiles = []
@@ -236,6 +264,37 @@ final class ScanViewModel: ObservableObject {
                 self.errorMessage = error.localizedDescription
             }
         }
+    }
+
+    /// Generates reports in the specified formats and returns their URLs.
+    ///
+    /// - Parameters:
+    ///   - directory: The directory where reports should be saved
+    ///   - options: Scan options containing directory and corrupted directory name
+    ///   - formats: Set of report formats to generate
+    /// - Returns: Array of URLs pointing to the generated report files
+    /// - Throws: ScanViewModelError.noScanData if no scan has been performed
+    func generateReport(into directory: URL, options: ScanOptions, formats: Set<ReportFormat>) async throws -> [URL] {
+        guard let summary = summary else {
+            throw ScanViewModelError.noScanData
+        }
+
+        // Use the FileScanner's generateReport method by creating a temporary scanner
+        // with the formats we want to generate
+        let validator = FileValidator(
+            useExternalEPUBValidator: options.useExternalEPUBValidator,
+            useExternalPDFValidator: options.useExternalPDFValidator,
+            cacheSize: options.useCache ? 1000 : 0
+        )
+        let scanner = FileScanner(
+            rootDirectory: options.directory,
+            corruptedDirectoryName: options.corruptedDirectoryName,
+            reportFormats: Array(formats),
+            maxConcurrentValidations: options.maxConcurrentValidations,
+            validator: validator
+        )
+
+        return try await scanner.generateReport(into: directory)
     }
 }
 

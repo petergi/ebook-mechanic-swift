@@ -55,7 +55,7 @@ final class ContentViewUITests: XCTestCase {
     func testReportBadgeExposesFileName() {
         let sut = makeSUT { viewModel in
             viewModel.summary = ScanResult(totalFiles: 1)
-            viewModel.reportURL = URL(fileURLWithPath: "/tmp/report.md")
+            viewModel.reportURLs = [URL(fileURLWithPath: "/tmp/report.md")]
         }
 
         XCTAssertEqual(sut.testHooks.reportFileName, "report.md")
@@ -64,8 +64,8 @@ final class ContentViewUITests: XCTestCase {
     func testCorruptedFilesSectionSnapshot() {
         let sut = makeSUT { viewModel in
             viewModel.corruptedFiles = [
-                CorruptedFile(url: URL(fileURLWithPath: "/tmp/bad1.epub"), reason: "Invalid mimetype", size: 10),
-                CorruptedFile(url: URL(fileURLWithPath: "/tmp/bad2.pdf"), reason: "Missing EOF", size: 20)
+                CorruptedFile(url: URL(fileURLWithPath: "/tmp/bad1.epub"), reason: "Invalid mimetype", size: 10, status: .corrupt),
+                CorruptedFile(url: URL(fileURLWithPath: "/tmp/bad2.pdf"), reason: "Missing EOF", size: 20, status: .corrupt)
             ]
         }
 

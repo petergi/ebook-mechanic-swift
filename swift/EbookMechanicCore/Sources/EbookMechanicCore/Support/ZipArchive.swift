@@ -287,7 +287,7 @@ private extension Data {
         guard nameEnd <= endIndex else {
             throw ZipError.malformedEntry
         }
-        guard let name = String(data: self[nameStart..<nameEnd], encoding: .utf8) else {
+        guard let name = String(data: self[nameStart..<nameEnd], encoding: String.Encoding.utf8) else {
             throw ZipError.invalidUTF8
         }
 

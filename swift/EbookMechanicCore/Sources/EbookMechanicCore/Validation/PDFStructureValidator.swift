@@ -27,6 +27,75 @@ struct PDFStructureValidator {
             return .failure(error)
         }
     }
+    func parsePdfcpuOutput(stdout: String, stderr: String, exitCode: Int32) -> PDFValidationResult {
+        var structureValid = exitCode == 0
+        var xrefValid = exitCode == 0
+        var pageTreeValid = exitCode == 0
+        var streamErrors: [String] = []
+        var encryptionInfo: String?
+        var conformsToStandard: String?
+
+        // Parse stderr for specific errors
+        let errorLines = stderr.components(separatedBy: .newlines)
+        for line in errorLines {
+            let lowercaseLine = line.lowercased()
+
+            // Check for cross-reference table errors
+            if lowercaseLine.contains("xref") || lowercaseLine.contains("cross-reference") {
+                xrefValid = false
+                streamErrors.append("Cross-reference table error: \(line)")
+            }
+
+            // Check for page tree errors
+            if lowercaseLine.contains("page tree") || lowercaseLine.contains("page object") {
+                pageTreeValid = false
+                streamErrors.append("Page tree error: \(line)")
+            }
+
+            // Check for stream errors
+            if lowercaseLine.contains("stream") && !lowercaseLine.contains("page tree") {
+                streamErrors.append("Stream error: \(line)")
+            }
+
+            // Check for encryption information
+            if lowercaseLine.contains("encrypt") {
+                encryptionInfo = line
+            }
+
+            // Check for PDF/A or PDF/X conformance
+            if lowercaseLine.contains("pdf/a") || lowercaseLine.contains("pdf/x") {
+                conformsToStandard = line
+            }
+        }
+
+        // Parse stdout for additional information (if JSON mode was not used)
+        if !stdout.isEmpty {
+            let outputLines = stdout.components(separatedBy: .newlines)
+            for line in outputLines {
+                let lowercaseLine = line.lowercased()
+
+                if lowercaseLine.contains("encryption") {
+                    encryptionInfo = line
+                }
+
+                if lowercaseLine.contains("conforms to") {
+                    conformsToStandard = line
+                }
+            }
+        }
+
+        // Update overall structure validity based on specific checks
+        structureValid = xrefValid && pageTreeValid && streamErrors.isEmpty
+
+        return PDFValidationResult(
+            structureValid: structureValid,
+            xrefValid: xrefValid,
+            pageTreeValid: pageTreeValid,
+            streamErrors: streamErrors,
+            encryptionInfo: encryptionInfo,
+            conformsToStandard: conformsToStandard
+        )
+    }
 }
 
 enum PDFValidationError: Error {

@@ -1,6 +1,6 @@
 import Foundation
 
-actor SimpleSemaphore {
+public actor SimpleSemaphore {
     private var count: Int
     private var waiters: [CheckedContinuation<Void, Never>] = []
 
@@ -8,11 +8,11 @@ actor SimpleSemaphore {
         return count
     }
 
-    init(count: Int) {
+    public init(count: Int) {
         self.count = count
     }
 
-    func wait() async {
+    public func wait() async {
         if count > 0 {
             count -= 1
             return
@@ -22,7 +22,7 @@ actor SimpleSemaphore {
         }
     }
 
-    nonisolated func signal() {
+    public nonisolated func signal() {
         Task {
             await self.doSignal()
         }

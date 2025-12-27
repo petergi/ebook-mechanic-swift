@@ -185,6 +185,26 @@ ebook-mechanic --report --report-formats json,csv,html
 ebook-mechanic --max-concurrent 8 --performance-stats
 ```
 
+### Specialized CLI Examples
+
+```bash
+# EPUB CLI validation with epubcheck
+epub-mechanic validate --spec-check --show-warnings --accessibility
+
+# EPUB CLI metadata repair (creates .backup.epub if needed)
+epub-mechanic repair --fix-metadata
+
+# PDF CLI structure validation and info
+pdf-mechanic validate --structure-check
+
+# PDF CLI metadata extraction (json or yaml)
+pdf-mechanic validate --extract-metadata json
+pdf-mechanic validate --extract-metadata yaml
+
+# PDF CLI optimization (writes .optimized.pdf alongside the original)
+pdf-mechanic repair --optimize
+```
+
 ## Project Structure
 
 ```text

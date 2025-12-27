@@ -28,7 +28,7 @@ SHELL := /bin/zsh
 .ONESHELL:
 
 # Phony targets (targets that don't represent files)
-.PHONY: help build build-all build-release test test-all test-core build-core build-cli run-cli normalize normalize-force test-cli completions build-app run-app test-app install-app uninstall-app build-epub build-epub-release test-epub run-epub install-epub install-epub-release uninstall-epub build-pdf build-pdf-release test-pdf run-pdf install-pdf install-pdf-release uninstall-pdf build-specialized install-specialized uninstall-specialized workspace clean clean-all docc-core docc-app docc-serve docc-all install install-release uninstall format check-format lint ci info update-all
+.PHONY: help build build-all build-release test test-all test-core build-core build-cli run-cli normalize normalize-force test-cli completions build-app run-app test-app install-app uninstall-app build-epub build-epub-release test-epub run-epub install-epub install-epub-release uninstall-epub build-pdf build-pdf-release test-pdf run-pdf install-pdf install-pdf-release uninstall-pdf build-specialized install-specialized uninstall-specialized workspace clean clean-all docc-core docc-app docc-serve docc-all install install-release uninstall format check-format lint ci info update-all test-external-tools
 
 # Default target when running 'make' with no arguments
 .DEFAULT_GOAL := build
@@ -56,6 +56,7 @@ help:
 	@printf "  %-30s %s\n" "make test-app" "Run the app test suite"
 	@printf "  %-30s %s\n" "make test-epub" "Run EPUB Mechanic CLI tests"
 	@printf "  %-30s %s\n" "make test-pdf" "Run PDF Mechanic CLI tests"
+	@printf "  %-30s %s\n" "make test-external-tools" "Run external tools integration test"
 	@echo ""
 	@echo "🚀 Run Targets:"
 	@printf "  %-30s %s\n" "make run-cli ARGS=" "Run the main CLI (default: --help)"
@@ -653,3 +654,6 @@ install-tools:
 		echo "pdfcpu is installed."; \
 	fi
 
+test-external-tools:
+	@echo "Running external tools integration test..."
+	@./test-external-tools.sh

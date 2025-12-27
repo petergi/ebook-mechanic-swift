@@ -23,7 +23,7 @@ let package = Package(
         ),
         .testTarget(
             name: "EPUBMechanicCLITests",
-            dependencies: ["EPUBMechanicCLI"]
+            dependencies: ["EPUBMechanicCLI", .product(name: "EbookMechanicCore", package: "EbookMechanicCore")]
         ),
     ]
 )

@@ -116,6 +116,13 @@ public struct ScanResult: Sendable, Codable, Equatable {
     }
 }
 
+/// Represents the level of validation performed.
+public enum ValidationLevel: String, Codable, Sendable, CaseIterable, Equatable {
+    case basic
+    case standard
+    case comprehensive
+}
+
 /// Outcome of validating a single file.
 ///
 /// Indicates whether the file is valid and may include a content fingerprint
@@ -127,17 +134,19 @@ public struct ValidationResult: Sendable, Codable, Equatable {
     public var isValid: Bool
     public var reason: String
     public var status: ValidationStatus
+    public var validationLevel: ValidationLevel
     public var fingerprint: FingerprintResult?
     public var pdfValidationDetails: PDFValidationResult?
     public var epubComplianceDetails: EPUBComplianceResult?
 
-    public init(originalIndex: Int, url: URL, size: Int64, isValid: Bool, reason: String, status: ValidationStatus = .validationError, fingerprint: FingerprintResult? = nil, pdfValidationDetails: PDFValidationResult? = nil, epubComplianceDetails: EPUBComplianceResult? = nil) {
+    public init(originalIndex: Int, url: URL, size: Int64, isValid: Bool, reason: String, status: ValidationStatus = .validationError, validationLevel: ValidationLevel = .basic, fingerprint: FingerprintResult? = nil, pdfValidationDetails: PDFValidationResult? = nil, epubComplianceDetails: EPUBComplianceResult? = nil) {
         self.originalIndex = originalIndex
         self.url = url
         self.size = size
         self.isValid = isValid
         self.reason = reason
         self.status = status
+        self.validationLevel = validationLevel
         self.fingerprint = fingerprint
         self.pdfValidationDetails = pdfValidationDetails
         self.epubComplianceDetails = epubComplianceDetails
@@ -161,6 +170,7 @@ public struct EPUBComplianceResult: Sendable, Codable, Equatable {
     public var warnings: [EPUBValidationIssue]
     public var epubVersion: String
     public var epubcheckVersion: String
+    public var features: [String]
     public var conformsToAccessibility: Bool
 }
 
@@ -369,5 +379,4 @@ public struct PerformanceMetrics: Sendable, Codable, Equatable {
     public var parallelEfficiencyRatio: Double = 0.0
     public var validationTimeByFormat: [EbookFileType: TimeInterval] = [:]
 }
-
 

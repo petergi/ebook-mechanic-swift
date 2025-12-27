@@ -24,7 +24,7 @@ actor ExternalToolRunner {
         self.semaphore = SimpleSemaphore(count: maxConcurrentExternalTools)
     }
 
-    func runTool(executableURL: URL, arguments: [String]) async throws -> (Int32, String) {
+    func run(executableURL: URL, arguments: [String]) async throws -> (Int32, String, String) {
         await semaphore.wait()
         defer { semaphore.signal() }
 
@@ -41,14 +41,17 @@ actor ExternalToolRunner {
             process.executableURL = executableURL
             process.arguments = arguments
 
-            let pipe = Pipe()
-            process.standardOutput = pipe
-            process.standardError = pipe
+            let stdoutPipe = Pipe()
+            let stderrPipe = Pipe()
+            process.standardOutput = stdoutPipe
+            process.standardError = stderrPipe
 
             process.terminationHandler = { process in
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                let output = String(data: data, encoding: .utf8) ?? ""
-                continuation.resume(returning: (process.terminationStatus, output))
+                let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+                let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+                let stdout = String(data: stdoutData, encoding: .utf8) ?? ""
+                let stderr = String(data: stderrData, encoding: .utf8) ?? ""
+                continuation.resume(returning: (process.terminationStatus, stdout, stderr))
             }
 
             do {
@@ -56,6 +59,23 @@ actor ExternalToolRunner {
             } catch {
                 continuation.resume(throwing: error)
             }
+        }
+    }
+
+    public static func isCommandAvailable(_ command: String) async -> Bool {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
+        process.arguments = [command]
+
+        let pipe = Pipe()
+        process.standardOutput = pipe
+
+        do {
+            try process.run()
+            process.waitUntilExit()
+            return process.terminationStatus == 0
+        } catch {
+            return false
         }
     }
 }

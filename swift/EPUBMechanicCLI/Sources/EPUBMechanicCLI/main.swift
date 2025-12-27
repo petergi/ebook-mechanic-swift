@@ -28,6 +28,15 @@ extension EPUBMechanicCLI {
         @Flag(name: .long, help: "Perform a detailed EPUB specification compliance check using epubcheck.")
         var specCheck: Bool = false
 
+        @Flag(name: .long, help: "Display detailed warnings from EPUB specification checks")
+        var showWarnings: Bool = false
+
+        @Flag(name: .long, help: "Perform EPUB accessibility compliance checks")
+        var accessibility: Bool = false
+
+        @Option(name: .long, help: "Extract EPUB metadata to file (json or yaml)")
+        var extractMetadata: String?
+
         func run() throws {
             let group = DispatchGroup()
             group.enter()
@@ -60,7 +69,11 @@ extension EPUBMechanicCLI {
                     
                     if specCheck {
                         for file in result.okFiles.filter({ $0.url.pathExtension.lowercased() == "epub" }) {
-                            let validationResult = await ExternalValidators.validateEpub(at: file.url.path)
+                            let validationResult = await ExternalValidators.validateEpub(
+                                at: file.url.path,
+                                showWarnings: showWarnings,
+                                checkAccessibility: accessibility
+                            )
                             formatter.printValidationResults(for: validationResult)
                         }
                     } else {
@@ -69,7 +82,17 @@ extension EPUBMechanicCLI {
                              formatter.printValidationResults(for: validationResult)
                          }
                     }
-                    
+
+                    if let format = extractMetadata {
+                        for file in result.okFiles.filter({ $0.url.pathExtension.lowercased() == "epub" }) {
+                            do {
+                                try await extractEPUBMetadata(at: file.url, format: format)
+                            } catch {
+                                print("Failed to extract metadata from \(file.url.lastPathComponent): \(error)")
+                            }
+                        }
+                    }
+
                     print("✅ EPUB Mechanic validation completed successfully")
                 } catch {
                     print("❌ Error: \(error)")
@@ -78,6 +101,36 @@ extension EPUBMechanicCLI {
             }
             
             group.wait()
+        }
+
+        private func extractEPUBMetadata(at url: URL, format: String) async throws {
+            // TODO: Implement full metadata extraction once ZipArchive is made public
+            // For now, create a placeholder implementation
+            let metadata: [String: String] = [
+                "title": url.deletingPathExtension().lastPathComponent,
+                "format": "EPUB",
+                "note": "Full metadata extraction requires ZipArchive access"
+            ]
+
+            let outputURL = url.deletingPathExtension().appendingPathExtension("metadata.\(format)")
+
+            if format == "json" {
+                let jsonData = try JSONSerialization.data(withJSONObject: metadata, options: [.prettyPrinted])
+                try jsonData.write(to: outputURL)
+            } else if format == "yaml" {
+                var yamlString = ""
+                for (key, value) in metadata {
+                    yamlString += "\(key): \(value)\n"
+                }
+                try yamlString.write(to: outputURL, atomically: true, encoding: .utf8)
+            }
+
+            print("✓ Saved metadata: \(outputURL.lastPathComponent)")
+        }
+
+        enum EPUBError: Error {
+            case missingOPF
+            case invalidOPF
         }
     }
 
@@ -146,7 +199,23 @@ extension EPUBMechanicCLI {
                         }
                         print("📈 Repair Summary: \(repairedCount) files repaired.")
                     }
-                    
+
+                    if fixMetadata && !isDryRun {
+                        print("🔧 Fixing metadata in EPUB files...")
+                        for file in result.okFiles.filter({ $0.url.pathExtension.lowercased() == "epub" }) {
+                            do {
+                                let result = try await repairEPUBMetadata(at: file.url)
+                                if result.fixed {
+                                    print("✓ Fixed metadata: \(file.url.lastPathComponent)")
+                                } else {
+                                    print("• No metadata updates needed: \(file.url.lastPathComponent)")
+                                }
+                            } catch {
+                                print("✗ Failed to fix metadata for \(file.url.lastPathComponent): \(error)")
+                            }
+                        }
+                    }
+
                     print("✅ EPUB Mechanic repair completed successfully")
                 } catch {
                     print("❌ Error: \(error)")
@@ -155,6 +224,16 @@ extension EPUBMechanicCLI {
             }
             
             group.wait()
+        }
+
+        private func repairEPUBMetadata(at url: URL) async throws -> RepairResult {
+            let repairer = EPUBMetadataRepairer()
+            return try repairer.repair(at: url)
+        }
+
+        enum EPUBError: Error {
+            case missingOPF
+            case invalidOPF
         }
     }
 }
