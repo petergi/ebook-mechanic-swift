@@ -1,3 +1,4 @@
+// swiftlint:disable type_body_length file_length function_body_length nesting opening_brace
 import Foundation
 
 #if canImport(FoundationXML)

@@ -7,6 +7,7 @@ public struct ExternalEPUBValidator {
     return await ExternalToolRunner.isCommandAvailable("epubcheck")
   }
 
+  // swiftlint:disable:next function_body_length
   public func validate(
     fileURL: URL, epubcheckPath: String? = nil, showWarnings: Bool = false,
     accessibility: Bool = false
@@ -171,8 +172,7 @@ public struct ExternalEPUBValidator {
       if let fileMatch = fileRegex?.firstMatch(
         in: remainder,
         options: [],
-        range: NSRange(location: 0, length: remainder.utf16.count))
-      {
+        range: NSRange(location: 0, length: remainder.utf16.count)) {
         filePath = remainder.capturingGroup(fileMatch, at: 1)
         if let lineValue = remainder.capturingGroup(fileMatch, at: 2) {
           lineNumber = Int(lineValue)

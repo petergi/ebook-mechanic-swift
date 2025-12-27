@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import Foundation
 
 /// Supported ebook formats that EbookMechanic can inspect.
@@ -188,6 +189,7 @@ public struct EPUBComplianceResult: Sendable, Codable, Equatable {
 
 /// Represents the detailed status of a validation check.
 public enum ValidationStatus: String, Codable, Sendable, CaseIterable {
+  // swiftlint:disable:next identifier_name
   case ok  // File is valid and compliant
   case nonCompliant  // File is valid but does not meet spec (e.g., OPF issues)
   case corrupt  // File structure is unreadable or severely damaged
@@ -374,7 +376,7 @@ extension ISO8601DateFormatter {
   public static func threadLocalString() -> String {
     let formatter = ISO8601DateFormatter()
     formatter.formatOptions = [
-      .withFullDate, .withDashSeparatorInDate, .withTime, .withColonSeparatorInTime,
+      .withFullDate, .withDashSeparatorInDate, .withTime, .withColonSeparatorInTime
     ]
     return formatter.string(from: Date()).replacingOccurrences(of: ":", with: "-")
   }

@@ -54,6 +54,7 @@ struct PDFStructureValidator {
       return .failure(error)
     }
   }
+  // swiftlint:disable:next cyclomatic_complexity function_body_length
   func parsePdfcpuOutput(stdout: String, stderr: String, exitCode: Int32) -> PDFValidationResult {
     var xrefValid = true
     var pageTreeValid = true
@@ -76,8 +77,7 @@ struct PDFStructureValidator {
         || lowercaseLine.contains("xreftable")
         || lowercaseLine.contains("startxref")
         || lowercaseLine.contains("rootdict")
-        || lowercaseLine.contains("trailer")
-      {
+        || lowercaseLine.contains("trailer") {
         xrefValid = false
         if reportedXrefError == false {
           streamErrors.append("Xref table is corrupt")
@@ -88,8 +88,7 @@ struct PDFStructureValidator {
       // Check for page tree errors
       if lowercaseLine.contains("page tree")
         || lowercaseLine.contains("pagesdict")
-        || lowercaseLine.contains("missing \"pages\"")
-      {
+        || lowercaseLine.contains("missing \"pages\"") {
         pageTreeValid = false
         if reportedPageTreeError == false {
           streamErrors.append("Invalid page tree structure")

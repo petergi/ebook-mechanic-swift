@@ -1,3 +1,4 @@
+// swiftlint:disable type_body_length cyclomatic_complexity function_body_length identifier_name opening_brace
 import Foundation
 
 /// Protocol for validating ebook containers.

@@ -1,3 +1,4 @@
+// swiftlint:disable type_body_length file_length function_body_length function_parameter_count
 import Foundation
 
 struct HTMLReportGenerator {

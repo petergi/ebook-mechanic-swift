@@ -13,8 +13,20 @@ struct CSVReportGenerator {
         .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
       let format = EbookFileType(pathExtension: file.url.pathExtension)?.rawValue ?? "unknown"
       let fingerprint = file.fingerprint?.description ?? ""
-      csv +=
-        "\"\(escapeCSV(relativePath))\",\"\(escapeCSV(file.status.rawValue))\",\"\(escapeCSV(format))\",\"\(escapeCSV(file.reason))\",\"\(file.size)\",\"\(escapeCSV(fingerprint))\"\n"
+      let escapedPath = escapeCSV(relativePath)
+      let escapedStatus = escapeCSV(file.status.rawValue)
+      let escapedFormat = escapeCSV(format)
+      let escapedReason = escapeCSV(file.reason)
+      let escapedFingerprint = escapeCSV(fingerprint)
+      let row = [
+        "\"\(escapedPath)\"",
+        "\"\(escapedStatus)\"",
+        "\"\(escapedFormat)\"",
+        "\"\(escapedReason)\"",
+        "\"\(file.size)\"",
+        "\"\(escapedFingerprint)\""
+      ]
+      csv += row.joined(separator: ",") + "\n"
     }
 
     // Summary row for corrupted files

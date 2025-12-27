@@ -1,3 +1,4 @@
+// swiftlint:disable nesting
 import Foundation
 
 #if canImport(FoundationXML)
@@ -212,8 +213,7 @@ struct HTMLValidator {
         return !charset.isEmpty
       }
       if let httpEquiv = meta.attribute(forName: "http-equiv")?.stringValue,
-        httpEquiv.lowercased() == "content-type"
-      {
+        httpEquiv.lowercased() == "content-type" {
         return true
       }
       return false

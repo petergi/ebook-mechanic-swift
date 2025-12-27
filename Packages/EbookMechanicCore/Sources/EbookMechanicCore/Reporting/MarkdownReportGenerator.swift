@@ -58,9 +58,14 @@ public struct MarkdownReportGenerator: Sendable {
       let breakdown = result.breakdown(for: type)
       let status = statusSummary(for: type, in: result)
       let validationLevel = validationLevelSummary(for: type, in: result)
-      builder.appendLine(
-        "| \(type.fileExtension.uppercased()) | \(breakdown.corrupted) | \(breakdown.total) | \(validationLevel) | \(status) |"
-      )
+      let row = [
+        type.fileExtension.uppercased(),
+        "\(breakdown.corrupted)",
+        "\(breakdown.total)",
+        validationLevel,
+        status
+      ]
+      builder.appendLine("| \(row.joined(separator: " | ")) |")
     }
   }
 
@@ -146,8 +151,7 @@ public struct MarkdownReportGenerator: Sendable {
       let relative = relativePath(for: folder, rootDirectory: rootDirectory)
       builder.appendLine("### `\(relative)`\n")
       if let contents = try? FileManager.default.contentsOfDirectory(atPath: folder.path),
-        !contents.isEmpty
-      {
+        !contents.isEmpty {
         builder.appendLine("**Contents:** \(contents.count) items\n")
         for (idx, item) in contents.enumerated() where idx < 5 {
           builder.appendLine("- `\(item)`")

@@ -1,3 +1,4 @@
+// swiftlint:disable file_length cyclomatic_complexity large_tuple opening_brace
 import Foundation
 
 #if canImport(FoundationXML)

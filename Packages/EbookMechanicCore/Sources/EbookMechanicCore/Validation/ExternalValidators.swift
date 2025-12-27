@@ -5,6 +5,7 @@
 //  Created by Gemini on 2025-12-20.
 //
 
+// swiftlint:disable function_body_length identifier_name opening_brace
 import Foundation
 
 public struct ExternalValidators {

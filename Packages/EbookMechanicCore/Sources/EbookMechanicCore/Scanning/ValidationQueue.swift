@@ -72,7 +72,7 @@ public actor ValidationQueue {
 }
 
 /// A simple asynchronous semaphore for controlling concurrent access.
-fileprivate actor AsyncSemaphore {
+private actor AsyncSemaphore {
   private var count: Int
   private var waiters: [CheckedContinuation<Void, Never>] = []
 

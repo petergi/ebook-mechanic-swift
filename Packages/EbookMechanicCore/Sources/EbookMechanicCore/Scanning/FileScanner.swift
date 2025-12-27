@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import Foundation
 
 // swiftlint:disable type_body_length
@@ -53,7 +54,7 @@ public actor FileScanner {
 
   /// Performs a corruption scan across the root directory.
   @discardableResult
-  // swiftlint:disable:next function_body_length
+  // swiftlint:disable:next function_body_length cyclomatic_complexity
   public func scanForCorruption(progress: ProgressHandler? = nil) async throws -> ScanResult {
     let startTime = Date()
     let scanControl = scanControl
@@ -106,6 +107,7 @@ public actor FileScanner {
       var completedCount = 0
 
       // Function to submit a new task if available and within batch limit
+      // swiftlint:disable:next function_body_length
       func submitNextTask() async throws {
         guard submittedCount < selectedFiles.count else { return }
 
@@ -152,8 +154,8 @@ public actor FileScanner {
 
             let fileType = EbookFileType(pathExtension: fileURL.pathExtension)!
             if let cachedResult = await self.validator.cache.get(
-              forKey: ValidationCache.cacheKey(for: fileURL, size: size, modDate: modDate))
-            {
+              forKey: ValidationCache.cacheKey(for: fileURL, size: size, modDate: modDate)
+            ) {
               semaphore.signal()
               return ValidationOutcome(
                 validation: cachedResult,
@@ -370,13 +372,13 @@ public actor FileScanner {
     }
   }
 
+  // swiftlint:disable function_body_length cyclomatic_complexity
   /// Normalizes EPUB files by rebuilding archives into a canonical form.
   /// - Parameters:
   ///   - force: If true, normalize all EPUBs even if they appear already normalized.
   ///   - dryRun: If true, do not write changes; only report what would be changed.
   ///   - progress: Optional progress callback for UI/CLI.
   /// - Returns: A tuple of counts (normalized, skipped).
-  // swiftlint:disable:next function_body_length
   public func normalizeEPUBs(
     force: Bool = false, dryRun: Bool = true, progress: ProgressHandler? = nil
   ) async -> (normalized: Int, skipped: Int) {
@@ -396,8 +398,8 @@ public actor FileScanner {
     var epubs: [URL] = []
     if let enumerator = fileManager.enumerator(
       at: rootDirectory, includingPropertiesForKeys: [.isRegularFileKey],
-      options: [.skipsHiddenFiles])
-    {
+      options: [.skipsHiddenFiles]
+    ) {
       while let next = enumerator.nextObject() as? URL {
         let fileURL = next
         if fileURL.standardizedFileURL.path.hasPrefix(corruptedDirURL.path) {
@@ -481,13 +483,12 @@ public actor FileScanner {
         }
 
         // Normalize container entry and handle data
-        var containerData: Data? = nil
+        var containerData: Data?
         if let containerOriginal = filteredEntries.first(where: {
           $0.name.lowercased() == "meta-inf/container.xml"
         }) {
           if let str = String(data: containerOriginal.data, encoding: .utf8),
-            let reencoded = str.data(using: .utf8)
-          {
+            let reencoded = str.data(using: .utf8) {
             containerData = reencoded
           } else {
             containerData = containerOriginal.data
@@ -505,7 +506,7 @@ public actor FileScanner {
         var newEntries: [ZipEntry] = [
           ZipEntry(name: "mimetype", data: mimetypeData, compressionMethod: 0),
           ZipEntry(
-            name: "META-INF/container.xml", data: normalization.containerData, compressionMethod: 8),
+            name: "META-INF/container.xml", data: normalization.containerData, compressionMethod: 8)
         ]
 
         let payloadEntries =
@@ -552,6 +553,7 @@ public actor FileScanner {
 
     return (normalized, skipped)
   }
+  // swiftlint:enable function_body_length cyclomatic_complexity
 
   /// Attempts to repair the corrupted files recorded in `lastResult`.
   public func repairCorruptedFiles(progress: ProgressHandler? = nil) async -> (

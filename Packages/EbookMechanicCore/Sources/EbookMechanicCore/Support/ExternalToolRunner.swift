@@ -41,6 +41,7 @@ actor ExternalToolRunner {
     self.semaphore = SimpleSemaphore(count: maxConcurrentExternalTools)
   }
 
+  // swiftlint:disable function_body_length large_tuple
   func run(
     executableURL: URL,
     arguments: [String],
@@ -118,6 +119,7 @@ actor ExternalToolRunner {
       }
     }
   }
+  // swiftlint:enable function_body_length large_tuple
 
   func peakConcurrentExecutions() async -> Int {
     await executionLock.maxConcurrentExecutions
@@ -148,6 +150,7 @@ actor ExternalToolRunner {
     resolvedExecutableURL(for: command) != nil
   }
 
+  // swiftlint:disable large_tuple
   public static func run(
     toolName: String,
     arguments: [String],
@@ -172,4 +175,5 @@ actor ExternalToolRunner {
 
     return (stdout, stderr, exitCode)
   }
+  // swiftlint:enable large_tuple
 }

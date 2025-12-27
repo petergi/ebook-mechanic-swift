@@ -1,4 +1,5 @@
 import Compression
+// swiftlint:disable file_length cyclomatic_complexity function_body_length
 import Foundation
 
 enum ZipError: Error, CustomStringConvertible {

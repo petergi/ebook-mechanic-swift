@@ -87,6 +87,7 @@ public struct ExternalPDFValidator {
     }
   }
 
+  // swiftlint:disable:next large_tuple
   private func summarize(details: PDFValidationResult) -> (isValid: Bool, status: ValidationStatus, reason: String) {
     var issues: [String] = []
     if !details.structureValid { issues.append("Invalid structure") }

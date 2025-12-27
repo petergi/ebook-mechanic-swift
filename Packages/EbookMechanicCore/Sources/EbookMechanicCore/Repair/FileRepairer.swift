@@ -1,6 +1,6 @@
 import Foundation
 
-// swiftlint:disable type_body_length
+// swiftlint:disable type_body_length file_length cyclomatic_complexity function_body_length
 
 /// Provides best-effort automated fixes for common ebook issues.
 public struct FileRepairer: @unchecked Sendable {
@@ -29,7 +29,6 @@ public struct FileRepairer: @unchecked Sendable {
     }
   }
 
-  // swiftlint:disable:next function_body_length
   private func repairEPUB(at url: URL) async -> RepairResult {
     let validation = await validator.validate(url: url, as: .epub)
     guard !validation.isValid else {

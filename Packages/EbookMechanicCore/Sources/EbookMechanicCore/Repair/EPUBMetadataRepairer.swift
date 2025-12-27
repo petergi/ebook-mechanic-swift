@@ -108,8 +108,7 @@ public struct EPUBMetadataRepairer: @unchecked Sendable {
 
     var changed = false
 
-    if ensureDCElement(named: "title", value: fallbackTitle, in: metadata, dcNamespace: dcNamespace)
-    {
+    if ensureDCElement(named: "title", value: fallbackTitle, in: metadata, dcNamespace: dcNamespace) {
       changed = true
     }
 
@@ -154,8 +153,7 @@ public struct EPUBMetadataRepairer: @unchecked Sendable {
 
     let metadata = XMLElement(name: "metadata")
     if let manifest = package.elements(forLocalName: "manifest", uri: opfNamespace).first,
-      let index = package.children?.firstIndex(of: manifest)
-    {
+      let index = package.children?.firstIndex(of: manifest) {
       package.insertChild(metadata, at: index)
     } else {
       package.addChild(metadata)
@@ -178,8 +176,7 @@ public struct EPUBMetadataRepairer: @unchecked Sendable {
   ) -> Bool {
     if let existing = metadata.elements(forLocalName: localName, uri: dcNamespace).first,
       let text = existing.stringValue,
-      !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    {
+      !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
       return false
     }
 
@@ -240,8 +237,7 @@ public struct EPUBMetadataRepairer: @unchecked Sendable {
 
     if let existing = modifiedNodes.first,
       let value = existing.stringValue,
-      !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    {
+      !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
       return false
     }
 
