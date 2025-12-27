@@ -73,51 +73,65 @@ struct ContentView: View {
           .lineLimit(1)
           .truncationMode(.middle)
           .frame(maxWidth: .infinity, alignment: .leading)
+          .help("Folder that will be scanned for ebooks and empty directories.")
 
         Button("Choose…", action: onSelectDirectory)
           .buttonStyle(.borderedProminent)
           .disabled(viewModel.isScanning)
+          .help("Pick the root folder to scan.")
       }
 
       HStack(spacing: 16) {
         Toggle("Attempt repair", isOn: $options.repair)
           .disabled(viewModel.isScanning)
+          .help("Try to fix corrupted files after scanning.")
         Toggle("Dry run", isOn: $options.dryRun)
           .disabled(viewModel.isScanning)
+          .help("Simulate changes without modifying files on disk.")
         Toggle("Generate report", isOn: $options.generateReport)
           .disabled(viewModel.isScanning)
+          .help("Create reports after the scan completes.")
       }
 
       HStack(spacing: 16) {
         Toggle("Corruption only", isOn: $options.corruptionOnly)
           .disabled(viewModel.isScanning)
+          .help("Scan files only; skip empty-folder checks.")
         Toggle("Empty folders only", isOn: $options.emptyFoldersOnly)
           .disabled(viewModel.isScanning)
+          .help("Scan folders only; skip corruption checks.")
         Toggle("Auto move corrupted", isOn: $options.autoMoveCorrupted)
           .disabled(viewModel.isScanning || options.dryRun)
+          .help("Automatically move corrupted files into the corrupted folder.")
         Toggle("Auto delete empty", isOn: $options.autoDeleteEmptyFolders)
           .disabled(viewModel.isScanning || options.dryRun)
+          .help("Automatically delete empty folders after scanning.")
       }
 
       HStack(spacing: 16) {
         Toggle("Use epubcheck", isOn: $options.useExternalEPUBValidator)
           .disabled(viewModel.isScanning)
+          .help("Use epubcheck for deeper EPUB validation (slower).")
         Toggle("Use pdfcpu", isOn: $options.useExternalPDFValidator)
           .disabled(viewModel.isScanning)
+          .help("Use pdfcpu for deeper PDF validation (slower).")
       }
 
       HStack(spacing: 16) {
         Text("Max Concurrent: \(options.maxConcurrentValidations)")
+          .help("Limit how many validations run at once.")
         Slider(
           value: Binding(
             get: { Double(options.maxConcurrentValidations) },
             set: { options.maxConcurrentValidations = Int($0) }), in: 1...16, step: 1
         )
         .disabled(viewModel.isScanning)
+        .help("Higher values can be faster but use more CPU.")
       }
 
       VStack(alignment: .leading) {
         Text("Report Formats:")
+          .help("Choose which report files to generate.")
         HStack {
           ForEach(ReportFormat.allCases, id: \.self) { format in
             Toggle(
@@ -134,6 +148,7 @@ struct ContentView: View {
               )
             )
             .disabled(viewModel.isScanning)
+            .help("Include \(format.rawValue.uppercased()) output in the reports.")
           }
         }
       }
@@ -141,8 +156,10 @@ struct ContentView: View {
       HStack(spacing: 16) {
         Toggle("Use Cache", isOn: $options.useCache)
           .disabled(viewModel.isScanning)
+          .help("Reuse previous validation results when files are unchanged.")
         Toggle("Show Performance Stats", isOn: $options.showPerformanceMetrics)
           .disabled(viewModel.isScanning)
+          .help("Show throughput and timing metrics after the scan.")
       }
 
       HStack(spacing: 12) {
@@ -150,6 +167,7 @@ struct ContentView: View {
           .textFieldStyle(.roundedBorder)
           .frame(maxWidth: 220)
           .disabled(viewModel.isScanning)
+          .help("Folder name to store corrupted files when auto-move is enabled.")
 
         Spacer()
 
@@ -165,6 +183,7 @@ struct ContentView: View {
           }
           .disabled(viewModel.isCancelling)
           .buttonStyle(.bordered)
+          .help("Pause or resume the current scan.")
         }
 
         Button {
@@ -190,6 +209,7 @@ struct ContentView: View {
         }
         .disabled(viewModel.isCancelling)
         .buttonStyle(.borderedProminent)
+        .help("Run a scan, or cancel the current scan.")
       }
     }
     .padding()
@@ -223,6 +243,9 @@ struct ContentView: View {
   private var results: some View {
     HStack(alignment: .top, spacing: 24) {
       summaryCard
+      if !viewModel.repairResults.isEmpty {
+        repairResultsCard
+      }
       corruptedList
       emptyFolderList
       if viewModel.performanceMetrics != nil {
@@ -278,6 +301,35 @@ struct ContentView: View {
     }
     .padding()
     .frame(maxWidth: 260, alignment: .leading)
+    .background(.regularMaterial)
+    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+  }
+
+  private var repairResultsCard: some View {
+    VStack(alignment: .leading, spacing: 12) {
+      Label("Repair Results", systemImage: "wrench.and.screwdriver")
+        .font(.headline)
+      ScrollView {
+        VStack(alignment: .leading, spacing: 8) {
+          ForEach(Array(viewModel.repairResults.enumerated()), id: \.offset) { _, result in
+            let icon = result.fixed ? "✅" : (result.success ? "ℹ️" : "❌")
+            let name = result.fileURL?.lastPathComponent ?? "Unknown file"
+            VStack(alignment: .leading, spacing: 4) {
+              Text("\(icon) \(name)")
+                .fontWeight(.semibold)
+              Text(result.message)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+            .padding(10)
+            .background(Color.blue.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+          }
+        }
+      }
+    }
+    .padding()
+    .frame(maxWidth: .infinity, alignment: .leading)
     .background(.regularMaterial)
     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
   }

@@ -72,6 +72,8 @@ final class ScanViewModel: ObservableObject {
   @Published var progressDetail: String = ""
   /// List of corrupted files discovered during scanning.
   @Published var corruptedFiles: [CorruptedFile] = []
+  /// Results of repair attempts when repair is enabled.
+  @Published var repairResults: [RepairResult] = []
   /// List of empty folders discovered during scanning.
   @Published var emptyFolders: [URL] = []
   /// Summary of the scan, including totals and per-format breakdowns.
@@ -116,6 +118,7 @@ final class ScanViewModel: ObservableObject {
   /// Resets all published state to defaults in preparation for a new scan.
   func reset() {
     corruptedFiles = []
+    repairResults = []
     emptyFolders = []
     summary = nil
     statusMessages.removeAll()
@@ -277,6 +280,7 @@ final class ScanViewModel: ObservableObject {
               }
               return file
             }
+            self.repairResults = repairs
           }
         }
 

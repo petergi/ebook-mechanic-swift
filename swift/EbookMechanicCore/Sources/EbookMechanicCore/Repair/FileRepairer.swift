@@ -122,10 +122,19 @@ public struct FileRepairer: @unchecked Sendable {
         if let idx = opfIndex {
           // OPF exists, validate it's parseable XML
           let opfData = entries[idx].data
-          if (try? XMLDocument(data: opfData, options: [])) == nil {
+          guard let document = try? XMLDocument(data: opfData, options: []) else {
             // OPF is corrupted, try to create a minimal valid one
             let minimalOPF = createMinimalOPF(htmlFiles: entries.filter { isHTMLFile($0.name) })
             entries[idx].data = minimalOPF
+            return true
+          }
+
+          if repairMissingManifestResources(
+            document: document,
+            opfPath: entries[idx].name,
+            entries: entries
+          ) {
+            entries[idx].data = Data(document.xmlString(options: [.nodePrettyPrint]).utf8)
             opfFixed = true
           }
         } else {
@@ -205,6 +214,110 @@ public struct FileRepairer: @unchecked Sendable {
         let lowercased = name.lowercased()
         return lowercased.hasSuffix(".html") || lowercased.hasSuffix(".xhtml")
           || lowercased.hasSuffix(".htm")
+      }
+
+      func repairMissingManifestResources(
+        document: XMLDocument,
+        opfPath: String,
+        entries: [ZipEntry]
+      ) -> Bool {
+        guard let packageElement = document.rootElement(),
+          let manifest = packageElement.elements(forName: "manifest").first
+        else {
+          return false
+        }
+
+        let opfDirectory = (opfPath as NSString).deletingLastPathComponent
+        let entryNames = Set(entries.map { $0.name })
+        var normalizedEntryMap: [String: String] = [:]
+        normalizedEntryMap.reserveCapacity(entries.count)
+
+        func normalizedPath(_ path: String) -> String {
+          let lowercased = path.lowercased()
+          return lowercased.removingPercentEncoding ?? lowercased
+        }
+
+        func resolveHref(_ href: String, relativeTo base: String) -> String {
+          let hrefWithoutFragment = href.split(separator: "#").first.map(String.init) ?? href
+
+          if base.isEmpty {
+            return hrefWithoutFragment
+          }
+
+          var components = base.split(separator: "/").map(String.init)
+          let segments = hrefWithoutFragment.split(separator: "/").map(String.init)
+
+          for segment in segments {
+            if segment == ".." {
+              if !components.isEmpty {
+                components.removeLast()
+              }
+            } else if segment == "." || segment.isEmpty {
+              continue
+            } else {
+              components.append(segment)
+            }
+          }
+
+          return components.joined(separator: "/")
+        }
+
+        func relativeHref(for entryName: String, base: String) -> String {
+          guard !base.isEmpty else { return entryName }
+          let prefix = base + "/"
+          if entryName.hasPrefix(prefix) {
+            return String(entryName.dropFirst(prefix.count))
+          }
+          return entryName
+        }
+
+        for entry in entries {
+          let key = normalizedPath(entry.name)
+          if normalizedEntryMap[key] == nil {
+            normalizedEntryMap[key] = entry.name
+          }
+        }
+
+        var removedIDs = Set<String>()
+        var fixed = false
+
+        for item in manifest.elements(forName: "item") {
+          guard let id = item.attribute(forName: "id")?.stringValue,
+            let hrefValue = item.attribute(forName: "href")?.stringValue
+          else {
+            continue
+          }
+
+          let resolved = resolveHref(hrefValue, relativeTo: opfDirectory)
+          if entryNames.contains(resolved) {
+            continue
+          }
+
+          if let match = normalizedEntryMap[normalizedPath(resolved)] {
+            let updatedHref = relativeHref(for: match, base: opfDirectory)
+            if updatedHref != hrefValue {
+              item.attribute(forName: "href")?.stringValue = updatedHref
+              fixed = true
+            }
+            continue
+          }
+
+          item.detach()
+          removedIDs.insert(id)
+          fixed = true
+        }
+
+        if !removedIDs.isEmpty, let spine = packageElement.elements(forName: "spine").first {
+          for itemref in spine.elements(forName: "itemref") {
+            guard let idref = itemref.attribute(forName: "idref")?.stringValue else { continue }
+            if removedIDs.contains(idref) {
+              itemref.detach()
+              fixed = true
+            }
+          }
+        }
+
+        return fixed
       }
 
       ensureMimetypeIsFirstStored()
