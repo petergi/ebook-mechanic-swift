@@ -56,7 +56,7 @@ make -f Makefile.swift uninstall-specialized
 
 ### 2. 🧪 Expand Test Coverage (Priority: High)
 
-**Why**: Current test coverage is limited (EPUB: 12 tests, PDF: 4 tests). Need comprehensive testing before production use.
+**Why**: Current test coverage is limited (EPUB: 6 tests, PDF: 4 tests). Need comprehensive testing before production use.
 
 #### EbookMechanicEPUBCLI Tests Needed:
 

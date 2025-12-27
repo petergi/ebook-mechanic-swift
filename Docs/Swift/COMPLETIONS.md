@@ -7,7 +7,7 @@ The EbookMechanic CLI supports shell completion for Bash, Zsh, Fish, and PowerSh
 Generate all completion scripts at once:
 
 ```bash
-make cli-completions
+make -f Makefile.swift completions
 ```
 
 This creates completion scripts in the `./completions/` directory.

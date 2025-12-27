@@ -44,7 +44,7 @@ The foundation package providing all core functionality:
 - Swift 6 strict concurrency enforced
 - Actor isolation for automatic thread safety
 - Async/await patterns throughout
-- Comprehensive XCTest coverage (75 tests)
+- Comprehensive XCTest coverage (77 tests)
 
 ### EbookMechanicCLI (Full-Featured CLI)
 
@@ -59,7 +59,7 @@ Terminal interface for all ebook formats:
 - Shell completion support (Bash, Zsh, Fish, PowerShell)
 - Depends on EbookMechanicCore
 
-**Test Coverage:** 102 tests for configuration and completions
+**Test Coverage:** 105 tests for configuration and completions
 
 ### EbookMechanicEPUBCLI (EPUB-Focused Utility)
 
@@ -73,7 +73,7 @@ Specialized CLI for EPUB validation and repair:
 - Lightweight alternative to full CLI
 - Depends on EbookMechanicCore
 
-**Test Coverage:** 12 tests for core CLI flows
+**Test Coverage:** 6 tests for core CLI flows
 
 ### EbookMechanicPDFCLI (PDF-Focused Utility)
 
@@ -103,7 +103,7 @@ Native macOS application with SwiftUI:
 
 **Platform Requirements:** macOS 13+, iOS 16+ ready
 
-**Test Coverage:** 17 tests (view-model + UI)
+**Test Coverage:** 30 tests (view-model + UI)
 
 ## Installation
 
@@ -488,11 +488,11 @@ Comprehensive test coverage across all modules:
 make -f Makefile.swift test-all
 
 # Run specific module tests
-make -f Makefile.swift test-core           # Core library (75 tests)
-make -f Makefile.swift test-cli            # CLI (102 tests)
-make -f Makefile.swift test-epub           # EPUB CLI (12 tests)
+make -f Makefile.swift test-core           # Core library (77 tests)
+make -f Makefile.swift test-cli            # CLI (105 tests)
+make -f Makefile.swift test-epub           # EPUB CLI (6 tests)
 make -f Makefile.swift test-pdf            # PDF CLI (4 tests)
-make -f Makefile.swift test-app            # App (17 tests)
+make -f Makefile.swift test-app            # App (30 tests)
 
 # Or use Swift directly
 swift test --package-path Packages/EbookMechanicCore
@@ -500,7 +500,7 @@ swift test --package-path Packages/EbookMechanicCore
 
 ### Test Coverage
 
-**Total:** 210 tests across Core, CLIs, and App modules
+**Total:** 222 tests across Core, CLIs, and App modules
 
 - **ValidationTests.swift** - Format-specific validation tests
 - **RepairTests.swift** - Automatic repair functionality

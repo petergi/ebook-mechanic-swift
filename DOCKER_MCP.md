@@ -74,4 +74,4 @@ DOCKER_HOST=unix:///Users/petergiannopoulos/Library/Containers/com.docker.docker
 
 ## Notes from this session
 - We had repeated `Docker Desktop is not running` errors until we attempted direct socket overrides.
-- Once run with escalated permissions, the gateway started and the MCP servers initialized, with `openapi-schema` failing but the rest succeeding.
+- Once run with escalated permissions, the gateway started and the MCP servers initialized; check the gateway logs for any server-specific failures.

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-EbookMechanic is a multi-language ebook library management toolkit with implementations in **Swift** and **Python**. It validates ebook files (EPUB, MOBI, AZW3, AZW4, PDF), detects corruption, repairs files when possible, and cleans up empty folders.
+EbookMechanic is a Swift-based ebook library management toolkit with helper Python scripts for fixture generation. It validates ebook files (EPUB, MOBI, AZW3, AZW4, PDF), detects corruption, repairs files when possible, and cleans up empty folders.
 
 **Current Status (November 2025):**
 
@@ -129,7 +129,7 @@ The benchmark script:
 3. Runs both implementations in dry-run mode
 4. Reports per-run timings and averages
 
-### Test Library Generator (python/)
+### Test Library Generator (Scripts/)
 
 ```bash
 # Generate sample library with 10 authors, all formats
@@ -167,7 +167,7 @@ Five SwiftPM packages in `EbookMechanic.xcworkspace`:
    - `PDFHeaderRepair` - Advanced PDF header corruption detection and repair
    - `ZipArchive` - Custom ZIP implementation (no external dependencies)
    - `MarkdownReportGenerator` - Report generation
-   - 26 comprehensive tests
+   - 77 tests
 
 2. **EbookMechanicCLI** (Packages/EbookMechanicCLI/) - Full-featured command-line interface
    - Flag parsing with configuration struct
@@ -175,21 +175,21 @@ Five SwiftPM packages in `EbookMechanic.xcworkspace`:
    - Interactive prompts with auto-confirm mode
    - Shell completions (Bash, Zsh, Fish, PowerShell)
    - Depends on EbookMechanicCore
-   - 102 tests for CLI functionality
+   - 105 tests for CLI functionality
 
 3. **EbookMechanicApp** (Apps/EbookMechanicApp/) - macOS SwiftUI app
    - `ScanViewModel` - Observable view model shared with CLI logic
    - `ContentView` - Gradient UI with live progress, toggle controls
    - Directory picker using `NSOpenPanel`
    - Scrollable corrupted/empty folder lists
-   - 3 view-model tests
+   - 30 tests (view-model + UI)
 
 4. **EbookMechanicEPUBCLI** (Packages/EbookMechanicEPUBCLI/) - Specialized EPUB utility
    - EPUB-only validation (ZIP + mimetype + container.xml)
    - Automatic repair of missing EPUB metadata
    - Simplified CLI focused on EPUB operations
    - Depends on EbookMechanicCore
-   - 2 basic tests
+   - 6 tests
 
 5. **EbookMechanicPDFCLI** (Packages/EbookMechanicPDFCLI/) - Specialized PDF utility
    - PDF + AZW4 validation (header + EOF markers)
@@ -197,7 +197,7 @@ Five SwiftPM packages in `EbookMechanic.xcworkspace`:
    - Detects junk prefixes, UTF-8 BOM, email wrappers
    - Simplified CLI focused on PDF operations
    - Depends on EbookMechanicCore
-   - 2 basic tests
+   - 4 tests
 
 **Actor-Based Concurrency (FileScanner.swift):**
 
@@ -231,7 +231,7 @@ Five SwiftPM packages in `EbookMechanic.xcworkspace`:
 - All tests use `--disable-sandbox` flag for file system access
 - Custom ZIP implementation avoids external dependencies but requires maintenance for edge cases
 
-**Test Library Generator (generate_test_library.py):**
+**Test Library Generator (Scripts/generate_test_library.py):**
 
 Creates comprehensive test fixtures with:
 
@@ -274,7 +274,7 @@ Creates comprehensive test fixtures with:
 
 ### EPUB Files
 
-- Must be valid ZIP (use `archive/zip` in Go, custom `ZipArchive` in Swift, `zipfile` in Python)
+- Must be valid ZIP (custom `ZipArchive` in Swift, `zipfile` in Python scripts)
 - Required file: `mimetype` with exact content `application/epub+zip`
 - Required file: `META-INF/container.xml` (non-empty)
 
@@ -302,14 +302,6 @@ Creates comprehensive test fixtures with:
 
 ## Testing Strategy
 
-### Go Tests
-
-- **validator_test.go:** 45+ tests covering all formats, valid/invalid cases, edge cases
-- **scanner_test.go:** 15+ tests for file scanning, corruption detection, folder operations
-- **report_test.go:** 10+ tests for report generation and formatting
-
-Coverage target: 46%+ (use `make test-coverage` to view)
-
 ### Swift Tests
 
 - **ValidationTests.swift:** Format-specific validation tests (4 tests)
@@ -318,93 +310,13 @@ Coverage target: 46%+ (use `make test-coverage` to view)
 - **ScannerTests.swift:** File scanning and folder operations (3 tests)
 - **ReportGeneratorTests.swift:** Markdown report generation (12 tests)
 - **CLIConfigurationTests.swift:** CLI argument parsing (45 tests)
-- **ProgressPrinterTests.swift:** CLI progress output (26 tests)
+- **ProgressPrinterTests.swift:** CLI progress output (27 tests)
 - **ShellCompletionTests.swift:** Shell completion generation (31 tests)
 - **ScanOptionsTests.swift:** SwiftUI view model behavior
 
-All tests: 128+ total (26 core + 102 CLI + app tests)
+Coverage target: 46%+ (review Xcode coverage reports for Swift targets)
+
+
+All tests: 128+ total (core + CLI + app)
 Core library includes comprehensive PDF repair test coverage with real-world corruption scenarios
 
-### Python Tests
-
-- Python implementation primarily uses manual testing with generated test libraries
-- Use `generate_test_library.py` to create comprehensive test fixtures
-- Test all formats with valid/corrupt pairs
-- Verify TUI rendering manually with different library sizes
-- Test each standalone script independently:
-  - `check_corrupted_ebooks.py` - Test corruption detection
-  - `delete_empty_ebook_folders.py` - Test folder cleanup
-  - `ebook_manager_tui.py` - Test full TUI workflow
-
-## Performance Characteristics
-
-**Multi-Implementation Benchmarking:**
-Use `Scripts/benchmark.sh` to compare all implementations on identical generated libraries. Typical results on 10,000 files:
-
-- **Go:** ~5-10 seconds (compiled, goroutines, Bubble Tea TUI)
-- **Swift:** ~8-12 seconds (compiled, actor-based concurrency)
-- **Python:** ~30-45 seconds (interpreted, Rich library)
-
-**Optimization Notes:**
-
-- **Go:** Two-pass scanning for accurate progress tracking, concurrent goroutines for validation
-- **Swift:** Actor isolation for automatic thread safety without manual locks, async/await patterns
-- **Python:** Single-threaded with Rich progress bars, interpreted execution
-- All implementations skip CORRUPTED directory to avoid redundant scanning
-- File validation is I/O-bound; format-specific validators use minimal memory
-- Compiled languages (Go, Swift) have significant performance advantage over interpreted Python
-
-## Important File Paths & Conventions
-
-**Generated Artifacts:**
-
-- Corrupted files: `{rootDir}/CORRUPTED/` (preserves directory structure across all implementations)
-- Go reports: `ebook_manager_report_YYYY-MM-DD_HH-MM-SS.md`
-- Swift reports: `ebook_mechanic_report_YYYY-MM-DD_HH-MM-SS.md`
-- Python: Console output only (no file reports by default)
-- Test libraries: `test-library/` (default, configurable)
-
-**Build Artifacts:**
-
-- Go binaries: `golang/build/ebook-mechanic`, `golang/dist/ebook-mechanic-*`
-- Swift builds: `Packages/*/.build/` and `Apps/*/.build/`
-- Benchmark cache: `.bench/`
-
-**Extensions:**
-
-- Supported (case-insensitive): `.epub`, `.mobi`, `.azw3`, `.azw4`, `.pdf`
-- Backup files (Swift repairs): `*.backup`
-
-## Cross-Implementation Compatibility
-
-All three implementations (Go, Swift, Python) use the same:
-
-- Validation rules for each format
-- CORRUPTED directory naming convention
-- Markdown report structure (minor formatting differences)
-- Empty folder detection algorithm (bottom-up traversal)
-
-This allows benchmarking, testing, and cross-validation between implementations.
-
-## Dependencies
-
-**Go (golang/go.mod):**
-
-- `github.com/charmbracelet/bubbletea` v0.25.0 - TUI framework
-- `github.com/charmbracelet/lipgloss` v0.9.1 - Styling
-- `github.com/charmbracelet/bubbles` v0.18.0 - TUI components
-
-**Swift (Package.swift files):**
-
-- No external dependencies (custom ZIP implementation)
-- Swift 6.2 toolchain required
-- Platforms: macOS 13+, iOS 16+
-
-**Python (python/):**
-
-- Standard library only for `generate_test_library.py`
-- Original TUI scripts use `rich` library (optional, legacy)
-
-## Makefile Commands Reference
-
-**(Makefile.swift):**

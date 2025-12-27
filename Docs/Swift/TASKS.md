@@ -22,7 +22,7 @@ This document tracks ongoing and planned development tasks for the Swift impleme
 ### 🔴 Testing & Quality Assurance
 
 - [ ] **Expand EbookMechanicEPUBCLI test coverage**
-  - Current: 12 tests
+  - Current: 6 tests
   - Target: 20+ tests covering validation, repair, edge cases
   - Priority: High
   - Files: `Packages/EbookMechanicEPUBCLI/Tests/`

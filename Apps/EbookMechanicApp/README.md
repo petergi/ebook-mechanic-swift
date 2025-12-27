@@ -66,27 +66,21 @@ The EbookMechanicApp provides a graphical interface for the EbookMechanic toolki
 ### Build from Source
 
 ```bash
-# Navigate to swift directory
-cd swift
-
 # Build the app
-make app-build
+make build-ebook-mechanic-app
 
 # Run the app
-make app-run
-
-# Or build and run in one step
-make app-build app-run
+make run-ebook-mechanic-app
 ```
 
 ### Using Xcode
 
 ```bash
 # Open workspace in Xcode
-make workspace
+make -f Makefile.swift workspace
 
 # Or open directly
-open ../EbookMechanic.xcworkspace
+open EbookMechanic.xcworkspace
 
 # Select EbookMechanicApp scheme and run
 ```
@@ -96,11 +90,11 @@ open ../EbookMechanic.xcworkspace
 ### Launching the App
 
 ```bash
-# From swift directory
-make app-run
+# From repo root
+make run-ebook-mechanic-app
 
 # Or directly from build directory
-open EbookMechanicApp/.build/debug/EbookMechanicApp.app
+open Apps/EbookMechanicApp/.build/debug/EbookMechanicApp.app
 ```
 
 ### Using the Interface

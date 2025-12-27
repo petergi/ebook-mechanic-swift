@@ -82,7 +82,7 @@ make run-ebook-mechanic-app                    # Run SwiftUI macOS app
 make sample-library
 
 # Benchmark implementations
-make benchmark
+./Scripts/benchmark.sh
 
 # Install
 make install                                    # Install all the CLIs
@@ -278,7 +278,7 @@ make sample-library LIBRARY_AUTHORS=20 LIBRARY_FORMATS=pdf,epub
 make docs
 
 # Serve documentation locally
-make docs-serve          # http://localhost:8080
+make docc-serve          # http://localhost:8080
 ```
 
 ## Shell Completion
@@ -287,10 +287,10 @@ All implementations support shell completion for Bash, Zsh, Fish, and PowerShell
 
 ```bash
 # Auto-detect and install for current shell
-make install-completion
+make install-completions
 
 # Generate all completion scripts
-make generate-completion
+make -f Makefile.swift completions
 ```
 
 All implementations share:
@@ -332,7 +332,7 @@ make build-all
 
 ```bash
 # Run benchmarks to identify bottlenecks
-make benchmark
+./Scripts/benchmark.sh
 ```
 
 ### Test Failures
