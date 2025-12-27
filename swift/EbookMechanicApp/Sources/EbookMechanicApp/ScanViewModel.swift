@@ -283,7 +283,7 @@ final class ScanViewModel: ObservableObject {
   func generateReport(into directory: URL, options: ScanOptions, formats: Set<ReportFormat>)
     async throws -> [URL]
   {
-    guard let summary = summary else {
+    guard summary != nil else {
       throw ScanViewModelError.noScanData
     }
 
