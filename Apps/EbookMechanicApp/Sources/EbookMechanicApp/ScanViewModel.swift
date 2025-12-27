@@ -251,23 +251,20 @@ final class ScanViewModel: ObservableObject {
               return file
             }
             self.repairResults = repairs
-            if let scanResult {
-              self.updateValidationCaches(
-                using: ScanResult(
-                  totalFiles: scanResult.totalFiles,
-                  corruptedFiles: self.corruptedFiles,
-                  okFiles: scanResult.okFiles,
-                  breakdowns: scanResult.breakdowns,
-                  emptyFolders: scanResult.emptyFolders,
-                  totalFolders: scanResult.totalFolders,
-                  foldersWithEbooks: scanResult.foldersWithEbooks,
-                  totalProcessedFiles: scanResult.totalProcessedFiles,
-                  totalCorruptedFiles: scanResult.totalCorruptedFiles,
-                  totalWarnings: scanResult.totalWarnings,
-                  totalErrors: scanResult.totalErrors
-                )
-              )
-            }
+            let updatedResult = ScanResult(
+              totalFiles: scanResult.totalFiles,
+              corruptedFiles: self.corruptedFiles,
+              okFiles: scanResult.okFiles,
+              breakdowns: scanResult.breakdowns,
+              emptyFolders: scanResult.emptyFolders,
+              totalFolders: scanResult.totalFolders,
+              foldersWithEbooks: scanResult.foldersWithEbooks,
+              totalProcessedFiles: scanResult.totalProcessedFiles,
+              totalCorruptedFiles: scanResult.totalCorruptedFiles,
+              totalWarnings: scanResult.totalWarnings,
+              totalErrors: scanResult.totalErrors
+            )
+            self.updateValidationCaches(using: updatedResult)
           }
         }
 

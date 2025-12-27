@@ -14,7 +14,7 @@ final class ContentViewUITests: XCTestCase {
   }
 
   func testAutomationTogglesDisableDuringDryRun() {
-    var options = ScanOptions(directory: FileManager.default.temporaryDirectory)
+    let options = ScanOptions(directory: FileManager.default.temporaryDirectory)
     options.dryRun = true
     let sut = makeSUT(options: options)
 
@@ -23,7 +23,7 @@ final class ContentViewUITests: XCTestCase {
   }
 
   func testAutomationTogglesEnableWhenLiveRun() {
-    var options = ScanOptions(directory: FileManager.default.temporaryDirectory)
+    let options = ScanOptions(directory: FileManager.default.temporaryDirectory)
     options.dryRun = false
     let sut = makeSUT(options: options)
 
@@ -126,12 +126,12 @@ final class ContentViewUITests: XCTestCase {
     configureViewModel?(viewModel)
 
     let selectedBox = Box(selectedDirectory)
-    let optionsBox = Box(options ?? ScanOptions(directory: selectedDirectory))
+    let optionsInstance = options ?? ScanOptions(directory: selectedDirectory)
 
     return ContentView(
       viewModel: viewModel,
       selectedDirectory: selectedBox.binding,
-      options: optionsBox.binding,
+      options: optionsInstance,
       onSelectDirectory: onSelectDirectory,
       onRunScan: onRunScan,
       onCancelScan: onCancelScan,

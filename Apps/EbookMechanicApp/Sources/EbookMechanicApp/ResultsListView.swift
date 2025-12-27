@@ -128,6 +128,7 @@ struct ResultsListGroups {
   let nonCompliant: [ValidationResult]
   let warnings: [ValidationResult]
 
+  @MainActor
   init(viewModel: ScanViewModel) {
     let resultsByURL = viewModel.validationResults
     let corruptedResults = viewModel.corruptedFiles.enumerated().map { index, file in

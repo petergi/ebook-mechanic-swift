@@ -485,8 +485,8 @@ struct ContentView: View {
     guard !isCheckingTools else { return }
     isCheckingTools = true
     Task {
-      let epubcheckInstalled = await ExternalToolRunner.isCommandAvailable("epubcheck")
-      let pdfcpuInstalled = await ExternalToolRunner.isCommandAvailable("pdfcpu")
+      let epubcheckInstalled = await ExternalEPUBValidator.isEpubcheckInstalled()
+      let pdfcpuInstalled = await ExternalPDFValidator.isPdfcpuInstalled()
       await MainActor.run {
         var missing: [String] = []
         if !epubcheckInstalled {
