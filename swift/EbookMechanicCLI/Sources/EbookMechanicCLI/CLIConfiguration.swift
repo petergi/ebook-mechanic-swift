@@ -1,0 +1,104 @@
+import Foundation
+
+enum CLIError: Error, Equatable {
+  case invalidArgument(String)
+  case userRequestedHelp
+  case userRequestedVersion
+  case userRequestedCompletion(ShellType)
+}
+
+struct CLIConfiguration: Equatable {
+  var directory: String
+  var corruptedDirectory: String
+  var corruptionOnly: Bool
+  var emptyFoldersOnly: Bool
+  var repair: Bool
+  var dryRun: Bool
+  var autoConfirm: Bool
+  var verbose: Bool
+  var generateReport: Bool
+  var normalizeEPUBs: Bool
+  var forceNormalize: Bool
+
+  static func parse(arguments: [String]) throws -> CLIConfiguration {
+    var config = CLIConfiguration(
+      directory: FileManager.default.currentDirectoryPath,
+      corruptedDirectory: "CORRUPTED",
+      corruptionOnly: false,
+      emptyFoldersOnly: false,
+      repair: false,
+      dryRun: false,
+      autoConfirm: false,
+      verbose: true,
+      generateReport: false,
+      normalizeEPUBs: false,
+      forceNormalize: false
+    )
+
+    var index = 1
+    while index < arguments.count {
+      let argument = arguments[index]
+      switch argument {
+      case "--help", "-h":
+        throw CLIError.userRequestedHelp
+      case "--version", "-V":
+        throw CLIError.userRequestedVersion
+      case "--generate-completion":
+        guard index + 1 < arguments.count else {
+          throw CLIError.invalidArgument("Missing shell type for --generate-completion")
+        }
+        let shellValue = arguments[index + 1]
+        index += 1
+        let normalized = shellValue.lowercased()
+        guard let shell = ShellType(rawValue: normalized) else {
+          throw CLIError.invalidArgument("Unknown shell type: \(shellValue)")
+        }
+        throw CLIError.userRequestedCompletion(shell)
+      case "--dir", "-d":
+        guard index + 1 < arguments.count else {
+          throw CLIError.invalidArgument("Missing value for \(argument)")
+        }
+        config.directory = arguments[index + 1]
+        index += 1
+      case "--corrupted-dir", "-c":
+        guard index + 1 < arguments.count else {
+          throw CLIError.invalidArgument("Missing value for \(argument)")
+        }
+        config.corruptedDirectory = arguments[index + 1]
+        index += 1
+      case "--corruption-only":
+        if !config.emptyFoldersOnly {
+          config.corruptionOnly = true
+        }
+      case "--empty-folders-only":
+        config.emptyFoldersOnly = true
+        config.corruptionOnly = false
+      case "--repair", "-r":
+        config.repair = true
+      case "--dry-run":
+        config.dryRun = true
+      case "--no-confirm":
+        config.autoConfirm = true
+      case "--quiet":
+        config.verbose = false
+      case "--report":
+        config.generateReport = true
+      case "--normalize-epubs":
+        config.normalizeEPUBs = true
+      case "--force-normalize":
+        config.forceNormalize = true
+        config.normalizeEPUBs = true
+      default:
+        if argument.hasPrefix("-") {
+          throw CLIError.invalidArgument("Unknown argument: \(argument)")
+        } else {
+          throw CLIError.invalidArgument("Unknown argument: \(argument)")
+        }
+      }
+
+      index += 1
+    }
+
+    return config
+  }
+}

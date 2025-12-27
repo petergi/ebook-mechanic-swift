@@ -440,7 +440,7 @@ uninstall-completions:
 # ==================== Quality Checks ====================
 
 ## check: Run all code quality checks
-check: check-swift
+check: check-swift lint
 	@echo ""
 	@echo "$(COLOR_GREEN)✓ All quality checks passed!$(COLOR_RESET)"
 

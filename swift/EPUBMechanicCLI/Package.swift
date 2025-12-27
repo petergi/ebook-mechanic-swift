@@ -4,26 +4,28 @@
 import PackageDescription
 
 let package = Package(
-    name: "EPUBMechanicCLI",
-    platforms: [
-        .macOS(.v12),
-    ],
-    dependencies: [
-        .package(path: "../EbookMechanicCore"),
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.0.0"),
-        .package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.0.0"),
-    ],
-    targets: [
-        .executableTarget(
-            name: "EPUBMechanicCLI",
-            dependencies: [
-                .product(name: "EbookMechanicCore", package: "EbookMechanicCore"),
-                .product(name: "ArgumentParser", package: "swift-argument-parser"),
-            ]
-        ),
-        .testTarget(
-            name: "EPUBMechanicCLITests",
-            dependencies: ["EPUBMechanicCLI", .product(name: "EbookMechanicCore", package: "EbookMechanicCore")]
-        ),
-    ]
+  name: "EPUBMechanicCLI",
+  platforms: [
+    .macOS(.v12)
+  ],
+  dependencies: [
+    .package(path: "../EbookMechanicCore"),
+    .package(url: "https://github.com/apple/swift-argument-parser", from: "1.0.0"),
+    .package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.0.0"),
+  ],
+  targets: [
+    .executableTarget(
+      name: "EPUBMechanicCLI",
+      dependencies: [
+        .product(name: "EbookMechanicCore", package: "EbookMechanicCore"),
+        .product(name: "ArgumentParser", package: "swift-argument-parser"),
+      ]
+    ),
+    .testTarget(
+      name: "EPUBMechanicCLITests",
+      dependencies: [
+        "EPUBMechanicCLI", .product(name: "EbookMechanicCore", package: "EbookMechanicCore"),
+      ]
+    ),
+  ]
 )
