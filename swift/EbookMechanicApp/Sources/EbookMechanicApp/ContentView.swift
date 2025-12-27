@@ -255,8 +255,16 @@ struct ContentView: View {
       if let reportURLs = viewModel.reportURLs {
         Divider()
         ForEach(reportURLs, id: \.self) { reportURL in
-          Label("Report saved to \(reportURL.lastPathComponent)", systemImage: "doc.text")
+          Button {
+            openReport(reportURL)
+          } label: {
+            Label(
+              "Report saved to \(reportURL.lastPathComponent)",
+              systemImage: "doc.text"
+            )
             .font(.caption)
+          }
+          .buttonStyle(.plain)
         }
       }
 
@@ -354,6 +362,12 @@ struct ContentView: View {
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(.regularMaterial)
     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+  }
+
+  private func openReport(_ url: URL) {
+    #if os(macOS)
+      NSWorkspace.shared.open(url)
+    #endif
   }
 }
 
