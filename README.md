@@ -109,6 +109,14 @@ make -f Makefile.swift build-pdf && make -f Makefile.swift run-pdf          # PD
 make -f Makefile.swift build-app && make -f Makefile.swift run-app          # SwiftUI macOS app
 ```
 
+## Docker MCP Gateway
+
+See `DOCKER_MCP.md` for the full runbook. If you want the shortest path per session, use:
+
+```bash
+Scripts/run-mcp-gateway.sh
+```
+
 ## Installation
 
 ### Prerequisites
