@@ -1,14 +1,13 @@
 import Foundation
-import Testing
+import XCTest
 
-@Suite("PDF Mechanic CLI Tests")
-struct EbookMechanicPDFCLITests {
+final class CLIHelpTests: XCTestCase {
   private func cliExecutableURL() throws -> URL {
     let baseURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
     let candidates = [
-      ".build/arm64-apple-macosx/debug/EbookMechanicPDFCLI",
-      ".build/x86_64-apple-macosx/debug/EbookMechanicPDFCLI",
-      ".build/debug/EbookMechanicPDFCLI",
+      ".build/arm64-apple-macosx/debug/EbookMechanicCLI",
+      ".build/x86_64-apple-macosx/debug/EbookMechanicCLI",
+      ".build/debug/EbookMechanicCLI",
     ]
 
     for candidate in candidates {
@@ -18,7 +17,7 @@ struct EbookMechanicPDFCLITests {
       }
     }
 
-    throw TestError.message("EbookMechanicPDFCLI executable not found in .build/")
+    throw TestError.message("EbookMechanicCLI executable not found in .build/")
   }
 
   private func runCLI(with arguments: [String]) throws -> String {
@@ -37,46 +36,35 @@ struct EbookMechanicPDFCLITests {
     return String(data: data, encoding: .utf8) ?? ""
   }
 
-  @Test("CLI executable exists")
-  func testExecutableExists() {
-    #expect(Bool(true))
+  func testHelpIncludesKeyFlags() throws {
+    let output = try runCLI(with: ["--help"])
+
+    XCTAssertTrue(output.contains("--report"))
+    XCTAssertTrue(output.contains("--report-format"))
+    XCTAssertTrue(output.contains("--normalize-epubs"))
+    XCTAssertTrue(output.contains("--force-normalize"))
+    XCTAssertTrue(output.contains("--dry-run"))
+    XCTAssertTrue(output.contains("--performance-stats"))
   }
 
-  @Test("Help text contains PDF validation info")
-  func testHelpText() throws {
-    let output = try runCLI(with: ["validate", "--help"])
-    #expect(output.contains("Validate PDF files in a directory."))
-    #expect(output.contains("--structure-check"))
-    #expect(output.contains("--show-streams"))
-    #expect(output.contains("--encryption-info"))
-    #expect(output.contains("--extract"))
-    #expect(output.contains("--extract-metadata"))
-  }
-
-  @Test("Repair help includes optimization flags")
-  func testRepairHelpText() throws {
-    let output = try runCLI(with: ["repair", "--help"])
-    #expect(output.contains("--optimize"))
-    #expect(output.contains("--dry-run"))
-  }
-
-  @Test("Dry-run optimize reports action")
-  func testRepairDryRunOptimize() throws {
+  func testDryRunOutputsMessage() throws {
     let tempDir = try makeTemporaryDirectory()
-    defer { try? FileManager.default.removeItem(at: tempDir) }
+    addTeardownBlock { try? FileManager.default.removeItem(at: tempDir) }
     try writeValidPDF(named: "ok.pdf", in: tempDir)
 
     let output = try runCLI(with: [
-      "repair", "--optimize", "--dry-run", "--dir", tempDir.path,
+      "--dry-run",
+      "--corruption-only",
+      "--dir", tempDir.path,
     ])
 
-    #expect(output.contains("DRY RUN: Would optimize"))
+    XCTAssertTrue(output.contains("Dry run enabled"))
   }
 }
 
 private func makeTemporaryDirectory() throws -> URL {
   let directory = FileManager.default.temporaryDirectory.appendingPathComponent(
-    "EbookMechanicPDFCLITests-\(UUID().uuidString)")
+    "EbookMechanicCLITests-\(UUID().uuidString)")
   try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
   return directory
 }

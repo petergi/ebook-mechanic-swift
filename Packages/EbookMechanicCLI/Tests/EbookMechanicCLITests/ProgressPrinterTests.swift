@@ -158,6 +158,26 @@ final class ProgressPrinterTests: XCTestCase {
     XCTAssertEqual(hooks.messages.last, "  - Test bullet point")
   }
 
+  func testPrintPerformanceMetrics() throws {
+    let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
+    let metrics = try makePerformanceMetrics(
+      filesPerSecond: 3.21,
+      totalValidationTime: 12.345,
+      averageValidationTimePerFile: 0.1234,
+      externalToolCallCount: 0,
+      cacheHitRate: 0.5,
+      parallelEfficiencyRatio: 0.0,
+      validationTimeByFormat: [:]
+    )
+
+    printer.printPerformanceMetrics(metrics)
+
+    XCTAssertTrue(hooks.contains("Total validation time: 12.35s"))
+    XCTAssertTrue(hooks.contains("Files per second: 3.21"))
+    XCTAssertTrue(hooks.contains("Average validation time: 0.123s"))
+    XCTAssertTrue(hooks.contains("Cache hit rate: 50.00%"))
+  }
+
   // MARK: - Scan Result Printing Tests
 
   func testPrintScanResultEmpty() {
@@ -335,4 +355,28 @@ final class ProgressPrinterTests: XCTestCase {
       XCTAssertTrue(hooks.contains(fileType.fileExtension.dropFirst().uppercased()))
     }
   }
+}
+
+private func makePerformanceMetrics(
+  filesPerSecond: Double,
+  totalValidationTime: TimeInterval,
+  averageValidationTimePerFile: TimeInterval,
+  externalToolCallCount: Int,
+  cacheHitRate: Double,
+  parallelEfficiencyRatio: Double,
+  validationTimeByFormat: [EbookFileType: TimeInterval]
+) throws -> PerformanceMetrics {
+  let json: [String: Any] = [
+    "filesPerSecond": filesPerSecond,
+    "totalValidationTime": totalValidationTime,
+    "averageValidationTimePerFile": averageValidationTimePerFile,
+    "externalToolCallCount": externalToolCallCount,
+    "cacheHitRate": cacheHitRate,
+    "parallelEfficiencyRatio": parallelEfficiencyRatio,
+    "validationTimeByFormat": validationTimeByFormat.map {
+      ["key": $0.key.rawValue, "value": $0.value]
+    },
+  ]
+  let data = try JSONSerialization.data(withJSONObject: json, options: [])
+  return try JSONDecoder().decode(PerformanceMetrics.self, from: data)
 }

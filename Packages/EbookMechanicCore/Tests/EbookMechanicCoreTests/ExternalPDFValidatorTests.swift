@@ -98,4 +98,28 @@ final class ExternalPDFValidatorTests: XCTestCase {
     XCTAssertTrue(result.reason.contains("pdfcpu not installed."))
     XCTAssertEqual(result.validationLevel, .comprehensive)
   }
+
+  func testGetPdfStreamInfoWhenPdfcpuMissing() async throws {
+    let dummyFileURL = tempDir.appendingPathComponent("missing_tool.pdf")
+    try "dummy content".write(to: dummyFileURL, atomically: true, encoding: .utf8)
+
+    let oldPath = ProcessInfo.processInfo.environment["PATH"] ?? ""
+    setenv("PATH", tempDir.path.cString(using: .utf8), 1)
+    defer { setenv("PATH", oldPath.cString(using: .utf8), 1) }
+
+    let output = await ExternalValidators.getPdfStreamInfo(at: dummyFileURL.path)
+    XCTAssertTrue(output.contains("pdfcpu"))
+  }
+
+  func testGetPdfEncryptionInfoWhenPdfcpuMissing() async throws {
+    let dummyFileURL = tempDir.appendingPathComponent("missing_tool.pdf")
+    try "dummy content".write(to: dummyFileURL, atomically: true, encoding: .utf8)
+
+    let oldPath = ProcessInfo.processInfo.environment["PATH"] ?? ""
+    setenv("PATH", tempDir.path.cString(using: .utf8), 1)
+    defer { setenv("PATH", oldPath.cString(using: .utf8), 1) }
+
+    let output = await ExternalValidators.getPdfEncryptionInfo(at: dummyFileURL.path)
+    XCTAssertEqual(output, "Encryption: No")
+  }
 }
