@@ -12,22 +12,23 @@ This document tracks ongoing and planned development tasks for the Swift impleme
 - [x] EPUB-focused CLI utility (EbookMechanicEPUBCLI)
 - [x] PDF-focused CLI utility (EbookMechanicPDFCLI)
 - [x] Xcode workspace integration
-- [x] Comprehensive test coverage (133+ tests)
+- [x] Comprehensive test coverage (200+ tests)
 - [x] Swift 6 strict concurrency compliance
 - [x] Documentation and READMEs
+- [x] Makefile targets for specialized CLIs (build/install/test)
 
 ## High Priority Tasks
 
 ### 🔴 Testing & Quality Assurance
 
 - [ ] **Expand EbookMechanicEPUBCLI test coverage**
-  - Current: 2 basic tests
+  - Current: 12 tests
   - Target: 20+ tests covering validation, repair, edge cases
   - Priority: High
   - Files: `Packages/EbookMechanicEPUBCLI/Tests/`
 
 - [ ] **Expand EbookMechanicPDFCLI test coverage**
-  - Current: 2 basic tests
+  - Current: 4 tests
   - Target: 20+ tests covering validation, repair, corruption patterns
   - Priority: High
   - Files: `Packages/EbookMechanicPDFCLI/Tests/`
@@ -39,13 +40,6 @@ This document tracks ongoing and planned development tasks for the Swift impleme
   - Priority: High
 
 ### 🔴 Build & Distribution
-
-- [ ] **Add Makefile targets for specialized CLIs**
-  - Build targets: `make -f Makefile.swift build-epub`, `make -f Makefile.swift build-pdf`
-  - Install targets: `make -f Makefile.swift install-epub`, `make -f Makefile.swift install-pdf`
-  - Test targets: `make -f Makefile.swift test-epub`, `make -f Makefile.swift test-pdf`
-  - Priority: High
-  - Files: `Makefile.swift`
 
 - [ ] **Create release builds**
   - Build optimized release versions

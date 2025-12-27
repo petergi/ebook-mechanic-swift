@@ -30,6 +30,7 @@ temp/
 test-library/
 .specstory/
 project_file_tree_*.md
+LTM.md
 
 # Swift
 Package.resolved

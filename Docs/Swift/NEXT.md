@@ -56,7 +56,7 @@ make -f Makefile.swift uninstall-specialized
 
 ### 2. 🧪 Expand Test Coverage (Priority: High)
 
-**Why**: Current test coverage is minimal (2 tests each). Need comprehensive testing before production use.
+**Why**: Current test coverage is limited (EPUB: 12 tests, PDF: 4 tests). Need comprehensive testing before production use.
 
 #### EbookMechanicEPUBCLI Tests Needed:
 
@@ -283,18 +283,18 @@ If you encounter issues or need clarification:
 
 ---
 
-## Success Metrics
+## Success Metrics (Targets)
 
 **By end of this week**:
-- ✅ Makefile targets added and tested
-- ✅ Test coverage > 80% for specialized CLIs
-- ✅ Documentation updated
+- [x] Makefile targets added and tested
+- [ ] Test coverage > 80% for specialized CLIs
+- [ ] Documentation updated (Quick Start + usage examples)
 
 **By end of this sprint**:
-- ✅ Shell completions working
-- ✅ Real-world testing on 1000+ files
-- ✅ Performance baseline established
-- ✅ All known issues documented
+- [ ] Shell completions working
+- [ ] Real-world testing on 1000+ files
+- [ ] Performance baseline established
+- [ ] All known issues documented
 
 ---
 

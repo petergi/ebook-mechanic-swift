@@ -21,7 +21,7 @@ The Swift implementation of EbookMechanic provides dual interfaces—a CLI for t
 - 📄 **Markdown Reports** - Generates detailed reports with statistics
 - 🔒 **Safe Operations** - Dry-run mode, backups, and confirmation prompts
 - 📦 **Zero Dependencies** - Pure Swift, no external packages
-- 🧪 **Well Tested** - 19 tests across Core, CLI, and App modules
+- 🧪 **Well Tested** - 200+ tests across Core, CLIs, and App modules
 
 ## Architecture
 
@@ -44,7 +44,7 @@ The foundation package providing all core functionality:
 - Swift 6 strict concurrency enforced
 - Actor isolation for automatic thread safety
 - Async/await patterns throughout
-- Comprehensive XCTest coverage (26 tests)
+- Comprehensive XCTest coverage (75 tests)
 
 ### EbookMechanicCLI (Full-Featured CLI)
 
@@ -73,7 +73,7 @@ Specialized CLI for EPUB validation and repair:
 - Lightweight alternative to full CLI
 - Depends on EbookMechanicCore
 
-**Test Coverage:** 2 tests for basic functionality
+**Test Coverage:** 12 tests for core CLI flows
 
 ### EbookMechanicPDFCLI (PDF-Focused Utility)
 
@@ -87,7 +87,7 @@ Specialized CLI for PDF and AZW4 validation and repair:
 - Simplified interface focused on PDF operations
 - Depends on EbookMechanicCore
 
-**Test Coverage:** 2 tests for basic functionality
+**Test Coverage:** 4 tests for core CLI flows
 
 ### EbookMechanicApp (macOS SwiftUI App)
 
@@ -103,7 +103,7 @@ Native macOS application with SwiftUI:
 
 **Platform Requirements:** macOS 13+, iOS 16+ ready
 
-**Test Coverage:** 3 view-model tests for state management
+**Test Coverage:** 17 tests (view-model + UI)
 
 ## Installation
 
@@ -482,9 +482,11 @@ Comprehensive test coverage across all modules:
 make -f Makefile.swift test-all
 
 # Run specific module tests
-make -f Makefile.swift test-core           # Core library (10 tests)
-make -f Makefile.swift test-cli            # CLI (6 tests)
-make -f Makefile.swift test-app            # App (3 tests)
+make -f Makefile.swift test-core           # Core library (75 tests)
+make -f Makefile.swift test-cli            # CLI (102 tests)
+make -f Makefile.swift test-epub           # EPUB CLI (12 tests)
+make -f Makefile.swift test-pdf            # PDF CLI (4 tests)
+make -f Makefile.swift test-app            # App (17 tests)
 
 # Or use Swift directly
 swift test --package-path Packages/EbookMechanicCore
@@ -492,13 +494,15 @@ swift test --package-path Packages/EbookMechanicCore
 
 ### Test Coverage
 
-**Total:** 19 tests across all modules
+**Total:** 210 tests across Core, CLIs, and App modules
 
 - **ValidationTests.swift** - Format-specific validation tests
 - **RepairTests.swift** - Automatic repair functionality
 - **ScannerTests.swift** - File scanning and folder operations
 - **ReportGeneratorTests.swift** - Markdown report generation
 - **CLIConfigurationTests.swift** - CLI argument parsing
+- **EPUBMechanicCLITests.swift** - EPUB CLI behavior and flags
+- **PDFMechanicCLITests.swift** - PDF CLI behavior and flags
 - **ScanOptionsTests.swift** - SwiftUI view model behavior
 
 All tests use `--disable-sandbox` flag for file system access.
