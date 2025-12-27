@@ -8,8 +8,8 @@ EbookMechanic is a powerful command-line tool suite for managing ebook libraries
 
 ### Supported Formats
 
-| Format           | Description              | Validation                             |
-| ---------------- | ------------------------ | -------------------------------------- |
+| Format     | Description              | Validation                             |
+| ---------- | ------------------------ | -------------------------------------- |
 | 📗**EPUB** | Electronic Publication   | ZIP structure, mimetype, container.xml |
 | 📕**MOBI** | Mobipocket               | PalmDB header, identifier signature    |
 | 📘**AZW3** | Kindle Format 8          | MOBI structure validation              |
@@ -18,16 +18,16 @@ EbookMechanic is a powerful command-line tool suite for managing ebook libraries
 
 ## Features
 
-- 🔍 **Deep Validation** - Structural integrity checking for all supported formats, with optional deep validation using `epubcheck` and `pdfcpu`.
-- 🔧 **Auto-Repair** - Automatic fixing of corrupted files
+- 🔍 **Deep Validation** — Structural integrity checking for all supported formats, with optional deep validation using `epubcheck` and `pdfcpu`.
+- 🔧 **Auto-Repair** — Automatic fixing of corrupted files
   - **PDF Repair:** Comprehensive header corruption detection and repair (handles email/FTP corruption, UTF-8 BOM, junk prefixes, missing binary markers)
   - **EPUB Repair:** Auto-adds missing mimetype and container.xml files
-- 📚 **EPUB Normalization** - Restructures EPUBs to Sigil/standard specifications
-- 🗑️ **Smart Cleanup** - Removes empty folders while preserving directory structure
-- 📊 **Progress Tracking** - Real-time progress with beautiful interfaces
-- 📄 **Detailed Reports** - Multi-format reports (Markdown, JSON, CSV, HTML) with comprehensive statistics.
-- 🔒 **Safe Operations** - Dry-run mode, backups, and confirmation prompts
-- ⚡ **High Performance** - Optimized scanning and concurrent processing
+- 📚 **EPUB Normalization** — Restructures EPUBs to Sigil/standard specifications
+- 🗑️ **Smart Cleanup** — Removes empty folders while preserving directory structure
+- 📊 **Progress Tracking** — Real-time progress with beautiful interfaces
+- 📄 **Detailed Reports** — Multi-format reports (Markdown, JSON, CSV, HTML) with comprehensive statistics.
+- 🔒 **Safe Operations** — Dry-run mode, backups and confirmation prompts
+- ⚡ **High Performance** — Optimized scanning and concurrent processing
   - **Parallel Validation**: Concurrently validate multiple ebooks to maximize performance.
   - **Caching**: Avoid re-validating unchanged files with an intelligent caching layer.
   - **Performance Statistics**: Get detailed performance metrics to analyze and optimize your scans.
@@ -39,7 +39,7 @@ EbookMechanic is a powerful command-line tool suite for managing ebook libraries
 **Best for:** macOS users, native app experience, Swift ecosystem integration
 
 - **Performance:** Compiled native binary with actor-based concurrency
-- **UI:** Dual interface - CLI + native macOS SwiftUI app
+- **UI:** Dual interface — CLI + native macOS SwiftUI app
 - **Architecture:** Modular Swift packages (Core + CLI(s) + App)
 - **Platform:** macOS 13+, iOS 16+ ready
 - **Concurrency:** Swift actors for thread-safe operations
@@ -56,26 +56,26 @@ make run-app      # Launch macOS app
 The root Makefile provides a unified build system for all implementations:
 
 ```bash
-# Build 
+# Build
 make build                                     # Build all
 make build-all                                 # Build everything (all-in-one, epub-mechanic, pdf-mechanic, SwiftUI macOS app)
 make build-cli                                 # Build All-in-one cli
-make build-epub-mechanic-cli                   # Build EPUB Mechanic cli 
-make build-pdf-mechanic-cli                    # Build PDF Mechanic cli 
+make build-epub-mechanic-cli                   # Build EPUB Mechanic cli
+make build-pdf-mechanic-cli                    # Build PDF Mechanic cli
 make build-ebook-mechanic-app                  # Build SwiftUI macOS app
 
 # Test
 make test                                      # Test all
 make test-all                                  # Test everything (all-in-one, epub-mechanic, pdf-mechanic, SwiftUI macOS app)
 make test-cli                                  # Test All-in-one cli
-make test-epub-mechanic-cli                    # Test EPUB Mechanic cli 
-make test-pdf-mechanic-cli                     # Test PDF Mechanic cli 
+make test-epub-mechanic-cli                    # Test EPUB Mechanic cli
+make test-pdf-mechanic-cli                     # Test PDF Mechanic cli
 make test-ebook-mechanic-app                   # Test SwiftUI macOS app
 
 # Run specific implementation
 make run-ebook-mechanic-cli                    # Run cli (all-in-one)
-make run-epub-mechanic-cli                     # Run EPUB Mechanic cli 
-make run-pdf-mechanic-cli                      # Run PDF Mechanic cli 
+make run-epub-mechanic-cli                     # Run EPUB Mechanic cli
+make run-pdf-mechanic-cli                      # Run PDF Mechanic cli
 make run-ebook-mechanic-app                    # Run SwiftUI macOS app
 
 # Generate test library for testing
@@ -84,11 +84,11 @@ make sample-library
 # Benchmark implementations
 make benchmark
 
-# Install 
+# Install
 make install                                    # Install all the CLIs
 make install-ebook-mechanic-cli                 # Install All-in-one cli
-make install-epub-mechanic-cli                  # Install EPUB Mechanic cli 
-make install-pdf-mechanic-cli                   # Install PDF Mechanic cli 
+make install-epub-mechanic-cli                  # Install EPUB Mechanic cli
+make install-pdf-mechanic-cli                   # Install PDF Mechanic cli
 make install-ebook-mechanic-app                 # Install SwiftUI macOS app
 
 # See all commands
@@ -121,9 +121,9 @@ Scripts/run-mcp-gateway.sh
 
 ### Prerequisites
 
-| Implementation  | Requirements                       |
-| --------------- | ---------------------------------- |
-| **Swift** | macOS with Xcode 15.0+, Swift 5.9+ |
+| Implementation | Requirements                       |
+| -------------- | ---------------------------------- |
+| **Swift**      | macOS with Xcode 15.0+, Swift 5.9+ |
 
 ### Install from Source
 
@@ -352,4 +352,4 @@ Free to use and modify.
 
 ---
 
-**Quick Links:** [Go README](./golang/README.md) | [Swift README](./Docs/Swift/README.md) | [Python README](./python/README.md) | [Master Makefile](./Makefile)
+**Quick Links:** [Swift README](./Docs/Swift/README.md) | [Master Makefile](./Makefile)
