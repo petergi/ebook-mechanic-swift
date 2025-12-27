@@ -397,7 +397,7 @@ docc-core:
 	@echo "Generating DocC documentation for EbookMechanicCore..."
 	@if command -v docc >/dev/null 2>&1; then \
 		echo "Using docc command..."; \
-		cd EbookMechanicCore && $(SPM_ENV) swift build --target EbookMechanicCore && \
+		cd Packages/EbookMechanicCore && $(SPM_ENV) swift build --target EbookMechanicCore && \
 		$(SPM_ENV) swift package plugin generate-documentation \
 			--target EbookMechanicCore \
 			--output-path .build/docc \
@@ -420,7 +420,7 @@ docc-app:
 	@echo "Generating DocC documentation for EbookMechanicApp..."
 	@if command -v docc >/dev/null 2>&1; then \
 		echo "Using docc command..."; \
-		cd EbookMechanicApp && $(SPM_ENV) swift build --target EbookMechanicApp && \
+		cd Apps/EbookMechanicApp && $(SPM_ENV) swift build --target EbookMechanicApp && \
 		$(SPM_ENV) swift package plugin generate-documentation \
 			--target EbookMechanicApp \
 			--output-path .build/docc \
@@ -619,12 +619,12 @@ uninstall-app:
 format:
 	@if command -v swift-format >/dev/null 2>&1; then \
 		echo "🎨 Formatting Swift code..."; \
-		find EbookMechanicCore/Sources -name "*.swift" -exec swift-format -i {} \;; \
-		find EbookMechanicCore/Tests -name "*.swift" -exec swift-format -i {} \;; \
-		find EbookMechanicCLI/Sources -name "*.swift" -exec swift-format -i {} \;; \
-		find EbookMechanicCLI/Tests -name "*.swift" -exec swift-format -i {} \;; \
-		find EbookMechanicApp/Sources -name "*.swift" -exec swift-format -i {} \;; \
-		find EbookMechanicApp/Tests -name "*.swift" -exec swift-format -i {} \;; \
+		find Packages/EbookMechanicCore/Sources -name "*.swift" -exec swift-format -i {} \;; \
+		find Packages/EbookMechanicCore/Tests -name "*.swift" -exec swift-format -i {} \;; \
+		find Packages/EbookMechanicCLI/Sources -name "*.swift" -exec swift-format -i {} \;; \
+		find Packages/EbookMechanicCLI/Tests -name "*.swift" -exec swift-format -i {} \;; \
+		find Apps/EbookMechanicApp/Sources -name "*.swift" -exec swift-format -i {} \;; \
+		find Apps/EbookMechanicApp/Tests -name "*.swift" -exec swift-format -i {} \;; \
 		find Packages/EbookMechanicEPUBCLI/Sources -name "*.swift" -exec swift-format -i {} \;; \
 		find Packages/EbookMechanicEPUBCLI/Tests -name "*.swift" -exec swift-format -i {} \;; \
 		find Packages/EbookMechanicPDFCLI/Sources -name "*.swift" -exec swift-format -i {} \;; \
@@ -641,9 +641,9 @@ format:
 check-format:
 	@if command -v swift-format >/dev/null 2>&1; then \
 		echo "🔍 Checking Swift code formatting..."; \
-		swift-format lint -r EbookMechanicCore/Sources EbookMechanicCore/Tests; \
-		swift-format lint -r EbookMechanicCLI/Sources EbookMechanicCLI/Tests; \
-		swift-format lint -r EbookMechanicApp/Sources EbookMechanicApp/Tests; \
+		swift-format lint -r Packages/EbookMechanicCore/Sources Packages/EbookMechanicCore/Tests; \
+		swift-format lint -r Packages/EbookMechanicCLI/Sources Packages/EbookMechanicCLI/Tests; \
+		swift-format lint -r Apps/EbookMechanicApp/Sources Apps/EbookMechanicApp/Tests; \
 		swift-format lint -r Packages/EbookMechanicEPUBCLI/Sources Packages/EbookMechanicEPUBCLI/Tests; \
 		swift-format lint -r Packages/EbookMechanicPDFCLI/Sources Packages/EbookMechanicPDFCLI/Tests; \
 		echo "✅ Format check passed!"; \
@@ -654,12 +654,13 @@ check-format:
 # Lint Swift code (requires SwiftLint)
 lint:
 	@if command -v swiftlint >/dev/null 2>&1; then \
+		mkdir -p .lint-tmp .lint-cache; \
 		echo "🔍 Linting Swift code..."; \
-		cd EbookMechanicCore && swiftlint; \
-		cd ../EbookMechanicCLI && swiftlint; \
-		cd ../EbookMechanicApp && swiftlint; \
-		cd Packages/EbookMechanicEPUBCLI && swiftlint; \
-		cd Packages/EbookMechanicPDFCLI && swiftlint; \
+		( cd Packages/EbookMechanicCore && TMPDIR="$(CURDIR)/.lint-tmp" XDG_CACHE_HOME="$(CURDIR)/.lint-cache" SWIFTLINT_CACHE_PATH="$(CURDIR)/.lint-cache" swiftlint ); \
+		( cd Packages/EbookMechanicCLI && TMPDIR="$(CURDIR)/.lint-tmp" XDG_CACHE_HOME="$(CURDIR)/.lint-cache" SWIFTLINT_CACHE_PATH="$(CURDIR)/.lint-cache" swiftlint ); \
+		( cd Apps/EbookMechanicApp && TMPDIR="$(CURDIR)/.lint-tmp" XDG_CACHE_HOME="$(CURDIR)/.lint-cache" SWIFTLINT_CACHE_PATH="$(CURDIR)/.lint-cache" swiftlint ); \
+		( cd Packages/EbookMechanicEPUBCLI && TMPDIR="$(CURDIR)/.lint-tmp" XDG_CACHE_HOME="$(CURDIR)/.lint-cache" SWIFTLINT_CACHE_PATH="$(CURDIR)/.lint-cache" swiftlint ); \
+		( cd Packages/EbookMechanicPDFCLI && TMPDIR="$(CURDIR)/.lint-tmp" XDG_CACHE_HOME="$(CURDIR)/.lint-cache" SWIFTLINT_CACHE_PATH="$(CURDIR)/.lint-cache" swiftlint ); \
 		echo "✅ Lint check passed!"; \
 	else \
 		echo "❌ SwiftLint not found. Install with:"; \

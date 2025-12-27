@@ -45,3 +45,5 @@ brk/
 
 .fake
 .build
+.lint-tmp/
+.lint-cache/

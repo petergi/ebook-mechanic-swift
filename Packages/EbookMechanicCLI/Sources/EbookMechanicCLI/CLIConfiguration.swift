@@ -20,6 +20,7 @@ struct CLIConfiguration: Equatable {
   var normalizeEPUBs: Bool
   var forceNormalize: Bool
 
+  // swiftlint:disable:next cyclomatic_complexity function_body_length
   static func parse(arguments: [String]) throws -> CLIConfiguration {
     var config = CLIConfiguration(
       directory: FileManager.default.currentDirectoryPath,

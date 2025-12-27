@@ -1,5 +1,7 @@
 import Foundation
 
+// swiftlint:disable type_body_length
+
 /// Provides best-effort automated fixes for common ebook issues.
 public struct FileRepairer: @unchecked Sendable {
   private let fileManager: FileManager
@@ -27,6 +29,7 @@ public struct FileRepairer: @unchecked Sendable {
     }
   }
 
+  // swiftlint:disable:next function_body_length
   private func repairEPUB(at url: URL) async -> RepairResult {
     let validation = await validator.validate(url: url, as: .epub)
     guard !validation.isValid else {
@@ -161,20 +164,19 @@ public struct FileRepairer: @unchecked Sendable {
 
       func createMinimalOPF(htmlFiles: [ZipEntry]) -> Data {
         let package = XMLElement(name: "package")
-        package.addAttribute(XMLNode.attribute(withName: "version", stringValue: "2.0") as! XMLNode)
+        package.addAttribute(XMLNode.attribute(withName: "version", stringValue: "2.0"))
         package.addAttribute(
-          XMLNode.attribute(withName: "unique-identifier", stringValue: "BookId") as! XMLNode)
+          XMLNode.attribute(withName: "unique-identifier", stringValue: "BookId"))
         package.addNamespace(
-          XMLNode.namespace(withName: "", stringValue: "http://www.idpf.org/2007/opf") as! XMLNode)
+          XMLNode.namespace(withName: "", stringValue: "http://www.idpf.org/2007/opf"))
 
         let metadata = XMLElement(name: "metadata")
         metadata.addNamespace(
-          XMLNode.namespace(withName: "dc", stringValue: "http://purl.org/dc/elements/1.1/")
-            as! XMLNode)
+          XMLNode.namespace(withName: "dc", stringValue: "http://purl.org/dc/elements/1.1/"))
         let title = XMLElement(name: "dc:title", stringValue: "Repaired EPUB")
         let identifier = XMLElement(name: "dc:identifier", stringValue: UUID().uuidString)
         identifier.addAttribute(
-          XMLNode.attribute(withName: "id", stringValue: "BookId") as! XMLNode)
+          XMLNode.attribute(withName: "id", stringValue: "BookId"))
         let language = XMLElement(name: "dc:language", stringValue: "en")
         metadata.addChild(title)
         metadata.addChild(identifier)
@@ -187,16 +189,16 @@ public struct FileRepairer: @unchecked Sendable {
         for (index, htmlFile) in htmlFiles.enumerated() {
           let id = "item-\(index + 1)"
           let item = XMLElement(name: "item")
-          item.addAttribute(XMLNode.attribute(withName: "id", stringValue: id) as! XMLNode)
+          item.addAttribute(XMLNode.attribute(withName: "id", stringValue: id))
           item.addAttribute(
-            XMLNode.attribute(withName: "href", stringValue: htmlFile.name) as! XMLNode)
+            XMLNode.attribute(withName: "href", stringValue: htmlFile.name))
           item.addAttribute(
             XMLNode.attribute(withName: "media-type", stringValue: "application/xhtml+xml")
-              as! XMLNode)
+          )
           manifest.addChild(item)
 
           let itemref = XMLElement(name: "itemref")
-          itemref.addAttribute(XMLNode.attribute(withName: "idref", stringValue: id) as! XMLNode)
+          itemref.addAttribute(XMLNode.attribute(withName: "idref", stringValue: id))
           spine.addChild(itemref)
         }
 
@@ -471,3 +473,4 @@ public struct FileRepairer: @unchecked Sendable {
     </container>
     """
 }
+// swiftlint:enable type_body_length

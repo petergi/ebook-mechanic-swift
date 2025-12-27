@@ -2,6 +2,8 @@ import XCTest
 
 @testable import EbookMechanicCLI
 
+// swiftlint:disable type_body_length
+
 final class CLIConfigurationTests: XCTestCase {
   func testDefaultsWhenNoArgumentsProvided() throws {
     let config = try CLIConfiguration.parse(arguments: ["ebook-mechanic"])
@@ -437,3 +439,4 @@ final class CLIConfigurationTests: XCTestCase {
     XCTAssertEqual(config.directory, "~/Documents/Books")
   }
 }
+// swiftlint:enable type_body_length

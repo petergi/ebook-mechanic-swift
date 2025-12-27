@@ -117,7 +117,7 @@ public struct EPUBMetadataRepairer: @unchecked Sendable {
     if let identifierId {
       if package.attribute(forName: "unique-identifier")?.stringValue == nil {
         package.addAttribute(
-          XMLNode.attribute(withName: "unique-identifier", stringValue: identifierId) as! XMLNode)
+          XMLNode.attribute(withName: "unique-identifier", stringValue: identifierId))
         changed = true
       }
     }
@@ -164,7 +164,7 @@ public struct EPUBMetadataRepairer: @unchecked Sendable {
   private func ensureDublinCoreNamespace(on metadata: XMLElement, dcNamespace: String) {
     let existing = metadata.namespace(forPrefix: "dc")?.stringValue
     if existing == nil {
-      let namespace = XMLNode.namespace(withName: "dc", stringValue: dcNamespace) as! XMLNode
+      let namespace = XMLNode.namespace(withName: "dc", stringValue: dcNamespace)
       metadata.addNamespace(namespace)
     }
   }
@@ -188,7 +188,7 @@ public struct EPUBMetadataRepairer: @unchecked Sendable {
     if let identifier = metadata.elements(forLocalName: "identifier", uri: dcNamespace).first {
       if identifier.attribute(forName: "id") == nil {
         identifier.addAttribute(
-          XMLNode.attribute(withName: "id", stringValue: "BookId") as! XMLNode)
+          XMLNode.attribute(withName: "id", stringValue: "BookId"))
         return "BookId"
       }
       return identifier.attribute(forName: "id")?.stringValue
@@ -196,7 +196,7 @@ public struct EPUBMetadataRepairer: @unchecked Sendable {
 
     let identifierValue = UUID().uuidString
     let identifier = XMLElement(name: "dc:identifier", stringValue: identifierValue)
-    identifier.addAttribute(XMLNode.attribute(withName: "id", stringValue: "BookId") as! XMLNode)
+    identifier.addAttribute(XMLNode.attribute(withName: "id", stringValue: "BookId"))
     metadata.addChild(identifier)
     return "BookId"
   }
@@ -242,7 +242,7 @@ public struct EPUBMetadataRepairer: @unchecked Sendable {
     isoFormatter.formatOptions = [.withInternetDateTime]
     let modified = XMLElement(name: "meta", stringValue: isoFormatter.string(from: Date()))
     modified.addAttribute(
-      XMLNode.attribute(withName: "property", stringValue: "dcterms:modified") as! XMLNode)
+      XMLNode.attribute(withName: "property", stringValue: "dcterms:modified"))
     metadata.addChild(modified)
     return true
   }

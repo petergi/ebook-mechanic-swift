@@ -9,6 +9,7 @@ import SwiftUI
 ///
 /// Bindings allow `ContentView` to modify `ScanOptions` and the selected directory
 /// while delegating actions via `onSelectDirectory` and `onRunScan` closures.
+// swiftlint:disable type_body_length
 struct ContentView: View {
   /// Source of truth for scan progress and results.
   @ObservedObject var viewModel: ScanViewModel
@@ -422,6 +423,7 @@ struct ContentView: View {
     #endif
   }
 }
+// swiftlint:enable type_body_length
 
 #Preview("ContentView") {
   let vm = ScanViewModel()

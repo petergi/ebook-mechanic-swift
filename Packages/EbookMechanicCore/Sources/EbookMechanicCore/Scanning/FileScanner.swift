@@ -1,5 +1,7 @@
 import Foundation
 
+// swiftlint:disable type_body_length
+
 /// Scans directories to detect corrupted ebooks, empty folders and performs file maintenance.
 public actor FileScanner {
   public typealias ProgressHandler = @Sendable (ProgressEvent) -> Void
@@ -620,3 +622,4 @@ public actor FileScanner {
     return false
   }
 }
+// swiftlint:enable type_body_length

@@ -44,6 +44,7 @@ extension EbookMechanicPDFCLI {
       completion: .list(["json", "yaml"]))
     var extractMetadata: String?
 
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     func run() throws {
       let group = DispatchGroup()
       group.enter()

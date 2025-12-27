@@ -186,12 +186,12 @@ final class ReportGeneratorTests: XCTestCase {
   func testReportWithManyCorruptedFiles() throws {
     let tempDir = try temporaryRoot()
     var corrupted: [CorruptedFile] = []
-    for i in 1...25 {
+    for index in 1...25 {
       corrupted.append(
         CorruptedFile(
-          url: tempDir.appendingPathComponent("book\(i).epub"),
-          reason: "Corruption \(i)",
-          size: Int64(i * 1024),
+          url: tempDir.appendingPathComponent("book\(index).epub"),
+          reason: "Corruption \(index)",
+          size: Int64(index * 1024),
           status: .corrupt
         ))
     }
@@ -214,8 +214,8 @@ final class ReportGeneratorTests: XCTestCase {
   func testReportWithManyEmptyFolders() throws {
     let tempDir = try temporaryRoot()
     var empty: [URL] = []
-    for i in 1...15 {
-      empty.append(tempDir.appendingPathComponent("EmptyFolder\(i)"))
+    for index in 1...15 {
+      empty.append(tempDir.appendingPathComponent("EmptyFolder\(index)"))
     }
 
     let result = ScanResult(

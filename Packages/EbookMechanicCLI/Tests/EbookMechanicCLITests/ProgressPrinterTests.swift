@@ -191,10 +191,15 @@ final class ProgressPrinterTests: XCTestCase {
     var result = ScanResult(totalFiles: 100)
 
     // Add more than 10 corrupted files to test truncation
-    for i in 1...15 {
-      let url = URL(fileURLWithPath: "/test/corrupted\(i).epub")
+    for index in 1...15 {
+      let url = URL(fileURLWithPath: "/test/corrupted\(index).epub")
       result.corruptedFiles.append(
-        CorruptedFile(url: url, reason: "Test reason \(i)", size: Int64(i * 1024), status: .corrupt))
+        CorruptedFile(
+          url: url,
+          reason: "Test reason \(index)",
+          size: Int64(index * 1024),
+          status: .corrupt
+        ))
     }
 
     printer.printScanResult(result)

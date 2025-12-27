@@ -186,6 +186,7 @@ final class ScanViewModel: ObservableObject {
   ///
   /// - Parameter options: The configuration that controls scanning behavior.
   /// - Important: This method is `async` and should be awaited from an asynchronous context.
+  // swiftlint:disable:next cyclomatic_complexity function_body_length
   func runScan(options: ScanOptions) async {
     guard !isScanning else { return }
     reset()

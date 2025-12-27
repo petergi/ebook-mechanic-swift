@@ -30,8 +30,8 @@ final class ParallelValidationTests: XCTestCase {
     func testParallelExecution() async throws {
         let fileCount = 20
 
-        for i in 0..<fileCount {
-            let fileURL = testDirectory.appendingPathComponent("file\(i).epub")
+        for index in 0..<fileCount {
+            let fileURL = testDirectory.appendingPathComponent("file\(index).epub")
             FileManager.default.createFile(atPath: fileURL.path, contents: Data("test".utf8), attributes: nil)
         }
 
@@ -46,8 +46,8 @@ final class ParallelValidationTests: XCTestCase {
         let fileCount = 10
         let maxConcurrentValidations = 2
 
-        for i in 0..<fileCount {
-            let fileURL = testDirectory.appendingPathComponent("file\(i).epub")
+        for index in 0..<fileCount {
+            let fileURL = testDirectory.appendingPathComponent("file\(index).epub")
             FileManager.default.createFile(atPath: fileURL.path, contents: Data("test".utf8), attributes: nil)
         }
 
@@ -79,8 +79,8 @@ final class ParallelValidationTests: XCTestCase {
     func testCacheCorrectness() async throws {
         let fileCount = 10
 
-        for i in 0..<fileCount {
-            let fileURL = testDirectory.appendingPathComponent("file\(i).epub")
+        for index in 0..<fileCount {
+            let fileURL = testDirectory.appendingPathComponent("file\(index).epub")
             FileManager.default.createFile(atPath: fileURL.path, contents: Data("test".utf8), attributes: nil)
         }
 
