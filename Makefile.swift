@@ -134,6 +134,18 @@ build-release:
 	$(SPM_ENV) swift build --disable-sandbox --package-path Apps/EbookMechanicApp -c release
 	$(SPM_ENV) swift build --disable-sandbox --package-path Packages/EbookMechanicEPUBCLI -c release
 	$(SPM_ENV) swift build --disable-sandbox --package-path Packages/EbookMechanicPDFCLI -c release
+	@CLI_BIN_PATH="$$( $(SPM_ENV) swift build --disable-sandbox --package-path Packages/EbookMechanicCLI -c release --show-bin-path )"; \
+		if [ -f "$$CLI_BIN_PATH/EbookMechanicCLI" ]; then \
+			ln -sf "$$CLI_BIN_PATH/EbookMechanicCLI" "$$CLI_BIN_PATH/$(CLI_INSTALL_NAME)"; \
+		fi
+	@EPUB_BIN_PATH="$$( $(SPM_ENV) swift build --disable-sandbox --package-path Packages/EbookMechanicEPUBCLI -c release --show-bin-path )"; \
+		if [ -f "$$EPUB_BIN_PATH/EbookMechanicEPUBCLI" ]; then \
+			ln -sf "$$EPUB_BIN_PATH/EbookMechanicEPUBCLI" "$$EPUB_BIN_PATH/$(EPUB_CLI_INSTALL_NAME)"; \
+		fi
+	@PDF_BIN_PATH="$$( $(SPM_ENV) swift build --disable-sandbox --package-path Packages/EbookMechanicPDFCLI -c release --show-bin-path )"; \
+		if [ -f "$$PDF_BIN_PATH/EbookMechanicPDFCLI" ]; then \
+			ln -sf "$$PDF_BIN_PATH/EbookMechanicPDFCLI" "$$PDF_BIN_PATH/$(PDF_CLI_INSTALL_NAME)"; \
+		fi
 	@echo "✅ Release builds complete!"
 	@echo ""
 	@echo "Main CLI binary: Packages/EbookMechanicCLI/.build/release/EbookMechanicCLI"
@@ -170,6 +182,10 @@ build-core:
 build-cli:
 	@echo "🔨 Building EbookMechanicCLI..."
 	$(SPM_ENV) swift build --disable-sandbox --package-path Packages/EbookMechanicCLI
+	@CLI_BIN_PATH="$$( $(SPM_ENV) swift build --disable-sandbox --package-path Packages/EbookMechanicCLI --show-bin-path )"; \
+		if [ -f "$$CLI_BIN_PATH/EbookMechanicCLI" ]; then \
+			ln -sf "$$CLI_BIN_PATH/EbookMechanicCLI" "$$CLI_BIN_PATH/$(CLI_INSTALL_NAME)"; \
+		fi
 
 run-cli:
 	$(SPM_ENV) swift run --disable-sandbox --package-path Packages/EbookMechanicCLI EbookMechanicCLI $(if $(ARGS),$(ARGS),--help)
@@ -220,10 +236,18 @@ test-app:
 build-epub:
 	@echo "🔨 Building EbookMechanicEPUBCLI..."
 	$(SPM_ENV) swift build --disable-sandbox --package-path Packages/EbookMechanicEPUBCLI
+	@EPUB_BIN_PATH="$$( $(SPM_ENV) swift build --disable-sandbox --package-path Packages/EbookMechanicEPUBCLI --show-bin-path )"; \
+		if [ -f "$$EPUB_BIN_PATH/EbookMechanicEPUBCLI" ]; then \
+			ln -sf "$$EPUB_BIN_PATH/EbookMechanicEPUBCLI" "$$EPUB_BIN_PATH/$(EPUB_CLI_INSTALL_NAME)"; \
+		fi
 
 build-epub-release:
 	@echo "🚀 Building optimized EbookMechanicEPUBCLI..."
 	$(SPM_ENV) swift build --disable-sandbox --package-path Packages/EbookMechanicEPUBCLI -c release
+	@EPUB_BIN_PATH="$$( $(SPM_ENV) swift build --disable-sandbox --package-path Packages/EbookMechanicEPUBCLI -c release --show-bin-path )"; \
+		if [ -f "$$EPUB_BIN_PATH/EbookMechanicEPUBCLI" ]; then \
+			ln -sf "$$EPUB_BIN_PATH/EbookMechanicEPUBCLI" "$$EPUB_BIN_PATH/$(EPUB_CLI_INSTALL_NAME)"; \
+		fi
 
 test-epub:
 	@echo "🧪 Running EbookMechanicEPUBCLI tests..."
@@ -269,10 +293,18 @@ uninstall-epub:
 build-pdf:
 	@echo "🔨 Building EbookMechanicPDFCLI..."
 	$(SPM_ENV) swift build --disable-sandbox --package-path Packages/EbookMechanicPDFCLI
+	@PDF_BIN_PATH="$$( $(SPM_ENV) swift build --disable-sandbox --package-path Packages/EbookMechanicPDFCLI --show-bin-path )"; \
+		if [ -f "$$PDF_BIN_PATH/EbookMechanicPDFCLI" ]; then \
+			ln -sf "$$PDF_BIN_PATH/EbookMechanicPDFCLI" "$$PDF_BIN_PATH/$(PDF_CLI_INSTALL_NAME)"; \
+		fi
 
 build-pdf-release:
 	@echo "🚀 Building optimized EbookMechanicPDFCLI..."
 	$(SPM_ENV) swift build --disable-sandbox --package-path Packages/EbookMechanicPDFCLI -c release
+	@PDF_BIN_PATH="$$( $(SPM_ENV) swift build --disable-sandbox --package-path Packages/EbookMechanicPDFCLI -c release --show-bin-path )"; \
+		if [ -f "$$PDF_BIN_PATH/EbookMechanicPDFCLI" ]; then \
+			ln -sf "$$PDF_BIN_PATH/EbookMechanicPDFCLI" "$$PDF_BIN_PATH/$(PDF_CLI_INSTALL_NAME)"; \
+		fi
 
 test-pdf:
 	@echo "🧪 Running EbookMechanicPDFCLI tests..."
