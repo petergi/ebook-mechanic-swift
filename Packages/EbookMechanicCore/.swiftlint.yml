@@ -1,3 +1,4 @@
 excluded:
   - .build
   - .build/checkouts
+  - EbookMechanicCore_backup
