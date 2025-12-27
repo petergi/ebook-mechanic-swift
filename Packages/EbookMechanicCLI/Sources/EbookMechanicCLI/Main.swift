@@ -42,6 +42,12 @@ struct EbookMechanicCLI: ParsableCommand {
     completion: .list(["markdown", "json", "csv", "html"]))
   var reportFormat: String = "markdown"
 
+  @Option(
+    name: .long,
+    help: "Comma-separated list of report formats to generate (markdown,json,csv,html).",
+    completion: .list(["markdown,json,csv,html"]))
+  var reportFormats: String?
+
   @Flag(name: .long, help: "Normalize EPUB files.")
   var normalizeEpubs: Bool = false
 
@@ -51,6 +57,11 @@ struct EbookMechanicCLI: ParsableCommand {
 
   @Flag(name: .long, help: "Use epubcheck for more detailed EPUB validation.")
   var useEpubcheck: Bool = false
+
+  @Flag(
+    name: .long,
+    help: "Use external validation tools (epubcheck, pdfcpu) for comprehensive validation.")
+  var externalTools: Bool = false
 
   @Option(name: .long, help: "Maximum number of concurrent validations.")
   var maxConcurrent: Int = ProcessInfo.processInfo.activeProcessorCount
@@ -68,18 +79,26 @@ struct EbookMechanicCLI: ParsableCommand {
     Task {
       do {
         let rootURL = URL(fileURLWithPath: dir).resolvingSymlinksInPath()
+        let useExternalEpub = useEpubcheck || externalTools
+        let useExternalPdf = externalTools
+        let reportFormats = parseReportFormats()
         let validator = FileValidator(
-          useExternalEPUBValidator: useEpubcheck, useExternalPDFValidator: false,
+          useExternalEPUBValidator: useExternalEpub, useExternalPDFValidator: useExternalPdf,
           cacheSize: noCache ? 0 : 1000)
         let scanner = FileScanner(
           rootDirectory: rootURL,
           corruptedDirectoryName: corruptedDir,
-          reportFormats: [ReportFormat(rawValue: reportFormat) ?? .markdown],
+          reportFormats: reportFormats,
           maxConcurrentValidations: maxConcurrent,
           validator: validator
         )
 
         let printer = ProgressPrinter(verbose: verbose)
+        await warnIfExternalToolsMissing(
+          printer: printer,
+          useExternalEpub: useExternalEpub,
+          useExternalPdf: useExternalPdf
+        )
 
         if emptyFoldersOnly {
           _ = try await scanner.scanForEmptyFolders(progress: printer.handle)
@@ -93,6 +112,7 @@ struct EbookMechanicCLI: ParsableCommand {
         let scanResult = try await scanner.scanForCorruption(progress: printer.handle)
         printer.printHeader("Corruption Scan Summary")
         printer.printScanResult(scanResult)
+        printEpubComplianceSummary(scanResult, printer: printer)
 
         if repair, !scanResult.corruptedFiles.isEmpty {
           printer.printHeader("Repairing Corrupted Files")
@@ -144,5 +164,86 @@ struct EbookMechanicCLI: ParsableCommand {
     }
 
     group.wait()
+  }
+
+  private func parseReportFormats() -> [ReportFormat] {
+    if let reportFormats, !reportFormats.isEmpty {
+      let values = reportFormats.split(separator: ",").map {
+        $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+      }
+      let formats = values.compactMap { ReportFormat(rawValue: $0) }
+      return formats.isEmpty ? [ReportFormat(rawValue: reportFormat) ?? .markdown] : formats
+    }
+    return [ReportFormat(rawValue: reportFormat) ?? .markdown]
+  }
+
+  private func warnIfExternalToolsMissing(
+    printer: ProgressPrinter,
+    useExternalEpub: Bool,
+    useExternalPdf: Bool
+  ) async {
+    if useExternalEpub, await ExternalEPUBValidator.isEpubcheckInstalled() == false {
+      printer.printInfo("⚠️ epubcheck not found. Falling back to built-in EPUB validation.")
+    }
+    if useExternalPdf, await ExternalPDFValidator.isPdfcpuInstalled() == false {
+      printer.printInfo("⚠️ pdfcpu not found. Falling back to built-in PDF validation.")
+    }
+  }
+
+  private func printEpubComplianceSummary(_ result: ScanResult, printer: ProgressPrinter) {
+    let epubOkFiles = result.okFiles.filter {
+      $0.url.pathExtension.lowercased() == "epub"
+    }
+    let epubCorruptedFiles = result.corruptedFiles.filter {
+      $0.url.pathExtension.lowercased() == "epub"
+    }
+    let total = epubOkFiles.count + epubCorruptedFiles.count
+    guard total > 0 else { return }
+
+    var compliant = 0
+    var warnings = 0
+    var nonCompliant = 0
+
+    for file in epubOkFiles {
+      if let details = file.epubComplianceDetails {
+        if details.isCompliant {
+          details.hasWarnings ? (warnings += 1) : (compliant += 1)
+        } else {
+          nonCompliant += 1
+        }
+        continue
+      }
+      switch file.status {
+      case .ok:
+        compliant += 1
+      case .nonCompliant:
+        warnings += 1
+      case .corrupt, .validationError:
+        nonCompliant += 1
+      }
+    }
+
+    for file in epubCorruptedFiles {
+      if let details = file.epubComplianceDetails {
+        if details.isCompliant {
+          details.hasWarnings ? (warnings += 1) : (compliant += 1)
+        } else {
+          nonCompliant += 1
+        }
+        continue
+      }
+      switch file.status {
+      case .ok:
+        compliant += 1
+      case .nonCompliant:
+        warnings += 1
+      case .corrupt, .validationError:
+        nonCompliant += 1
+      }
+    }
+
+    printer.printInfo(
+      "Found \(total) EPUB files: \(compliant) compliant, \(warnings) with warnings, \(nonCompliant) non-compliant"
+    )
   }
 }

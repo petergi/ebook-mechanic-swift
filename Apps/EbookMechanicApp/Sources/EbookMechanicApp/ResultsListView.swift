@@ -6,87 +6,63 @@ struct ResultsListView: View {
   @Environment(\.dismiss) var dismiss
   @State private var selectedValidationResult: ValidationResult?
   @State private var showDetailView: Bool = false
+  @State private var showCorruptedSection: Bool = true
+  @State private var showNonCompliantSection: Bool = true
+  @State private var showWarningsSection: Bool = true
 
   var body: some View {
+    let groups = ResultsListGroups(viewModel: viewModel)
     NavigationView {
       List {
-        Section(header: Text("Corrupted Files (\(viewModel.corruptedFiles.count))")) {
-          if viewModel.corruptedFiles.isEmpty {
+        DisclosureGroup(isExpanded: $showCorruptedSection) {
+          if groups.corrupted.isEmpty {
             Text("No corrupted files detected.")
               .foregroundColor(.secondary)
           } else {
-            ForEach(viewModel.corruptedFiles, id: \.url) { file in
-              Button {
-                selectedValidationResult = ValidationResult(
-                  originalIndex: 0, url: file.url, size: file.size, isValid: false,
-                  reason: file.reason, status: file.status, fingerprint: file.fingerprint,
-                  pdfValidationDetails: file.pdfValidationDetails,
-                  epubComplianceDetails: file.epubComplianceDetails)
-                showDetailView = true
-              } label: {
-                HStack {
-                  Image(systemName: "xmark.circle.fill")
-                    .foregroundColor(.red)
-                  Text(file.url.lastPathComponent)
-                  Spacer()
-                  Text(file.reason)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
-              }
-              .buttonStyle(.plain)
+            ForEach(groups.corrupted.sortedByURL(), id: \.url) { result in
+              resultsRow(
+                result,
+                icon: "xmark.circle.fill",
+                tint: .red
+              )
             }
           }
+        } label: {
+          sectionHeader(title: "Corrupted Files", count: groups.corrupted.count)
         }
 
-        Section(header: Text("Non-Compliant Files (\(viewModel.nonCompliantFiles.count))")) {
-          if viewModel.nonCompliantFiles.isEmpty {
+        DisclosureGroup(isExpanded: $showNonCompliantSection) {
+          if groups.nonCompliant.isEmpty {
             Text("No non-compliant files detected.")
               .foregroundColor(.secondary)
           } else {
-            ForEach(viewModel.nonCompliantFiles, id: \.url) { result in
-              Button {
-                selectedValidationResult = result
-                showDetailView = true
-              } label: {
-                HStack {
-                  Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundColor(.orange)
-                  Text(result.url.lastPathComponent)
-                  Spacer()
-                  Text(result.reason)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
-              }
-              .buttonStyle(.plain)
+            ForEach(groups.nonCompliant.sortedByURL(), id: \.url) { result in
+              resultsRow(
+                result,
+                icon: "exclamationmark.triangle.fill",
+                tint: .orange
+              )
             }
           }
+        } label: {
+          sectionHeader(title: "Non-Compliant Files", count: groups.nonCompliant.count)
         }
 
-        Section(header: Text("Files with Warnings (\(viewModel.filesWithWarnings.count))")) {
-          if viewModel.filesWithWarnings.isEmpty {
+        DisclosureGroup(isExpanded: $showWarningsSection) {
+          if groups.warnings.isEmpty {
             Text("No files with warnings detected.")
               .foregroundColor(.secondary)
           } else {
-            ForEach(viewModel.filesWithWarnings, id: \.url) { result in
-              Button {
-                selectedValidationResult = result
-                showDetailView = true
-              } label: {
-                HStack {
-                  Image(systemName: "exclamationmark.circle.fill")
-                    .foregroundColor(.yellow)
-                  Text(result.url.lastPathComponent)
-                  Spacer()
-                  Text(result.reason)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
-              }
-              .buttonStyle(.plain)
+            ForEach(groups.warnings.sortedByURL(), id: \.url) { result in
+              resultsRow(
+                result,
+                icon: "exclamationmark.circle.fill",
+                tint: .yellow
+              )
             }
           }
+        } label: {
+          sectionHeader(title: "Files with Warnings", count: groups.warnings.count)
         }
       }
       .listStyle(.plain)
@@ -105,6 +81,37 @@ struct ResultsListView: View {
       }
     }
   }
+
+  private func resultsRow(_ result: ValidationResult, icon: String, tint: Color) -> some View {
+    Button {
+      selectedValidationResult = result
+      showDetailView = true
+    } label: {
+      HStack {
+        Image(systemName: icon)
+          .foregroundColor(tint)
+        Text(result.url.lastPathComponent)
+        Spacer()
+        Text(result.reason)
+          .font(.caption)
+          .foregroundColor(.secondary)
+      }
+    }
+    .buttonStyle(.plain)
+  }
+
+  private func sectionHeader(title: String, count: Int) -> some View {
+    HStack {
+      Text(title)
+      Spacer()
+      Text("\(count)")
+        .font(.caption)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 2)
+        .background(Color.secondary.opacity(0.2))
+        .clipShape(Capsule())
+    }
+  }
 }
 
 extension Collection where Element == ValidationResult {
@@ -113,5 +120,44 @@ extension Collection where Element == ValidationResult {
       $0.url.lastPathComponent.localizedCaseInsensitiveCompare($1.url.lastPathComponent)
         == .orderedAscending
     }
+  }
+}
+
+struct ResultsListGroups {
+  let corrupted: [ValidationResult]
+  let nonCompliant: [ValidationResult]
+  let warnings: [ValidationResult]
+
+  init(viewModel: ScanViewModel) {
+    let resultsByURL = viewModel.validationResults
+    let corruptedResults = viewModel.corruptedFiles.enumerated().map { index, file in
+      resultsByURL[file.url] ?? ValidationResult(corruptedFile: file, originalIndex: index)
+    }
+
+    corrupted = corruptedResults
+    nonCompliant = resultsByURL.values.filter { $0.status == .nonCompliant }
+    warnings = resultsByURL.values.filter { result in
+      let statusAllowsWarnings = result.status == .ok || result.status == .nonCompliant
+      guard statusAllowsWarnings else { return false }
+      return result.epubComplianceDetails?.hasWarnings == true
+        || !(result.pdfValidationDetails?.streamErrors.isEmpty ?? true)
+    }
+  }
+}
+
+extension ValidationResult {
+  init(corruptedFile: CorruptedFile, originalIndex: Int) {
+    self.init(
+      originalIndex: originalIndex,
+      url: corruptedFile.url,
+      size: corruptedFile.size,
+      isValid: false,
+      reason: corruptedFile.reason,
+      status: corruptedFile.status,
+      validationLevel: corruptedFile.validationLevel,
+      fingerprint: corruptedFile.fingerprint,
+      pdfValidationDetails: corruptedFile.pdfValidationDetails,
+      epubComplianceDetails: corruptedFile.epubComplianceDetails
+    )
   }
 }

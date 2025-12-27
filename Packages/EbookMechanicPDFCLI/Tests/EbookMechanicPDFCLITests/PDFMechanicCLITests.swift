@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import Testing
 
@@ -72,6 +73,71 @@ struct EbookMechanicPDFCLITests {
 
     #expect(output.contains("DRY RUN: Would optimize"))
   }
+
+  @Test("Structure check outputs validation results")
+  func testStructureCheckOutputsValidationReport() throws {
+    let tempDir = try makeTemporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: tempDir) }
+    try writeValidPDF(named: "ok.pdf", in: tempDir)
+
+    let output = try runCLI(with: [
+      "validate", "--structure-check", "--dir", tempDir.path,
+    ])
+
+    #expect(output.contains("Validation Result for"))
+    #expect(output.contains("validation completed successfully"))
+  }
+
+  @Test("Extract metadata writes JSON")
+  func testExtractMetadataWritesFile() throws {
+    let tempDir = try makeTemporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: tempDir) }
+    let pdfURL = try writeValidPDF(named: "ok.pdf", in: tempDir)
+
+    let output = try runCLI(with: [
+      "validate", "--extract-metadata", "json", "--dir", tempDir.path,
+    ])
+
+    let metadataURL = pdfURL.deletingPathExtension().appendingPathExtension("metadata.json")
+    #expect(output.contains("Saved metadata"))
+    #expect(FileManager.default.fileExists(atPath: metadataURL.path))
+  }
+
+  @Test("PDF reporting prints validation details")
+  func testPdfReportingIncludesDetails() {
+    let formatter = PDFReportFormatter()
+    let details = PDFValidationResult(
+      structureValid: false,
+      xrefValid: false,
+      pageTreeValid: true,
+      streamErrors: ["Missing EOF marker"],
+      encryptionInfo: "Encrypted",
+      conformsToStandard: "PDF/A"
+    )
+    let result = ValidationResult(
+      originalIndex: 0,
+      url: URL(fileURLWithPath: "/tmp/sample.pdf"),
+      size: 2048,
+      isValid: false,
+      reason: "Sample failure",
+      status: .corrupt,
+      validationLevel: .comprehensive,
+      pdfValidationDetails: details
+    )
+
+    let output = captureOutput {
+      let group = DispatchGroup()
+      group.enter()
+      Task {
+        await formatter.printValidationResults(for: result)
+        group.leave()
+      }
+      group.wait()
+    }
+
+    #expect(output.contains("PDF Validation Details"))
+    #expect(output.contains("Stream Errors"))
+  }
 }
 
 private func makeTemporaryDirectory() throws -> URL {
@@ -93,4 +159,20 @@ private func writeValidPDF(named: String, in directory: URL) throws -> URL {
 
 enum TestError: Error {
   case message(String)
+}
+
+private func captureOutput(_ block: () -> Void) -> String {
+  let pipe = Pipe()
+  let original = dup(STDOUT_FILENO)
+  dup2(pipe.fileHandleForWriting.fileDescriptor, STDOUT_FILENO)
+
+  block()
+  fflush(stdout)
+
+  pipe.fileHandleForWriting.closeFile()
+  dup2(original, STDOUT_FILENO)
+  close(original)
+
+  let data = pipe.fileHandleForReading.readDataToEndOfFile()
+  return String(data: data, encoding: .utf8) ?? ""
 }

@@ -3,7 +3,7 @@ import SwiftUI
 
 struct ReportExportView: View {
   @ObservedObject var viewModel: ScanViewModel
-  @Binding var options: ScanOptions
+  @ObservedObject var options: ScanOptions
   @Environment(\.dismiss) var dismiss
 
   @State private var selectedFormats: Set<ReportFormat>
@@ -13,11 +13,11 @@ struct ReportExportView: View {
   @State private var exportedURLs: [URL] = []
   @State private var exportError: String?
 
-  init(viewModel: ScanViewModel, options: Binding<ScanOptions>) {
+  init(viewModel: ScanViewModel, options: ScanOptions) {
     self._viewModel = ObservedObject(wrappedValue: viewModel)
-    self._options = options
-    _selectedFormats = State(initialValue: options.wrappedValue.selectedReportFormats)
-    _destinationFolder = State(initialValue: options.wrappedValue.directory)
+    self._options = ObservedObject(wrappedValue: options)
+    _selectedFormats = State(initialValue: options.selectedReportFormats)
+    _destinationFolder = State(initialValue: options.directory)
   }
 
   var body: some View {
@@ -59,7 +59,7 @@ struct ReportExportView: View {
               if isExporting {
                 ProgressView()
               }
-              Text("Export Report\(selectedFormats.count > 1 ? "s" : "")")
+              Text("Export All")
             }
             .frame(maxWidth: .infinity)
           }
@@ -88,6 +88,10 @@ struct ReportExportView: View {
         }
       }
       .navigationTitle("Export Reports")
+      .onAppear {
+        selectedFormats = options.selectedReportFormats
+        destinationFolder = options.directory
+      }
       .toolbar {
         ToolbarItem(placement: .navigation) {  // Use .navigation for macOS
           Button("Cancel") {
@@ -121,10 +125,6 @@ struct ReportExportView: View {
         guard viewModel.summary != nil else {
           throw ScanViewModel.ScanViewModelError.noScanData
         }
-
-        // Temporarily update options for report generation
-        var currentOptions = options
-        currentOptions.selectedReportFormats = selectedFormats
 
         let urls = try await viewModel.generateReport(
           into: destinationFolder, options: options, formats: selectedFormats)

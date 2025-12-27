@@ -17,6 +17,11 @@ struct CLIConfiguration: Equatable {
   var autoConfirm: Bool
   var verbose: Bool
   var generateReport: Bool
+  var reportFormats: [String]
+  var externalTools: Bool
+  var maxConcurrent: Int
+  var noCache: Bool
+  var performanceStats: Bool
   var normalizeEPUBs: Bool
   var forceNormalize: Bool
 
@@ -32,6 +37,11 @@ struct CLIConfiguration: Equatable {
       autoConfirm: false,
       verbose: true,
       generateReport: false,
+      reportFormats: ["markdown"],
+      externalTools: false,
+      maxConcurrent: ProcessInfo.processInfo.activeProcessorCount,
+      noCache: false,
+      performanceStats: false,
       normalizeEPUBs: false,
       forceNormalize: false
     )
@@ -84,6 +94,32 @@ struct CLIConfiguration: Equatable {
         config.verbose = false
       case "--report":
         config.generateReport = true
+      case "--report-formats":
+        guard index + 1 < arguments.count else {
+          throw CLIError.invalidArgument("Missing value for \(argument)")
+        }
+        let rawFormats = arguments[index + 1]
+        index += 1
+        config.reportFormats = rawFormats
+          .split(separator: ",")
+          .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+          .filter { !$0.isEmpty }
+      case "--external-tools":
+        config.externalTools = true
+      case "--max-concurrent":
+        guard index + 1 < arguments.count else {
+          throw CLIError.invalidArgument("Missing value for \(argument)")
+        }
+        let rawValue = arguments[index + 1]
+        index += 1
+        guard let value = Int(rawValue), value > 0 else {
+          throw CLIError.invalidArgument("Invalid value for \(argument): \(rawValue)")
+        }
+        config.maxConcurrent = value
+      case "--no-cache":
+        config.noCache = true
+      case "--performance-stats":
+        config.performanceStats = true
       case "--normalize-epubs":
         config.normalizeEPUBs = true
       case "--force-normalize":

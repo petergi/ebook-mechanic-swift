@@ -30,6 +30,12 @@ public struct FileValidator: FileValidatorProtocol, @unchecked Sendable {
   /// Validates the file located at `url`, inferring the type from its extension.
   @discardableResult
   public func validate(url: URL) async -> ValidationResult {
+    await validate(url: url, useExternalTools: false)
+  }
+
+  /// Validates the file located at `url`, optionally using external tools.
+  @discardableResult
+  public func validate(url: URL, useExternalTools: Bool = false) async -> ValidationResult {
     let attributes = try? fileManager.attributesOfItem(atPath: url.path)
     let size = (attributes?[.size] as? NSNumber)?.int64Value ?? 0
     let modDate = (attributes?[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0
@@ -45,7 +51,7 @@ public struct FileValidator: FileValidatorProtocol, @unchecked Sendable {
         originalIndex: 0, url: url, size: size, isValid: true, reason: "Unknown file type")
     }
 
-    let result = await validate(url: url, as: type)
+    let result = await validate(url: url, as: type, useExternalTools: useExternalTools)
 
     await cache.set(
       value: result, forKey: ValidationCache.cacheKey(for: url, size: size, modDate: modDate))
@@ -55,61 +61,76 @@ public struct FileValidator: FileValidatorProtocol, @unchecked Sendable {
 
   /// Validates a file as a specific ebook type.
   public func validate(url: URL, as type: EbookFileType) async -> ValidationResult {
+    await validate(url: url, as: type, useExternalTools: false)
+  }
+
+  /// Validates a file as a specific ebook type, optionally using external tools.
+  public func validate(
+    url: URL,
+    as type: EbookFileType,
+    useExternalTools: Bool = false
+  ) async -> ValidationResult {
     switch type {
     case .epub:
-      return await validateEPUB(url: url)
+      return await validateEPUB(url: url, useExternalTools: useExternalTools)
     case .mobi:
       return validateMOBI(url: url)
     case .azw3:
       return validateAZW3(url: url)
     case .azw4:
-      return await validatePDF(url: url)
+      return await validatePDF(url: url, useExternalTools: useExternalTools)
     case .pdf:
-      return await validatePDF(url: url)
+      return await validatePDF(url: url, useExternalTools: useExternalTools)
     }
   }
 
-  private func validateEPUB(url: URL) async -> ValidationResult {
+  private func validateEPUB(url: URL, useExternalTools: Bool) async -> ValidationResult {
     do {
       let attributes = try fileManager.attributesOfItem(atPath: url.path)
       let size = (attributes[.size] as? NSNumber)?.int64Value ?? 0
+      let validationLevel: ValidationLevel = deepValidation ? .standard : .basic
 
       let archive = try ZipArchive.load(from: url)
       guard let mimetype = archive.entry(named: "mimetype") else {
         return ValidationResult(
           originalIndex: 0, url: url, size: size, isValid: false, reason: "Missing mimetype file",
-          status: .nonCompliant)
+          status: .nonCompliant, validationLevel: validationLevel)
       }
 
       guard let container = archive.entry(named: "META-INF/container.xml") else {
         return ValidationResult(
           originalIndex: 0, url: url, size: size, isValid: false,
-          reason: "Missing META-INF/container.xml", status: .nonCompliant)
+          reason: "Missing META-INF/container.xml", status: .nonCompliant,
+          validationLevel: validationLevel)
       }
 
       if let firstEntry = archive.entries.first, firstEntry.name != "mimetype" {
         return ValidationResult(
           originalIndex: 0, url: url, size: size, isValid: false,
-          reason: "mimetype must be first entry", status: .nonCompliant)
+          reason: "mimetype must be first entry", status: .nonCompliant,
+          validationLevel: validationLevel)
       }
 
       if let firstEntry = archive.entries.first, firstEntry.compressionMethod != 0 {
         return ValidationResult(
           originalIndex: 0, url: url, size: size, isValid: false,
-          reason: "mimetype must be stored uncompressed", status: .nonCompliant)
+          reason: "mimetype must be stored uncompressed", status: .nonCompliant,
+          validationLevel: validationLevel)
       }
 
       let mimetypeValue = String(data: mimetype.data, encoding: .utf8) ?? ""
       guard mimetypeValue == "application/epub+zip" else {
         return ValidationResult(
           originalIndex: 0, url: url, size: size, isValid: false,
-          reason: "Invalid mimetype: \(mimetypeValue)", status: .nonCompliant)
+          reason: "Invalid mimetype: \(mimetypeValue)", status: .nonCompliant,
+          validationLevel: validationLevel)
       }
 
       guard !container.data.isEmpty else {
         return ValidationResult(
           originalIndex: 0, url: url, size: size, isValid: false,
-          reason: "Missing META-INF/container.xml", status: .nonCompliant)
+          reason: "Missing META-INF/container.xml", status: .nonCompliant,
+          validationLevel: validationLevel)
       }
 
       // Perform deep OPF validation
@@ -120,7 +141,8 @@ public struct FileValidator: FileValidatorProtocol, @unchecked Sendable {
         let errorSummary = opfResult.errorMessages.first ?? "OPF validation failed"
         return ValidationResult(
           originalIndex: 0, url: url, size: size, isValid: false,
-          reason: "Invalid HTML/XHTML content: \(errorSummary)", status: .nonCompliant)
+          reason: "Invalid HTML/XHTML content: \(errorSummary)", status: .nonCompliant,
+          validationLevel: validationLevel)
       }
 
       // Optionally perform deep HTML validation
@@ -137,11 +159,13 @@ public struct FileValidator: FileValidatorProtocol, @unchecked Sendable {
             ?? "HTML validation failed"
           return ValidationResult(
             originalIndex: 0, url: url, size: size, isValid: false,
-            reason: "Invalid HTML/XHTML content: \(errorSummary)", status: .nonCompliant)
+            reason: "Invalid HTML/XHTML content: \(errorSummary)", status: .nonCompliant,
+            validationLevel: validationLevel)
         }
       }
 
-      if useExternalEPUBValidator {
+      let shouldUseExternal = useExternalTools || useExternalEPUBValidator
+      if shouldUseExternal, await ExternalEPUBValidator.isEpubcheckInstalled() {
         return await ExternalValidators.validateEpub(at: url.path)
       }
 
@@ -151,23 +175,25 @@ public struct FileValidator: FileValidatorProtocol, @unchecked Sendable {
         return ValidationResult(
           originalIndex: 0, url: url, size: size, isValid: true,
           reason: "Valid EPUB (\(totalWarnings) warning\(totalWarnings == 1 ? "" : "s"))",
-          status: .nonCompliant)
+          status: .nonCompliant, validationLevel: validationLevel)
       }
 
       return ValidationResult(
-        originalIndex: 0, url: url, size: size, isValid: true, reason: "Valid EPUB", status: .ok)
+        originalIndex: 0, url: url, size: size, isValid: true, reason: "Valid EPUB", status: .ok,
+        validationLevel: validationLevel)
     } catch let zipError as ZipError {
       let size =
         (try? fileManager.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.int64Value ?? 0
       return ValidationResult(
         originalIndex: 0, url: url, size: size, isValid: false,
-        reason: "Not a valid ZIP file (\(zipError))", status: .corrupt)
+        reason: "Not a valid ZIP file (\(zipError))", status: .corrupt, validationLevel: .basic)
     } catch {
       let size =
         (try? fileManager.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.int64Value ?? 0
       return ValidationResult(
         originalIndex: 0, url: url, size: size, isValid: false,
-        reason: "Not a valid ZIP file (\(error.localizedDescription))", status: .corrupt)
+        reason: "Not a valid ZIP file (\(error.localizedDescription))", status: .corrupt,
+        validationLevel: .basic)
     }
   }
 
@@ -177,7 +203,7 @@ public struct FileValidator: FileValidatorProtocol, @unchecked Sendable {
     guard let handle = FileHandle(forReadingAtPath: url.path) else {
       return ValidationResult(
         originalIndex: 0, url: url, size: size, isValid: false, reason: "Cannot open file",
-        status: .corrupt)
+        status: .corrupt, validationLevel: .basic)
     }
     defer { try? handle.close() }
 
@@ -186,7 +212,7 @@ public struct FileValidator: FileValidatorProtocol, @unchecked Sendable {
       guard header.count >= 68 else {
         return ValidationResult(
           originalIndex: 0, url: url, size: size, isValid: false, reason: "File too small",
-          status: .corrupt)
+          status: .corrupt, validationLevel: .basic)
       }
 
       let identifierData = header.subdata(in: 60..<68)
@@ -194,38 +220,40 @@ public struct FileValidator: FileValidatorProtocol, @unchecked Sendable {
       if !identifier.hasPrefix("BOOKMOBI") && !identifier.hasPrefix("TEXtREAd") {
         return ValidationResult(
           originalIndex: 0, url: url, size: size, isValid: false,
-          reason: "Invalid MOBI identifier: \(identifier)", status: .corrupt)
+          reason: "Invalid MOBI identifier: \(identifier)", status: .corrupt,
+          validationLevel: .basic)
       }
 
       let palmHeader = header.subdata(in: 0..<32)
       if palmHeader.allSatisfy({ $0 == 0 }) {
         return ValidationResult(
           originalIndex: 0, url: url, size: size, isValid: false, reason: "Invalid PalmDB header",
-          status: .corrupt)
+          status: .corrupt, validationLevel: .basic)
       }
 
       return ValidationResult(
-        originalIndex: 0, url: url, size: size, isValid: true, reason: "Valid MOBI", status: .ok)
+        originalIndex: 0, url: url, size: size, isValid: true, reason: "Valid MOBI", status: .ok,
+        validationLevel: .basic)
     } catch {
       return ValidationResult(
         originalIndex: 0, url: url, size: size, isValid: false, reason: "Cannot read file header",
-        status: .corrupt)
+        status: .corrupt, validationLevel: .basic)
     }
   }
 
-  private func validatePDF(url: URL) async -> ValidationResult {
+  private func validatePDF(url: URL, useExternalTools: Bool) async -> ValidationResult {
     let size =
       (try? fileManager.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.int64Value ?? 0
     guard fileManager.fileExists(atPath: url.path) else {
       return ValidationResult(
         originalIndex: 0, url: url, size: size, isValid: false, reason: "File does not exist",
-        status: .corrupt)
+        status: .corrupt, validationLevel: .basic)
     }
 
     guard let handle = try? FileHandle(forReadingFrom: url) else {
       return ValidationResult(
         originalIndex: 0, url: url, size: size, isValid: false, reason: "Cannot open file",
-        status: .corrupt)
+        status: .corrupt, validationLevel: .basic)
     }
     defer { try? handle.close() }
 
@@ -234,7 +262,7 @@ public struct FileValidator: FileValidatorProtocol, @unchecked Sendable {
       guard header.count == 5, header.starts(with: Data("%PDF-".utf8)) else {
         return ValidationResult(
           originalIndex: 0, url: url, size: size, isValid: false, reason: "Missing PDF header",
-          status: .corrupt)
+          status: .corrupt, validationLevel: .basic)
       }
 
       let attributes = try fileManager.attributesOfItem(atPath: url.path)
@@ -242,7 +270,7 @@ public struct FileValidator: FileValidatorProtocol, @unchecked Sendable {
       guard fileSize >= 100 else {
         return ValidationResult(
           originalIndex: 0, url: url, size: size, isValid: false,
-          reason: "File too small to be valid PDF", status: .corrupt)
+          reason: "File too small to be valid PDF", status: .corrupt, validationLevel: .basic)
       }
 
       let tailLength = min(Int64(1024), fileSize)
@@ -253,48 +281,25 @@ public struct FileValidator: FileValidatorProtocol, @unchecked Sendable {
       guard String(data: tail, encoding: .ascii)?.contains("%%EOF") == true else {
         return ValidationResult(
           originalIndex: 0, url: url, size: size, isValid: false, reason: "Missing %%EOF marker",
-          status: .corrupt)
+          status: .corrupt, validationLevel: .basic)
       }
 
       let fp = PDFVerifier.fingerprintResult(for: url)
 
-      if useExternalPDFValidator {
-        let structureValidator = PDFStructureValidator()
-        switch structureValidator.validate(url: url) {
-        case .success(let pdfValidationResult):
-          // If pdfcpu says it's valid, return success with details
-          if pdfValidationResult.structureValid && pdfValidationResult.xrefValid
-            && pdfValidationResult.pageTreeValid && pdfValidationResult.streamErrors.isEmpty
-          {
-            return ValidationResult(
-              originalIndex: 0, url: url, size: size, isValid: true,
-              reason: "Valid PDF (pdfcpu validation)", status: .ok, fingerprint: fp,
-              pdfValidationDetails: pdfValidationResult)
-          } else {
-            // If pdfcpu finds issues, mark as non-compliant
-            var reasons: [String] = []
-            if !pdfValidationResult.structureValid { reasons.append("Invalid structure") }
-            if !pdfValidationResult.xrefValid { reasons.append("Invalid cross-reference table") }
-            if !pdfValidationResult.pageTreeValid { reasons.append("Invalid page tree") }
-            reasons.append(contentsOf: pdfValidationResult.streamErrors)
-            if let encryption = pdfValidationResult.encryptionInfo {
-              reasons.append("Encrypted: \(encryption)")
-            }
-            if let conforms = pdfValidationResult.conformsToStandard {
-              reasons.append("Conforms to: \(conforms)")
-            }
-            return ValidationResult(
-              originalIndex: 0, url: url, size: size, isValid: false,
-              reason: "PDF validation issues: \(reasons.joined(separator: ", "))",
-              status: .nonCompliant, fingerprint: fp, pdfValidationDetails: pdfValidationResult)
-          }
-        case .failure(let error):
-          // If pdfcpu CLI execution fails, report as validation error
-          return ValidationResult(
-            originalIndex: 0, url: url, size: size, isValid: false,
-            reason: "PDF validation tool error: \(error.localizedDescription)",
-            status: .validationError, fingerprint: fp)
-        }
+      let shouldUseExternal = useExternalTools || useExternalPDFValidator
+      if shouldUseExternal, await ExternalPDFValidator.isPdfcpuInstalled() {
+        let externalResult = await ExternalPDFValidator().validate(fileURL: url)
+        return ValidationResult(
+          originalIndex: 0,
+          url: url,
+          size: size,
+          isValid: externalResult.isValid,
+          reason: externalResult.reason,
+          status: externalResult.status,
+          validationLevel: .comprehensive,
+          fingerprint: fp,
+          pdfValidationDetails: externalResult.pdfValidationDetails
+        )
       }
 
       // Compute content fingerprint (or fallback) and attach it to the validation result.
@@ -302,25 +307,28 @@ public struct FileValidator: FileValidatorProtocol, @unchecked Sendable {
       case .content:
         return ValidationResult(
           originalIndex: 0, url: url, size: size, isValid: true, reason: "Valid PDF", status: .ok,
-          fingerprint: fp)
+          validationLevel: .basic, fingerprint: fp)
       case .fileHash:
         return ValidationResult(
           originalIndex: 0, url: url, size: size, isValid: true,
-          reason: "Valid PDF (fingerprint fallback used)", status: .ok, fingerprint: fp)
+          reason: "Valid PDF (fingerprint fallback used)", status: .ok, validationLevel: .basic,
+          fingerprint: fp)
       case .encrypted:
         return ValidationResult(
           originalIndex: 0, url: url, size: size, isValid: true,
-          reason: "Encrypted PDF - content fingerprint unavailable", status: .ok, fingerprint: fp)
+          reason: "Encrypted PDF - content fingerprint unavailable", status: .ok,
+          validationLevel: .basic, fingerprint: fp)
       case .unavailable(let reason):
         return ValidationResult(
           originalIndex: 0, url: url, size: size, isValid: true,
-          reason: "Valid PDF - fingerprint unavailable: \(reason)", status: .ok, fingerprint: fp)
+          reason: "Valid PDF - fingerprint unavailable: \(reason)", status: .ok,
+          validationLevel: .basic, fingerprint: fp)
       }
 
     } catch {
       return ValidationResult(
         originalIndex: 0, url: url, size: size, isValid: false, reason: "Cannot read tail",
-        status: .corrupt)
+        status: .corrupt, validationLevel: .basic)
     }
   }
 
@@ -329,6 +337,6 @@ public struct FileValidator: FileValidatorProtocol, @unchecked Sendable {
   }
 
   private func validateAZW4(url: URL) async -> ValidationResult {
-    await validatePDF(url: url)
+    await validatePDF(url: url, useExternalTools: false)
   }
 }

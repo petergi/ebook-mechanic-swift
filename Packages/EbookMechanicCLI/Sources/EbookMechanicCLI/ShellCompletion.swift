@@ -82,6 +82,11 @@ Register-ArgumentCompleter -Native -CommandName ebook-mechanic -ScriptBlock {
     '--help' = 'Show help message'
     '--dir' = 'Directory to scan'
     '--repair' = 'Attempt to repair corrupted files'
+    '--report-formats' = 'Report formats (comma-separated)'
+    '--external-tools' = 'Enable epubcheck/pdfcpu validation'
+    '--max-concurrent' = 'Maximum concurrent validations'
+    '--no-cache' = 'Disable validation cache'
+    '--performance-stats' = 'Print performance metrics'
   }
   $flags | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
     $desc = $descriptions[$_]
@@ -110,6 +115,11 @@ Register-ArgumentCompleter -Native -CommandName ebook-mechanic -ScriptBlock {
       "--no-confirm",
       "--quiet",
       "--report",
+      "--report-formats",
+      "--external-tools",
+      "--max-concurrent",
+      "--no-cache",
+      "--performance-stats",
       "--normalize-epubs",
       "--force-normalize",
     ]
@@ -134,6 +144,11 @@ Register-ArgumentCompleter -Native -CommandName ebook-mechanic -ScriptBlock {
       "'--no-confirm[Skip confirmation prompts]'",
       "'--quiet[Disable verbose logging]'",
       "'--report[Generate report output]'",
+      "'--report-formats[Report formats (comma-separated)]:formats:(markdown json csv html)'",
+      "'--external-tools[Enable epubcheck/pdfcpu validation]'",
+      "'--max-concurrent[Maximum concurrent validations]:count:(1 2 4 8 16)'",
+      "'--no-cache[Disable validation cache]'",
+      "'--performance-stats[Print performance metrics]'",
       "'--normalize-epubs[Normalize EPUB files]'",
       "'--force-normalize[Force EPUB normalization]'",
     ]
@@ -154,6 +169,11 @@ Register-ArgumentCompleter -Native -CommandName ebook-mechanic -ScriptBlock {
       "complete -c ebook-mechanic -l no-confirm -d 'Skip confirmation prompts'",
       "complete -c ebook-mechanic -l quiet -d 'Disable verbose logging'",
       "complete -c ebook-mechanic -l report -d 'Generate report output'",
+      "complete -c ebook-mechanic -l report-formats -r -d 'Report formats (comma-separated)'",
+      "complete -c ebook-mechanic -l external-tools -d 'Enable epubcheck/pdfcpu validation'",
+      "complete -c ebook-mechanic -l max-concurrent -r -d 'Maximum concurrent validations'",
+      "complete -c ebook-mechanic -l no-cache -d 'Disable validation cache'",
+      "complete -c ebook-mechanic -l performance-stats -d 'Print performance metrics'",
       "complete -c ebook-mechanic -l normalize-epubs -d 'Normalize EPUB files'",
       "complete -c ebook-mechanic -l force-normalize -d 'Force EPUB normalization'",
     ]
@@ -173,6 +193,11 @@ Register-ArgumentCompleter -Native -CommandName ebook-mechanic -ScriptBlock {
       "'--no-confirm'",
       "'--quiet'",
       "'--report'",
+      "'--report-formats'",
+      "'--external-tools'",
+      "'--max-concurrent'",
+      "'--no-cache'",
+      "'--performance-stats'",
       "'--normalize-epubs'",
       "'--force-normalize'",
     ]

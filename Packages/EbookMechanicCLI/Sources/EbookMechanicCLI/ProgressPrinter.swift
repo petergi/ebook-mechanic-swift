@@ -17,7 +17,15 @@ struct ProgressPrinter: @unchecked Sendable {
     guard verbose else { return }
     switch event.stage {
     case .validatingFile(let url):
-      emit("🔍 Inspecting \(url.lastPathComponent)...")
+      let level = event.validationLevel.map { " [\($0.rawValue.uppercased())]" } ?? ""
+      let extensionLowercased = url.pathExtension.lowercased()
+      if extensionLowercased == "pdf" || extensionLowercased == "azw4" {
+        let depth =
+          event.validationLevel == .comprehensive ? "Deep PDF validation" : "Basic PDF validation"
+        emit("🔍 \(depth): \(url.lastPathComponent)\(level)")
+      } else {
+        emit("🔍 Inspecting \(url.lastPathComponent)\(level)...")
+      }
     case .scanningFiles:
       let concurrentCount =
         (event.concurrentValidationCount ?? 0) > 0

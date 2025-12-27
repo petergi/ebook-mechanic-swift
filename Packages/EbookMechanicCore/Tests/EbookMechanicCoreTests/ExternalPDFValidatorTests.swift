@@ -73,7 +73,7 @@ final class ExternalPDFValidatorTests: XCTestCase {
 
     XCTAssertFalse(result.isValid)
     XCTAssertEqual(result.status, .corrupt)
-    XCTAssertTrue(result.reason.contains("PDF validation failed."))
+    XCTAssertTrue(result.reason.contains("PDF validation issues:"))
     XCTAssertTrue(result.reason.contains("EOF marker missing"))
     XCTAssertNotNil(result.pdfValidationDetails)
     XCTAssertTrue(

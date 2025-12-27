@@ -53,6 +53,16 @@ struct HTMLReportGenerator {
               .button:hover {
                   background-color: #0056b3;
               }
+              .epub-compliance { margin-top: 15px; padding: 10px; background: #fdfdfd; border: 1px solid #eee; border-radius: 6px; }
+              .epub-compliance h5 { margin: 0 0 10px 0; color: #34495e; }
+              .issue-list { list-style: none; padding-left: 0; margin: 0; }
+              .issue-item { padding: 6px 0; border-bottom: 1px dashed #eee; }
+              .issue-item:last-child { border-bottom: none; }
+              .issue-severity { font-weight: bold; margin-right: 6px; }
+              .issue-severity.fatal, .issue-severity.error { color: #f5222d; }
+              .issue-severity.warning { color: #faad14; }
+              .issue-rule { color: #888; margin-left: 6px; font-size: 0.85em; }
+              .issue-line { margin-left: 8px; font-size: 0.85em; }
           </style>
       </head>
       <body>
@@ -188,7 +198,8 @@ struct HTMLReportGenerator {
       guard let files = grouped[type], !files.isEmpty else { continue }
       details += "<h3>\(type.fileExtension.uppercased()) Files</h3>"
       for file in files {
-        let relative = relativePath(for: file.url, rootDirectory: rootDirectory).htmlEscaped()
+        let relativePathValue = relativePath(for: file.url, rootDirectory: rootDirectory)
+        let relative = relativePathValue.htmlEscaped()
         let statusEmoji: String
         let statusClass: String
         switch file.status {
@@ -223,6 +234,10 @@ struct HTMLReportGenerator {
             """
         }
 
+        let epubComplianceHtml = file.epubComplianceDetails.map {
+          renderEpubComplianceDetails($0, fileIdPrefix: relativePathValue)
+        } ?? ""
+
         details += """
           <div class="file-detail status-\(statusClass)">
               <div class="collapsible-header">
@@ -234,6 +249,7 @@ struct HTMLReportGenerator {
                   <p><strong>Reason:</strong> \(file.reason.htmlEscaped())</p>
                   \(file.fingerprint?.description.htmlEscaped() ?? "")
                   \(pdfDetailsHtml)
+                  \(epubComplianceHtml)
               </div>
           </div>
           """
@@ -285,6 +301,57 @@ struct HTMLReportGenerator {
         """
     }
     return details
+  }
+
+  private func renderEpubComplianceDetails(
+    _ details: EPUBComplianceResult,
+    fileIdPrefix: String
+  ) -> String {
+    let issues = details.errors + details.warnings
+    guard !issues.isEmpty else { return "" }
+
+    let grouped = Dictionary(grouping: issues, by: { $0.filePath ?? "Unknown File" })
+    var content = "<div class=\"epub-compliance\"><h5>EPUB Compliance Details</h5>"
+
+    for filePath in grouped.keys.sorted() {
+      let fileIssues = grouped[filePath] ?? []
+      let fileId = sanitizeId("\(fileIdPrefix)-\(filePath)")
+      content += "<p><strong>\(filePath.htmlEscaped())</strong></p>"
+      content += "<ul class=\"issue-list\">"
+
+      for issue in fileIssues {
+        let severityClass = issue.severity.lowercased()
+        let rule = issue.ruleId.map { "<span class=\"issue-rule\">\($0.htmlEscaped())</span>" } ?? ""
+        let lineLink: String
+        if let line = issue.lineNumber {
+          let anchor = "\(fileId)-line-\(line)"
+          lineLink = "<a class=\"issue-line\" href=\"#\(anchor)\">L\(line)</a>"
+        } else {
+          lineLink = ""
+        }
+        let context = issue.context.map { "(\($0.htmlEscaped()))" } ?? ""
+        let message = issue.message.htmlEscaped()
+
+        content += """
+          <li class="issue-item" id="\(fileId)-line-\(issue.lineNumber ?? 0)">
+            <span class="issue-severity \(severityClass)">\(issue.severity.htmlEscaped())</span>
+            \(rule)
+            \(lineLink)
+            \(message) \(context)
+          </li>
+          """
+      }
+
+      content += "</ul>"
+    }
+
+    content += "</div>"
+    return content
+  }
+
+  private func sanitizeId(_ value: String) -> String {
+    let pattern = "[^A-Za-z0-9_-]"
+    return value.replacingOccurrences(of: pattern, with: "-", options: .regularExpression)
   }
 }
 

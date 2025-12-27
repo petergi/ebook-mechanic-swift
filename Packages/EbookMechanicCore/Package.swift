@@ -14,7 +14,8 @@ let package = Package(
       targets: ["EbookMechanicCore"])
   ],
   dependencies: [
-    .package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.0.0")
+    .package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.0.0"),
+    .package(url: "https://github.com/pdfcpu/pdfcpu", .upToNextMinor(from: "0.8.0"))
   ],
   targets: [
     .target(

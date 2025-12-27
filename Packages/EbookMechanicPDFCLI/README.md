@@ -70,3 +70,20 @@
 [38;2;216;222;233m  67[0m [38;2;216;222;233m│[0m 
 [38;2;216;222;233m  68[0m [38;2;216;222;233m│[0m [38;2;216;222;233mExecutable: `.build/release/EbookMechanicPDFCLI`[0m
 [38;2;216;222;233m─────┴──────────────────────────────────────────────────────────────────────────[0m
+
+
+## Examples
+
+```bash
+# Validate PDFs with structure checks via pdfcpu
+pdf-mechanic validate --structure-check --dir ~/Documents/PDFs
+
+# Analyze object streams for size optimization
+pdf-mechanic validate --show-streams --dir ~/Documents/PDFs
+
+# Extract metadata to JSON/YAML files
+pdf-mechanic validate --extract-metadata json --dir ~/Documents/PDFs
+
+# Optimize PDFs in place (dry-run first)
+pdf-mechanic repair --optimize --dry-run --dir ~/Documents/PDFs
+```

@@ -181,12 +181,12 @@ pdf-mechanic --help
 ```makefile
 epub-completions:
 	@mkdir -p completions
-	@Packages/EbookMechanicEPUBCLI/.build/release/EbookMechanicEPUBCLI --generate-completion bash > completions/epub-mechanic.bash
+	@Packages/EbookMechanicEPUBCLI/.build/release/EbookMechanicEPUBCLI --generate-completion-script bash > completions/epub-mechanic.bash
 	# ... other shells
 
 pdf-completions:
 	@mkdir -p completions
-	@Packages/EbookMechanicPDFCLI/.build/release/EbookMechanicPDFCLI --generate-completion bash > completions/pdf-mechanic.bash
+	@Packages/EbookMechanicPDFCLI/.build/release/EbookMechanicPDFCLI --generate-completion-script bash > completions/pdf-mechanic.bash
 	# ... other shells
 ```
 

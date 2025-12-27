@@ -64,7 +64,10 @@ final class ScanViewModelTests: XCTestCase {
       status: .ok
     )
 
-    viewModel.summary = ScanResult(totalFiles: 2, okFiles: [nonCompliant, ok])
+    viewModel.validationResults = [
+      nonCompliant.url: nonCompliant,
+      ok.url: ok,
+    ]
 
     XCTAssertEqual(viewModel.nonCompliantFiles, [nonCompliant])
   }
@@ -120,7 +123,10 @@ final class ScanViewModelTests: XCTestCase {
       )
     )
 
-    viewModel.summary = ScanResult(totalFiles: 2, okFiles: [epubWarning, pdfWarning])
+    viewModel.validationResults = [
+      epubWarning.url: epubWarning,
+      pdfWarning.url: pdfWarning,
+    ]
 
     XCTAssertEqual(viewModel.filesWithWarnings.count, 2)
   }
@@ -133,10 +139,9 @@ final class ScanViewModelTests: XCTestCase {
     try writeStubEPUB(named: "bad.epub", in: tempDir)
 
     let viewModel = ScanViewModel()
-    var options = ScanOptions(directory: tempDir)
+    let options = ScanOptions(directory: tempDir)
     options.dryRun = true
-    options.useExternalEPUBValidator = true
-    options.useExternalPDFValidator = true
+    options.useExternalTools = true
 
     await viewModel.runScan(options: options)
 
@@ -152,9 +157,9 @@ final class ScanViewModelTests: XCTestCase {
     try writeValidPDF(named: "ok.pdf", in: tempDir)
 
     let viewModel = ScanViewModel()
-    var options = ScanOptions(directory: tempDir)
+    let options = ScanOptions(directory: tempDir)
     options.dryRun = true
-    options.showPerformanceMetrics = true
+    options.showPerformanceStats = true
 
     await viewModel.runScan(options: options)
 
@@ -168,7 +173,7 @@ final class ScanViewModelTests: XCTestCase {
     try writeValidPDF(named: "ok.pdf", in: tempDir)
 
     let viewModel = ScanViewModel()
-    var options = ScanOptions(directory: tempDir)
+    let options = ScanOptions(directory: tempDir)
     options.dryRun = true
 
     await viewModel.runScan(options: options)
@@ -187,7 +192,7 @@ final class ScanViewModelTests: XCTestCase {
     try FileManager.default.createDirectory(at: emptyFolder, withIntermediateDirectories: true)
 
     let viewModel = ScanViewModel()
-    var options = ScanOptions(directory: tempDir)
+    let options = ScanOptions(directory: tempDir)
     options.dryRun = true
     options.autoMoveCorrupted = true
     options.autoDeleteEmptyFolders = true
@@ -211,9 +216,9 @@ final class ScanViewModelTests: XCTestCase {
     try writeValidPDF(named: "ok.pdf", in: tempDir)
 
     let viewModel = ScanViewModel()
-    var options = ScanOptions(directory: tempDir)
+    let options = ScanOptions(directory: tempDir)
     options.dryRun = true
-    options.showPerformanceMetrics = false
+    options.showPerformanceStats = false
 
     await viewModel.runScan(options: options)
 
@@ -241,7 +246,7 @@ final class ScanViewModelTests: XCTestCase {
     try writeTinyCorruptedPDF(named: "bad.pdf", in: tempDir)
 
     let viewModel = ScanViewModel()
-    var options = ScanOptions(directory: tempDir)
+    let options = ScanOptions(directory: tempDir)
     options.emptyFoldersOnly = true
     options.corruptionOnly = false
 
@@ -260,7 +265,7 @@ final class ScanViewModelTests: XCTestCase {
     try writeTinyCorruptedPDF(named: "bad.pdf", in: tempDir)
 
     let viewModel = ScanViewModel()
-    var options = ScanOptions(directory: tempDir)
+    let options = ScanOptions(directory: tempDir)
     options.corruptionOnly = true
     options.emptyFoldersOnly = false
 

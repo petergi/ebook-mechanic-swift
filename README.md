@@ -43,7 +43,7 @@ EbookMechanic is a powerful command-line tool suite for managing ebook libraries
 - **Architecture:** Modular Swift packages (Core + CLI(s) + App)
 - **Platform:** macOS 13+, iOS 16+ ready
 - **Concurrency:** Swift actors for thread-safe operations
-- **Advanced PDF Repair:** Comprehensive header corruption detection and repair with two-phase repair process (200+ Swift tests across modules)
+- **Advanced PDF Repair:** Comprehensive header corruption detection and repair with two-phase repair process (extensive Swift tests across modules)
 
 ```bash
 make run-app      # Launch macOS app
@@ -175,20 +175,20 @@ ebook-mechanic --normalize-epubs --force-normalize
 # Keep backup files after operations
 ebook-mechanic --normalize-epubs --dry-run
 
-# Skip confirmation prompts
-ebook-mechanic --no-confirm
+# Auto-confirm prompts
+ebook-mechanic --auto-confirm
 
-# Simple text output (no TUI)
-ebook-mechanic --quiet
+# Verbose logging
+ebook-mechanic --verbose
 
 # Use external validators
-ebook-mechanic --use-epubcheck
+ebook-mechanic --external-tools
 
 # Generate reports in multiple formats
-ebook-mechanic --report --report-format json
+ebook-mechanic --report --report-formats markdown,json,csv,html
 
 # Run with parallel validation and performance stats
-ebook-mechanic --performance-stats
+ebook-mechanic --max-concurrent 8 --performance-stats
 ```
 
 ### Specialized CLI Examples

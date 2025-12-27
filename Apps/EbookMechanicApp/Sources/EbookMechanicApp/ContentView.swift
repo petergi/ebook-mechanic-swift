@@ -16,7 +16,7 @@ struct ContentView: View {
   /// The currently selected root directory.
   @Binding var selectedDirectory: URL
   /// The active scan configuration bound to UI controls.
-  @Binding var options: ScanOptions
+  @ObservedObject var options: ScanOptions
   /// Action to present a directory picker.
   var onSelectDirectory: () -> Void
   /// Action to start a scan with the current options.
@@ -25,6 +25,12 @@ struct ContentView: View {
   var onCancelScan: () -> Void
   /// Action to pause or resume an in-flight scan.
   var onTogglePause: () -> Void
+  @State private var showInstallTools: Bool = false
+  @State private var showResultsView: Bool = false
+  @State private var showReportExport: Bool = false
+  @State private var showPerformanceView: Bool = false
+  @State private var isCheckingTools: Bool = false
+  @State private var missingTools: [String] = []
 
   var body: some View {
     ZStack {
@@ -54,6 +60,26 @@ struct ContentView: View {
         options.autoMoveCorrupted = false
         options.autoDeleteEmptyFolders = false
       }
+    }
+    .onChange(of: options.useExternalTools) { newValue in
+      if newValue {
+        checkExternalTools()
+      }
+    }
+    .onAppear {
+      checkExternalTools()
+    }
+    .sheet(isPresented: $showInstallTools) {
+      InstallToolsView()
+    }
+    .sheet(isPresented: $showResultsView) {
+      ResultsListView(viewModel: viewModel)
+    }
+    .sheet(isPresented: $showReportExport) {
+      ReportExportView(viewModel: viewModel, options: options)
+    }
+    .sheet(isPresented: $showPerformanceView) {
+      PerformanceStatsView(viewModel: viewModel)
     }
   }
 
@@ -110,12 +136,24 @@ struct ContentView: View {
       }
 
       HStack(spacing: 16) {
-        Toggle("Use epubcheck", isOn: $options.useExternalEPUBValidator)
+        Toggle("Use external tools", isOn: $options.useExternalTools)
           .disabled(viewModel.isScanning)
-          .help("Use epubcheck for deeper EPUB validation (slower).")
-        Toggle("Use pdfcpu", isOn: $options.useExternalPDFValidator)
+          .help("Enable epubcheck/pdfcpu for comprehensive validation.")
+        HStack(spacing: 8) {
+          Circle()
+            .fill(missingTools.isEmpty ? Color.green : Color.yellow)
+            .frame(width: 8, height: 8)
+          Text(missingTools.isEmpty ? "Tools ready" : "Tools missing")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+        if !missingTools.isEmpty {
+          Button("Install") {
+            showInstallTools = true
+          }
+          .buttonStyle(.bordered)
           .disabled(viewModel.isScanning)
-          .help("Use pdfcpu for deeper PDF validation (slower).")
+        }
       }
 
       HStack(spacing: 16) {
@@ -158,7 +196,7 @@ struct ContentView: View {
         Toggle("Use Cache", isOn: $options.useCache)
           .disabled(viewModel.isScanning)
           .help("Reuse previous validation results when files are unchanged.")
-        Toggle("Show Performance Stats", isOn: $options.showPerformanceMetrics)
+        Toggle("Show Performance Stats", isOn: $options.showPerformanceStats)
           .disabled(viewModel.isScanning)
           .help("Show throughput and timing metrics after the scan.")
       }
@@ -171,6 +209,26 @@ struct ContentView: View {
           .help("Folder name to store corrupted files when auto-move is enabled.")
 
         Spacer()
+
+        Button("View Results") {
+          showResultsView = true
+        }
+        .disabled(viewModel.summary == nil)
+        .buttonStyle(.bordered)
+
+        Button("Export Reports") {
+          showReportExport = true
+        }
+        .disabled(viewModel.summary == nil)
+        .buttonStyle(.bordered)
+
+        if options.showPerformanceStats {
+          Button("Performance") {
+            showPerformanceView = true
+          }
+          .disabled(viewModel.performanceMetrics == nil)
+          .buttonStyle(.bordered)
+        }
 
         if viewModel.isScanning {
           Button {
@@ -422,13 +480,36 @@ struct ContentView: View {
       NSWorkspace.shared.open(url)
     #endif
   }
+
+  private func checkExternalTools() {
+    guard !isCheckingTools else { return }
+    isCheckingTools = true
+    Task {
+      let epubcheckInstalled = await ExternalToolRunner.isCommandAvailable("epubcheck")
+      let pdfcpuInstalled = await ExternalToolRunner.isCommandAvailable("pdfcpu")
+      await MainActor.run {
+        var missing: [String] = []
+        if !epubcheckInstalled {
+          missing.append("epubcheck")
+        }
+        if !pdfcpuInstalled {
+          missing.append("pdfcpu")
+        }
+        missingTools = missing
+        isCheckingTools = false
+        if options.useExternalTools, !missing.isEmpty {
+          showInstallTools = true
+        }
+      }
+    }
+  }
 }
 // swiftlint:enable type_body_length
 
 #Preview("ContentView") {
   let vm = ScanViewModel()
   let home = FileManager.default.homeDirectoryForCurrentUser
-  let options = Binding.constant(ScanOptions(directory: home))
+  let options = ScanOptions(directory: home)
   return ContentView(
     viewModel: vm,
     selectedDirectory: .constant(home),

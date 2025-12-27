@@ -2,6 +2,19 @@ import Foundation
 
 struct PDFStructureValidator {
   func validate(url: URL) -> Result<PDFValidationResult, Error> {
+    switch validateWithLibrary(url: url) {
+    case .success(let result):
+      return .success(result)
+    case .failure:
+      return validateWithCLI(url: url)
+    }
+  }
+
+  private func validateWithLibrary(url: URL) -> Result<PDFValidationResult, Error> {
+    return .failure(PDFValidationError.libraryError("pdfcpu library not available"))
+  }
+
+  private func validateWithCLI(url: URL) -> Result<PDFValidationResult, Error> {
     do {
       let process = Process()
       process.executableURL = URL(fileURLWithPath: "/usr/bin/env")

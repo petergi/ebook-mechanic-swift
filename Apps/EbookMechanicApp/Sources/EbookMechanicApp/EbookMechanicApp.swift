@@ -5,6 +5,7 @@
 /// wires the main window scene to `ContentView`. It also provides helper methods
 /// for selecting a directory on macOS and running a scan using the current
 /// `ScanOptions`.
+import EbookMechanicCore
 import SwiftUI
 
 #if os(macOS)
@@ -27,10 +28,18 @@ struct EbookMechanicApp: App {
   /// starting location for the open panel on macOS.
   @State private var selectedDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
   /// The set of options that control how scans are performed, including the target directory.
-  @State private var options = ScanOptions(
+  @StateObject private var options = ScanOptions(
     directory: FileManager.default.homeDirectoryForCurrentUser)
   /// A convenience flag that can be used to drive error presentation if needed.
   @State private var showError: Bool = false
+  @State private var didApplyDefaults: Bool = false
+  @AppStorage("defaultReportFormats") private var defaultReportFormatsData: Data = Data()
+  @AppStorage("defaultConcurrencyLevel") private var defaultConcurrencyLevel: Int = ProcessInfo
+    .processInfo.activeProcessorCount
+  @AppStorage("enableExternalToolsByDefault") private var enableExternalToolsByDefault: Bool =
+    false
+  @AppStorage("showPerformanceStatsByDefault") private var showPerformanceStatsByDefault: Bool =
+    false
 
   /// The main app scene that hosts `ContentView`, applies window sizing constraints,
   /// and presents unexpected error alerts sourced from `viewModel.errorMessage`.
@@ -39,13 +48,16 @@ struct EbookMechanicApp: App {
       ContentView(
         viewModel: viewModel,
         selectedDirectory: $selectedDirectory,
-        options: $options,
+        options: options,
         onSelectDirectory: selectDirectory,
         onRunScan: runScan,
         onCancelScan: cancelScan,
         onTogglePause: togglePause
       )
       .frame(minWidth: 900, minHeight: 600)
+      .task {
+        applyDefaultsIfNeeded()
+      }
       .alert(
         isPresented: Binding(
           get: { viewModel.errorMessage != nil }, set: { _ in viewModel.errorMessage = nil })
@@ -56,6 +68,9 @@ struct EbookMechanicApp: App {
           dismissButton: .default(Text("OK"))
         )
       }
+    }
+    Settings {
+      SettingsView()
     }
   }
 
@@ -102,6 +117,19 @@ struct EbookMechanicApp: App {
       viewModel.resumeScan()
     } else {
       viewModel.pauseScan()
+    }
+  }
+
+  private func applyDefaultsIfNeeded() {
+    guard !didApplyDefaults else { return }
+    didApplyDefaults = true
+    options.useExternalTools = enableExternalToolsByDefault
+    options.showPerformanceStats = showPerformanceStatsByDefault
+    options.maxConcurrentValidations = defaultConcurrencyLevel
+    if let decoded = try? JSONDecoder().decode(
+      Set<ReportFormat>.self, from: defaultReportFormatsData)
+    {
+      options.selectedReportFormats = decoded
     }
   }
 }

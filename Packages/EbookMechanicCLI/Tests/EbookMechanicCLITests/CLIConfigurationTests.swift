@@ -40,6 +40,9 @@ final class CLIConfigurationTests: XCTestCase {
     XCTAssertTrue(config.autoConfirm)
     XCTAssertFalse(config.verbose)
     XCTAssertTrue(config.generateReport)
+    XCTAssertEqual(config.maxConcurrent, ProcessInfo.processInfo.activeProcessorCount)
+    XCTAssertFalse(config.noCache)
+    XCTAssertFalse(config.performanceStats)
   }
 
   func testEmptyFoldersOnlyResetsCorruptionOnly() throws {
@@ -114,6 +117,21 @@ final class CLIConfigurationTests: XCTestCase {
   func testShortRepairFlag() throws {
     let config = try CLIConfiguration.parse(arguments: ["ebook-mechanic", "-r"])
     XCTAssertTrue(config.repair)
+  }
+
+  func testMaxConcurrentFlag() throws {
+    let config = try CLIConfiguration.parse(arguments: ["ebook-mechanic", "--max-concurrent", "4"])
+    XCTAssertEqual(config.maxConcurrent, 4)
+  }
+
+  func testMaxConcurrentRejectsInvalidValue() {
+    let arguments = ["ebook-mechanic", "--max-concurrent", "0"]
+    XCTAssertThrowsError(try CLIConfiguration.parse(arguments: arguments)) { error in
+      guard case CLIError.invalidArgument(let message) = error else {
+        return XCTFail("Expected invalidArgument, got \(error)")
+      }
+      XCTAssertTrue(message.contains("Invalid value"))
+    }
   }
 
   // MARK: - Missing Value Tests

@@ -123,10 +123,9 @@ test-cli:
 completions:
 	@echo "📝 Generating shell completion scripts..."
 	@mkdir -p completions
-	@$(SPM_ENV) swift run --disable-sandbox EbookMechanicEPUBCLI --generate-completion bash > completions/epub-mechanic.bash
-	@$(SPM_ENV) swift run --disable-sandbox EbookMechanicEPUBCLI --generate-completion zsh > completions/_epub-mechanic
-	@$(SPM_ENV) swift run --disable-sandbox EbookMechanicEPUBCLI --generate-completion fish > completions/epub-mechanic.fish
-	@$(SPM_ENV) swift run --disable-sandbox EbookMechanicEPUBCLI --generate-completion powershell > completions/epub-mechanic.ps1
+	@$(SPM_ENV) swift run --disable-sandbox EbookMechanicEPUBCLI --generate-completion-script bash > completions/epub-mechanic.bash
+	@$(SPM_ENV) swift run --disable-sandbox EbookMechanicEPUBCLI --generate-completion-script zsh > completions/_epub-mechanic
+	@$(SPM_ENV) swift run --disable-sandbox EbookMechanicEPUBCLI --generate-completion-script fish > completions/epub-mechanic.fish
 	@echo "✅ Completion scripts generated in ./completions/"
 	@echo ""
 	@echo "To install:"

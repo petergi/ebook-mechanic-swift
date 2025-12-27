@@ -51,12 +51,14 @@ public struct CorruptedFile: Sendable, Codable, Equatable {
   public var reason: String
   public var size: Int64
   public var status: ValidationStatus
+  public var validationLevel: ValidationLevel
   public var fingerprint: FingerprintResult?
   public var pdfValidationDetails: PDFValidationResult?
   public var epubComplianceDetails: EPUBComplianceResult?
 
   public init(
     url: URL, reason: String, size: Int64, status: ValidationStatus,
+    validationLevel: ValidationLevel = .basic,
     fingerprint: FingerprintResult? = nil, pdfValidationDetails: PDFValidationResult? = nil,
     epubComplianceDetails: EPUBComplianceResult? = nil
   ) {
@@ -64,6 +66,7 @@ public struct CorruptedFile: Sendable, Codable, Equatable {
     self.reason = reason
     self.size = size
     self.status = status
+    self.validationLevel = validationLevel
     self.fingerprint = fingerprint
     self.pdfValidationDetails = pdfValidationDetails
     self.epubComplianceDetails = epubComplianceDetails
@@ -168,6 +171,7 @@ public struct EPUBValidationIssue: Sendable, Codable, Equatable {
   public var filePath: String?
   public var lineNumber: Int?
   public var ruleId: String?
+  public var context: String?
 }
 
 /// Represents the detailed results of an EPUB compliance validation.
@@ -273,16 +277,19 @@ public struct ProgressEvent: Sendable, Equatable {
   public var total: Int
   public var currentItem: String
   public var concurrentValidationCount: Int?
+  public var validationLevel: ValidationLevel?
 
   public init(
     stage: Stage, completed: Int, total: Int, currentItem: String,
-    concurrentValidationCount: Int? = nil
+    concurrentValidationCount: Int? = nil,
+    validationLevel: ValidationLevel? = nil
   ) {
     self.stage = stage
     self.completed = completed
     self.total = total
     self.currentItem = currentItem
     self.concurrentValidationCount = concurrentValidationCount
+    self.validationLevel = validationLevel
   }
 }
 

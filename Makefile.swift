@@ -30,7 +30,7 @@ SHELL := /bin/zsh
 .ONESHELL:
 
 # Phony targets (targets that don't represent files)
-.PHONY: help build build-all build-release test test-all test-core build-core build-cli run-cli normalize normalize-force test-cli completions build-app run-app test-app install-app uninstall-app build-epub build-epub-release test-epub run-epub install-epub install-epub-release uninstall-epub build-pdf build-pdf-release test-pdf run-pdf install-pdf install-pdf-release uninstall-pdf build-specialized install-specialized uninstall-specialized workspace clean clean-all docc-core docc-app docc-serve docc-all install install-release uninstall format check-format lint ci info update-all test-external-tools
+.PHONY: help build build-all build-release test test-all test-core build-core build-cli run-cli normalize normalize-force test-cli completions build-app run-app test-app install-app uninstall-app build-epub build-epub-release test-epub run-epub install-epub install-epub-release uninstall-epub build-pdf build-pdf-release test-pdf run-pdf install-pdf install-pdf-release uninstall-pdf build-specialized install-specialized uninstall-specialized specialized-test specialized-install workspace clean clean-all docc-core docc-app docc-serve docc-all install install-release uninstall format check-format lint ci info update-all test-external-tools test-external-validation installExternalTools install-tools
 
 # Default target when running 'make' with no arguments
 .DEFAULT_GOAL := build
@@ -58,7 +58,9 @@ help:
 	@printf "  %-30s %s\n" "make test-app" "Run the app test suite"
 	@printf "  %-30s %s\n" "make test-epub" "Run EPUB Mechanic CLI tests"
 	@printf "  %-30s %s\n" "make test-pdf" "Run PDF Mechanic CLI tests"
+	@printf "  %-30s %s\n" "make specialized-test" "Run EPUB + PDF CLI tests"
 	@printf "  %-30s %s\n" "make test-external-tools" "Run external tools integration test"
+	@printf "  %-30s %s\n" "make test-external-validation" "Build CLI and run external tools validation test"
 	@echo ""
 	@echo "🚀 Run Targets:"
 	@printf "  %-30s %s\n" "make run-cli ARGS=" "Run the main CLI (default: --help)"
@@ -80,6 +82,7 @@ help:
 	@printf "  %-30s %s\n" "make install-release" "Install optimized main CLI to $(BIN_INSTALL_PATH)"
 	@printf "  %-30s %s\n" "make install-app" "Build & copy the macOS app bundle"
 	@printf "  %-30s %s\n" "make install-specialized" "Install specialized CLIs (EPUB + PDF)"
+	@printf "  %-30s %s\n" "make specialized-install" "Install EPUB + PDF CLIs (alias)"
 	@printf "  %-30s %s\n" "make install-epub" "Install EPUB Mechanic CLI"
 	@printf "  %-30s %s\n" "make install-epub-release" "Install optimized EPUB Mechanic CLI"
 	@printf "  %-30s %s\n" "make install-pdf" "Install PDF Mechanic CLI"
@@ -97,6 +100,7 @@ help:
 	@printf "  %-30s %s\n" "make clean-all" "Deep clean (includes completions & docs)"
 	@printf "  %-30s %s\n" "make info" "Display build information and sizes"
 	@printf "  %-30s %s\n" "make update-all" "Update completions and documentation"
+	@printf "  %-30s %s\n" "make installExternalTools" "Check/install epubcheck + pdfcpu"
 	@echo ""
 	@echo "🤖 CI/CD Targets:"
 	@printf "  %-30s %s\n" "make ci" "Run full CI pipeline (build-all + test-all + check-format)"
@@ -203,10 +207,18 @@ test-cli:
 completions:
 	@echo "📝 Generating shell completion scripts..."
 	@mkdir -p completions
-	@$(SPM_ENV) swift run --disable-sandbox --package-path Packages/EbookMechanicCLI EbookMechanicCLI --generate-completion bash > completions/ebook-mechanic.bash
-	@$(SPM_ENV) swift run --disable-sandbox --package-path Packages/EbookMechanicCLI EbookMechanicCLI --generate-completion zsh > completions/_ebook-mechanic
-	@$(SPM_ENV) swift run --disable-sandbox --package-path Packages/EbookMechanicCLI EbookMechanicCLI --generate-completion fish > completions/ebook-mechanic.fish
-	@$(SPM_ENV) swift run --disable-sandbox --package-path Packages/EbookMechanicCLI EbookMechanicCLI --generate-completion powershell > completions/ebook-mechanic.ps1
+	@$(SPM_ENV) swift run --disable-sandbox --package-path Packages/EbookMechanicCLI EbookMechanicCLI --generate-completion-script bash > completions/ebook-mechanic.bash
+	@$(SPM_ENV) swift run --disable-sandbox --package-path Packages/EbookMechanicCLI EbookMechanicCLI --generate-completion-script zsh > completions/_ebook-mechanic
+	@$(SPM_ENV) swift run --disable-sandbox --package-path Packages/EbookMechanicCLI EbookMechanicCLI --generate-completion-script fish > completions/ebook-mechanic.fish
+	@cp Scripts/completion-templates/ebook-mechanic.ps1 completions/ebook-mechanic.ps1
+	@$(SPM_ENV) swift run --disable-sandbox --package-path Packages/EbookMechanicEPUBCLI EbookMechanicEPUBCLI --generate-completion-script bash > completions/epub-mechanic.bash
+	@$(SPM_ENV) swift run --disable-sandbox --package-path Packages/EbookMechanicEPUBCLI EbookMechanicEPUBCLI --generate-completion-script zsh > completions/_epub-mechanic
+	@$(SPM_ENV) swift run --disable-sandbox --package-path Packages/EbookMechanicEPUBCLI EbookMechanicEPUBCLI --generate-completion-script fish > completions/epub-mechanic.fish
+	@cp Packages/EbookMechanicEPUBCLI/completions/epub-mechanic.ps1 completions/epub-mechanic.ps1
+	@$(SPM_ENV) swift run --disable-sandbox --package-path Packages/EbookMechanicPDFCLI EbookMechanicPDFCLI --generate-completion-script bash > completions/pdf-mechanic.bash
+	@$(SPM_ENV) swift run --disable-sandbox --package-path Packages/EbookMechanicPDFCLI EbookMechanicPDFCLI --generate-completion-script zsh > completions/_pdf-mechanic
+	@$(SPM_ENV) swift run --disable-sandbox --package-path Packages/EbookMechanicPDFCLI EbookMechanicPDFCLI --generate-completion-script fish > completions/pdf-mechanic.fish
+	@cp Packages/EbookMechanicPDFCLI/completions/pdf-mechanic.ps1 completions/pdf-mechanic.ps1
 	@echo "✅ Completion scripts generated in ./completions/"
 	@echo ""
 	@echo "To install:"
@@ -352,6 +364,11 @@ install-specialized: install-epub install-pdf
 
 uninstall-specialized: uninstall-epub uninstall-pdf
 	@echo "✅ All specialized CLIs uninstalled!"
+
+specialized-test: test-epub test-pdf
+	@echo "✅ Specialized CLI tests completed!"
+
+specialized-install: install-specialized
 
 workspace:
 	@echo "🚀 Opening EbookMechanic.xcworkspace in Xcode..."
@@ -715,23 +732,47 @@ update-all:
 	@echo ""
 	@echo "To serve documentation: make docc-serve"
 
-install-tools:
+installExternalTools:
 	@echo "Checking for external tools..."
-	@if ! command -v epubcheck > /dev/null; then \
-		echo "epubcheck not found. Please install it."; \
-		echo "  On macOS: brew install epubcheck"; \
-		echo "  On Linux: sudo apt-get install epubcheck (or equivalent)"; \
+	@missing=0; \
+	if ! command -v epubcheck > /dev/null; then \
+		echo "epubcheck not found."; \
+		missing=1; \
+		if command -v brew > /dev/null; then \
+			read -r "?Install epubcheck via Homebrew? [y/N] " answer; \
+			if [[ "$$answer" =~ ^[Yy]$$ ]]; then brew install epubcheck; fi; \
+		else \
+			echo "  On macOS: brew install epubcheck"; \
+			echo "  On Linux (apt): sudo apt-get install epubcheck"; \
+			echo "  On Linux (dnf): sudo dnf install epubcheck"; \
+		fi; \
 	else \
 		echo "epubcheck is installed."; \
-	fi
-	@if ! command -v pdfcpu > /dev/null; then \
-		echo "pdfcpu not found. Please install it."; \
-		echo "  On macOS: brew install pdfcpu"; \
-		echo "  On Linux: download from https://pdfcpu.io/download"; \
+	fi; \
+	if ! command -v pdfcpu > /dev/null; then \
+		echo "pdfcpu not found."; \
+		missing=1; \
+		if command -v brew > /dev/null; then \
+			read -r "?Install pdfcpu via Homebrew? [y/N] " answer; \
+			if [[ "$$answer" =~ ^[Yy]$$ ]]; then brew install pdfcpu; fi; \
+		else \
+			echo "  On macOS: brew install pdfcpu"; \
+			echo "  On Linux (apt): sudo apt-get install pdfcpu"; \
+			echo "  On Linux (dnf): sudo dnf install pdfcpu"; \
+		fi; \
 	else \
 		echo "pdfcpu is installed."; \
+	fi; \
+	if [ "$$missing" -eq 0 ]; then \
+		echo "✅ All external tools available."; \
 	fi
+
+install-tools: installExternalTools
 
 test-external-tools:
 	@echo "Running external tools integration test..."
-	@./test-external-tools.sh
+	@Scripts/test-external-tools.sh
+
+test-external-validation: build-cli
+	@echo "Running external tools validation test..."
+	@Scripts/test-external-tools.sh

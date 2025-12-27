@@ -176,7 +176,7 @@ final class ReportGeneratorTests: XCTestCase {
     let generator = MarkdownReportGenerator()
     let contents = try generator.generate(
       from: result, rootDirectory: tempDir, corruptedDirectoryName: "CORRUPTED")
-    XCTAssertTrue(contents.contains("| File Type | Corrupted | Total | Status |"))
+    XCTAssertTrue(contents.contains("| File Type | Corrupted | Total | Validation Level | Status |"))
     XCTAssertTrue(contents.contains("| .EPUB | 3 | 10"))
     XCTAssertTrue(contents.contains("| .PDF | 2 | 10"))
   }

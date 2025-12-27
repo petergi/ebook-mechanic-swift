@@ -18,6 +18,11 @@ final class ScanOptionsTests: XCTestCase {
     XCTAssertFalse(options.generateReport)
     XCTAssertFalse(options.normalizeEPUBs)
     XCTAssertFalse(options.forceNormalize)
+    XCTAssertFalse(options.useExternalTools)
+    XCTAssertEqual(options.maxConcurrentValidations, 1)
+    XCTAssertTrue(options.useCache)
+    XCTAssertEqual(options.selectedReportFormats, [.markdown])
+    XCTAssertFalse(options.showPerformanceStats)
   }
 
   @MainActor
@@ -53,7 +58,7 @@ final class ScanOptionsTests: XCTestCase {
     try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
     let viewModel = ScanViewModel()
 
-    var options = ScanOptions(directory: tempDir)
+    let options = ScanOptions(directory: tempDir)
     options.generateReport = false
     options.dryRun = true
 
@@ -75,7 +80,7 @@ final class ScanOptionsTests: XCTestCase {
     try writeTinyCorruptedPDF(named: "bad.pdf", in: tempDir)
 
     let viewModel = ScanViewModel()
-    var options = ScanOptions(directory: tempDir)
+    let options = ScanOptions(directory: tempDir)
     options.dryRun = true
 
     await viewModel.runScan(options: options)
@@ -95,7 +100,7 @@ final class ScanOptionsTests: XCTestCase {
     let pdfURL = try writeLargePDFMissingEOF(named: "needs-repair.pdf", in: tempDir)
 
     let viewModel = ScanViewModel()
-    var options = ScanOptions(directory: tempDir)
+    let options = ScanOptions(directory: tempDir)
     options.dryRun = false
     options.repair = true
 
@@ -121,7 +126,7 @@ final class ScanOptionsTests: XCTestCase {
     try FileManager.default.createDirectory(at: emptyFolder, withIntermediateDirectories: true)
 
     let viewModel = ScanViewModel()
-    var options = ScanOptions(directory: tempDir)
+    let options = ScanOptions(directory: tempDir)
     options.dryRun = false
     options.autoMoveCorrupted = true
     options.autoDeleteEmptyFolders = true
@@ -143,7 +148,7 @@ final class ScanOptionsTests: XCTestCase {
     try writeStubEPUB(named: "invalid.epub", in: tempDir)
 
     let viewModel = ScanViewModel()
-    var options = ScanOptions(directory: tempDir)
+    let options = ScanOptions(directory: tempDir)
     options.dryRun = true
     options.normalizeEPUBs = true
     options.generateReport = true

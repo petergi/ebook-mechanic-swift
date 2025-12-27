@@ -8,6 +8,13 @@ I decided to learn directly from Sigil and Calibre source code, how they handle 
 
 The Swift implementation of EbookMechanic provides dual interfaces—a CLI for terminal users and a native macOS app for graphical interaction. Built with Swift's actor-based concurrency model and SwiftUI, it delivers a modern, type-safe approach to ebook library management with excellent macOS integration.
 
+## Enhanced Validation Highlights
+
+- **External tool integration:** opt-in epubcheck + pdfcpu for spec-level diagnostics.
+- **Expanded reporting:** Markdown, JSON, CSV, and HTML reports in a single run.
+- **Parallel validation:** concurrent validation with cache-aware performance.
+- **Specialized CLIs:** focused EPUB and PDF tools with streamlined commands.
+
 ## Features
 
 - 🍎 **Dual Interface** - CLI + native macOS SwiftUI app
@@ -15,13 +22,14 @@ The Swift implementation of EbookMechanic provides dual interfaces—a CLI for t
 - 🎨 **Beautiful SwiftUI** - Gradient-backed UI with real-time progress
 - 📊 **Live Updates** - Real-time progress tracking in both CLI and app
 - 🔍 **Deep Validation** - Validates EPUB, MOBI, AZW3, AZW4, and PDF files
+- 🧰 **External Tools** - Optional epubcheck + pdfcpu for comprehensive validation
 - 🔧 **Auto-Repair** - Automatically fixes corrupted ebooks when possible
 - 📕 **EPUB Normalization** - Canonical ZIP layout and OPF normalization
 - 🗑️ **Smart Cleanup** - Identifies and removes folders without ebooks
-- 📄 **Markdown Reports** - Generates detailed reports with statistics
+- 📄 **Multi-Format Reports** - Markdown, JSON, CSV, and HTML report outputs
 - 🔒 **Safe Operations** - Dry-run mode, backups, and confirmation prompts
-- 📦 **Zero Dependencies** - Pure Swift, no external packages
-- 🧪 **Well Tested** - 200+ tests across Core, CLIs, and App modules
+- ⚡ **Parallel Validation** - Concurrent validation with cache-aware performance
+- 🧪 **Well Tested** - Extensive coverage across Core, CLIs, and App modules
 
 ## Architecture
 
@@ -37,14 +45,15 @@ The foundation package providing all core functionality:
 - **FileValidator** - Format-specific validators for all ebook types
 - **FileRepairer** - Automatic repair engine for EPUB and PDF files
 - **ZipArchive** - Custom ZIP implementation (no external dependencies)
-- **MarkdownReportGenerator** - Report generation with statistics
+- **ReportGeneratorFactory** - Multi-format report generation (Markdown/JSON/CSV/HTML)
+- **ExternalToolRunner** - Orchestrates epubcheck/pdfcpu runs for deep validation
 
 **Key Features:**
 
 - Swift 6 strict concurrency enforced
 - Actor isolation for automatic thread safety
 - Async/await patterns throughout
-- Comprehensive XCTest coverage (77 tests)
+- Comprehensive XCTest coverage
 
 ### EbookMechanicCLI (Full-Featured CLI)
 
@@ -59,7 +68,7 @@ Terminal interface for all ebook formats:
 - Shell completion support (Bash, Zsh, Fish, PowerShell)
 - Depends on EbookMechanicCore
 
-**Test Coverage:** 105 tests for configuration and completions
+**Test Coverage:** Extensive coverage for configuration and completions
 
 ### EbookMechanicEPUBCLI (EPUB-Focused Utility)
 
@@ -73,7 +82,7 @@ Specialized CLI for EPUB validation and repair:
 - Lightweight alternative to full CLI
 - Depends on EbookMechanicCore
 
-**Test Coverage:** 6 tests for core CLI flows
+**Test Coverage:** Focused coverage for core CLI flows
 
 ### EbookMechanicPDFCLI (PDF-Focused Utility)
 
@@ -87,7 +96,7 @@ Specialized CLI for PDF and AZW4 validation and repair:
 - Simplified interface focused on PDF operations
 - Depends on EbookMechanicCore
 
-**Test Coverage:** 4 tests for core CLI flows
+**Test Coverage:** Focused coverage for core CLI flows
 
 ### EbookMechanicApp (macOS SwiftUI App)
 
@@ -103,7 +112,7 @@ Native macOS application with SwiftUI:
 
 **Platform Requirements:** macOS 13+, iOS 16+ ready
 
-**Test Coverage:** 30 tests (view-model + UI)
+**Test Coverage:** View-model + UI tests
 
 ## Installation
 
@@ -189,14 +198,18 @@ swift run --package-path Packages/EbookMechanicCLI EbookMechanicCLI --help
 | `--repair` | `-r` | Attempt to repair corrupted files | `false` |
 | `--corruption-only` | | Only check for corrupted files | `false` |
 | `--empty-folders-only` | | Only check for empty folders | `false` |
-| `--no-confirm` | | Skip confirmation prompts | `false` |
-| `--quiet` | | Reduce output verbosity | `false` |
-| `--report` | | Generate a report | `false` |
-| `--report-format` | | Report format (markdown/json/csv/html) | `markdown` |
-| `--normalize-epubs` | | Normalize EPUB files | `false` |
-| `--force-normalize` | | Force normalization | `false` |
+| `--auto-confirm` | | Automatically confirm prompts | `false` |
+| `--verbose` | | Enable verbose logging | `false` |
+| `--report` | | Generate report files | `false` |
+| `--report-format` | | Single report format (markdown/json/csv/html) | `markdown` |
+| `--report-formats` | | Report formats (comma-separated: markdown,json,csv,html) | `markdown` |
 | `--use-epubcheck` | | Use epubcheck for EPUB validation | `false` |
-| `--performance-stats` | | Show performance statistics | `false` |
+| `--external-tools` | | Use epubcheck/pdfcpu for comprehensive validation | `false` |
+| `--max-concurrent` | | Max parallel validations | CPU count |
+| `--no-cache` | | Disable validation cache | `false` |
+| `--performance-stats` | | Emit performance metrics | `false` |
+| `--normalize-epubs` | | Normalize EPUB files | `false` |
+| `--force-normalize` | | Force EPUB normalization | `false` |
 
 ## Usage Examples
 
@@ -240,10 +253,10 @@ ebook-mechanic --dir ~/Books --normalize-epubs --force-normalize
 ebook-mechanic --corruption-only --repair
 
 # Only clean empty folders without confirmation
-ebook-mechanic --empty-folders-only --no-confirm
+ebook-mechanic --empty-folders-only --auto-confirm
 
-# Quiet mode with report generation
-ebook-mechanic --quiet --report
+# Verbose mode with report generation
+ebook-mechanic --verbose --report
 ```
 
 ## How It Works
@@ -468,6 +481,7 @@ make -f Makefile.swift clean               # Remove build artifacts
 make -f Makefile.swift clean-all           # Deep clean (includes completions & docs)
 make -f Makefile.swift info                # Display build information
 make -f Makefile.swift update-all          # Update completions and docs
+make -f Makefile.swift installExternalTools # Print external tool install helpers
 ```
 
 ### CI/CD Targets
@@ -488,19 +502,17 @@ Comprehensive test coverage across all modules:
 make -f Makefile.swift test-all
 
 # Run specific module tests
-make -f Makefile.swift test-core           # Core library (77 tests)
-make -f Makefile.swift test-cli            # CLI (105 tests)
-make -f Makefile.swift test-epub           # EPUB CLI (6 tests)
-make -f Makefile.swift test-pdf            # PDF CLI (4 tests)
-make -f Makefile.swift test-app            # App (30 tests)
+make -f Makefile.swift test-core           # Core library
+make -f Makefile.swift test-cli            # Main CLI
+make -f Makefile.swift test-epub           # EPUB CLI
+make -f Makefile.swift test-pdf            # PDF CLI
+make -f Makefile.swift test-app            # App
 
 # Or use Swift directly
 swift test --package-path Packages/EbookMechanicCore
 ```
 
 ### Test Coverage
-
-**Total:** 222 tests across Core, CLIs, and App modules
 
 - **ValidationTests.swift** - Format-specific validation tests
 - **RepairTests.swift** - Automatic repair functionality
@@ -522,9 +534,7 @@ Swift's compiled nature and actor-based concurrency provide excellent performanc
 - **No Manual Locks** - Swift runtime manages synchronization
 - **Low Memory** - Efficient memory management
 
-**Typical performance on 10,000 files:**
-
-- **Swift version: ~8-12 seconds**
+Performance varies based on hardware, file sizes, and whether external tools are enabled.
 
 ## Project Structure
 
@@ -546,16 +556,24 @@ Swift's compiled nature and actor-based concurrency provide excellent performanc
     ├── ebook-mechanic.bash
     ├── _ebook-mechanic
     ├── ebook-mechanic.fish
-    └── ebook-mechanic.ps1
+    ├── ebook-mechanic.ps1
+    ├── epub-mechanic.bash
+    ├── _epub-mechanic
+    ├── epub-mechanic.fish
+    ├── epub-mechanic.ps1
+    ├── pdf-mechanic.bash
+    ├── _pdf-mechanic
+    ├── pdf-mechanic.fish
+    └── pdf-mechanic.ps1
 ```
 
 ## Dependencies
 
-**Zero external dependencies!**
+**Lightweight dependencies**
 
-- Pure Swift standard library
-- Custom ZIP implementation (no external packages)
-- Swift Package Manager for module management
+- Swift ArgumentParser for CLI parsing
+- pdfcpu Swift package for PDF structure validation
+- Optional external tools: epubcheck + pdfcpu CLI
 - SwiftUI for macOS app (built-in)
 
 **Requirements:**

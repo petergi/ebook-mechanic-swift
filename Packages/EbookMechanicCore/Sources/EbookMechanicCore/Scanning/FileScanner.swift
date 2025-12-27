@@ -115,6 +115,17 @@ public actor FileScanner {
           submittedCount += 1
 
           let fileURL = filesToProcess[indexToSubmit].1
+          let fileType = EbookFileType(pathExtension: fileURL.pathExtension)!
+          let usesExternalTool: Bool
+          switch fileType {
+          case .epub:
+            usesExternalTool = self.validator.useExternalEPUBValidator
+          case .pdf, .azw4:
+            usesExternalTool = self.validator.useExternalPDFValidator
+          case .mobi, .azw3:
+            usesExternalTool = false
+          }
+          let validationLevel: ValidationLevel = usesExternalTool ? .comprehensive : .basic
 
           group.addTask {
             await scanControl?.waitIfPaused()
@@ -128,7 +139,8 @@ public actor FileScanner {
                 completed: completedCount,  // Use completed count for progress
                 total: selectedFiles.count,
                 currentItem: fileURL.lastPathComponent,
-                concurrentValidationCount: concurrentCount
+                concurrentValidationCount: concurrentCount,
+                validationLevel: validationLevel
               ))
 
             let validationStartTime = Date()
@@ -146,14 +158,13 @@ public actor FileScanner {
                 validation: cachedResult,
                 fileType: fileType,
                 validationTime: 0,
-                usedExternalTool: false,
+                usedExternalTool: usesExternalTool,
                 cacheHit: true)
             }
 
             let validation = await self.validator.validate(url: fileURL)
             let validationTime = Date().timeIntervalSince(validationStartTime)
-            let usedExternalTool =
-              self.validator.useExternalEPUBValidator || self.validator.useExternalPDFValidator
+            let usedExternalTool = usesExternalTool
 
             semaphore.signal()
             return ValidationOutcome(
@@ -215,7 +226,8 @@ public actor FileScanner {
         result.corruptedFiles.append(
           CorruptedFile(
             url: validation.url, reason: validation.reason, size: validation.size,
-            status: validation.status, fingerprint: validation.fingerprint,
+            status: validation.status, validationLevel: validation.validationLevel,
+            fingerprint: validation.fingerprint,
             pdfValidationDetails: validation.pdfValidationDetails,
             epubComplianceDetails: validation.epubComplianceDetails))
         var breakdown = result.breakdowns[type] ?? FormatBreakdown()

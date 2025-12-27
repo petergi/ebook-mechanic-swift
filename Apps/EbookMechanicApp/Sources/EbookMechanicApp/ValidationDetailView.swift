@@ -116,10 +116,19 @@ struct EPUBDetailsView: View {
         DisclosureGroup("Errors (\(epubDetails.errors.count))", isExpanded: $showingErrors) {
           ForEach(epubDetails.errors, id: \.message) { error in
             VStack(alignment: .leading) {
-              Text(error.message)
+              HStack {
+                Text(error.message)
+                Spacer()
+                CopyButton(text: error.message)
+              }
               Text("File: \(error.filePath ?? "N/A"), Line: \(error.lineNumber ?? 0)")
                 .font(.caption)
                 .foregroundColor(.red)
+              if let context = error.context, !context.isEmpty {
+                Text(context)
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
             }
           }
         }
@@ -130,10 +139,19 @@ struct EPUBDetailsView: View {
         DisclosureGroup("Warnings (\(epubDetails.warnings.count))", isExpanded: $showingWarnings) {
           ForEach(epubDetails.warnings, id: \.message) { warning in
             VStack(alignment: .leading) {
-              Text(warning.message)
+              HStack {
+                Text(warning.message)
+                Spacer()
+                CopyButton(text: warning.message)
+              }
               Text("File: \(warning.filePath ?? "N/A"), Line: \(warning.lineNumber ?? 0)")
                 .font(.caption)
                 .foregroundColor(.orange)
+              if let context = warning.context, !context.isEmpty {
+                Text(context)
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
             }
           }
         }
@@ -168,14 +186,33 @@ struct PDFDetailsView: View {
           "Stream Errors (\(pdfDetails.streamErrors.count))", isExpanded: $showingStreamErrors
         ) {
           ForEach(pdfDetails.streamErrors, id: \.self) { error in
-            Text(error)
-              .font(.caption)
-              .foregroundColor(.red)
+            HStack {
+              Text(error)
+                .font(.caption)
+                .foregroundColor(.red)
+              Spacer()
+              CopyButton(text: error)
+            }
           }
         }
         .tint(.red)
       }
     }
+  }
+}
+
+struct CopyButton: View {
+  let text: String
+
+  var body: some View {
+    Button {
+      NSPasteboard.general.clearContents()
+      NSPasteboard.general.setString(text, forType: .string)
+    } label: {
+      Image(systemName: "doc.on.doc")
+    }
+    .buttonStyle(.bordered)
+    .help("Copy to clipboard")
   }
 }
 

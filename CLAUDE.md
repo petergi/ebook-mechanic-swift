@@ -91,6 +91,7 @@ make -f Makefile.swift workspace          # Open Xcode workspace
 make -f Makefile.swift clean              # Remove build artifacts
 make -f Makefile.swift clean-all          # Deep clean (includes docs/completions)
 make -f Makefile.swift info               # Show build information
+make -f Makefile.swift installExternalTools # Print/install external tool helpers
 ```
 
 **Swift module cache environment:**
@@ -103,9 +104,27 @@ All Swift commands use sandboxed module caches via `SWIFT_MODULE_CACHE_PATH` and
 - `-r, --repair` - Attempt repairs
 - `--corruption-only` - Skip empty folders
 - `--empty-folders-only` - Only check empty folders
-- `--no-confirm` - Auto-confirm all prompts
-- `--quiet` - Reduce output
-- `--report` - Generate Markdown report
+- `--auto-confirm` - Auto-confirm all prompts
+- `--verbose` - Enable verbose logging
+- `--report` - Generate report files
+- `--report-format` - Single report format
+- `--report-formats <csv>` - Report formats (markdown,json,csv,html)
+- `--use-epubcheck` - Enable epubcheck for EPUB-only checks
+- `--external-tools` - Enable epubcheck/pdfcpu validation
+- `--max-concurrent <n>` - Max concurrent validations
+- `--no-cache` - Disable validation cache
+- `--performance-stats` - Emit performance metrics
+- `--normalize-epubs` - Normalize EPUB files
+- `--force-normalize` - Force EPUB normalization
+
+**External tools (optional):**
+
+```bash
+brew install epubcheck
+brew install pdfcpu
+```
+
+Use `--external-tools` to enable them in the CLI.
 
 ### Benchmarking (Scripts/)
 
@@ -119,7 +138,7 @@ All Swift commands use sandboxed module caches via `SWIFT_MODULE_CACHE_PATH` and
   --authors 10 \
   --formats pdf,epub,mobi \
   --go-args "-repair" \
-  --swift-args "--repair --quiet"
+  --swift-args "--repair"
 ```
 
 The benchmark script:

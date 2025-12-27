@@ -1,4 +1,5 @@
 @testable import EbookMechanicCore
+import Darwin
 import Foundation
 import Testing
 
@@ -128,8 +129,77 @@ struct EbookMechanicEPUBCLITests {
       #expect(output.contains("validation completed successfully"))
     }
   }
+
+  @Test("EPUB reporting includes compliance details")
+  func testEpubReportingIncludesComplianceDetails() {
+    let formatter = EPUBReportFormatter()
+    let details = EPUBComplianceResult(
+      isCompliant: false,
+      hasWarnings: true,
+      errors: [
+        EPUBValidationIssue(
+          severity: "ERROR",
+          message: "Missing manifest item",
+          filePath: "OEBPS/content.opf",
+          lineNumber: 12,
+          ruleId: "OPF_001",
+          context: "column 4"
+        )
+      ],
+      warnings: [
+        EPUBValidationIssue(
+          severity: "WARNING",
+          message: "Deprecated attribute",
+          filePath: "OEBPS/content.opf",
+          lineNumber: 8,
+          ruleId: "OPF_010",
+          context: nil
+        )
+      ],
+      epubVersion: "3.2",
+      epubcheckVersion: "5.1.0",
+      features: [],
+      conformsToAccessibility: false
+    )
+
+    let result = ValidationResult(
+      originalIndex: 0,
+      url: URL(fileURLWithPath: "/tmp/sample.epub"),
+      size: 1024,
+      isValid: false,
+      reason: "Sample failure",
+      status: .nonCompliant,
+      validationLevel: .comprehensive,
+      epubComplianceDetails: details
+    )
+
+    let output = captureOutput {
+      formatter.printValidationResults(for: result)
+    }
+
+    #expect(output.contains("EPUB Compliance Details"))
+    #expect(output.contains("Errors"))
+    #expect(output.contains("Warnings"))
+    #expect(output.contains("Missing manifest item"))
+  }
 }
 
 enum TestError: Error {
   case message(String)
+}
+
+private func captureOutput(_ block: () -> Void) -> String {
+  let pipe = Pipe()
+  let original = dup(STDOUT_FILENO)
+  dup2(pipe.fileHandleForWriting.fileDescriptor, STDOUT_FILENO)
+
+  block()
+  fflush(stdout)
+
+  pipe.fileHandleForWriting.closeFile()
+  dup2(original, STDOUT_FILENO)
+  close(original)
+
+  let data = pipe.fileHandleForReading.readDataToEndOfFile()
+  return String(data: data, encoding: .utf8) ?? ""
 }

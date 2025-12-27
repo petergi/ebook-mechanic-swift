@@ -1,0 +1,48 @@
+{
+  "metadata": {
+    "timestamp": "2025-01-01T12:00:00Z",
+    "rootDirectory": "/Books",
+    "corruptedDirectoryName": "CORRUPTED",
+    "elapsedTime": 0.0,
+    "validationLevel": "standard"
+  },
+  "summary": {
+    "totalFiles": 3,
+    "corruptedFiles": 1,
+    "breakdowns": {
+      "epub": { "total": 2, "corrupted": 1 },
+      "pdf": { "total": 1, "corrupted": 0 }
+    },
+    "emptyFolders": 0
+  },
+  "corruptedFiles": [
+    {
+      "url": "/Books/Fiction/BrokenBook.epub",
+      "reason": "OPF manifest missing cover image",
+      "size": 2147483,
+      "status": "nonCompliant",
+      "fingerprint": null,
+      "pdfValidationDetails": null,
+      "epubComplianceDetails": {
+        "isCompliant": false,
+        "hasWarnings": true,
+        "errors": [],
+        "warnings": [
+          {
+            "severity": "WARNING",
+            "message": "Missing itemref for cover image",
+            "filePath": "OEBPS/content.opf",
+            "lineNumber": 45,
+            "ruleId": "opf-013",
+            "context": null
+          }
+        ],
+        "epubVersion": "3.2",
+        "epubcheckVersion": "5.0.0",
+        "features": [],
+        "conformsToAccessibility": false
+      }
+    }
+  ],
+  "repairs": []
+}

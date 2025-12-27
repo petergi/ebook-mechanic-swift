@@ -1,0 +1,13 @@
+FilePath,Status,Format,Reason,FileSize,Fingerprint
+"Fiction/BrokenBook.epub","nonCompliant","epub","OPF manifest missing cover image",2147483,""
+
+Summary: Corrupted Files
+Format,Corrupted,Total
+epub,1,2
+pdf,0,1
+Total,1,3
+
+Summary: Empty Folders
+Empty Folders,0
+Total Folders,2
+Folders with Ebooks,2

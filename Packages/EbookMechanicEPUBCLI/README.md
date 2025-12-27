@@ -54,3 +54,20 @@
 [38;2;216;222;233m  51[0m [38;2;216;222;233m│[0m 
 [38;2;216;222;233m  52[0m [38;2;216;222;233m│[0m [38;2;216;222;233mExecutable: `.build/release/EbookMechanicEPUBCLI`[0m
 [38;2;216;222;233m─────┴──────────────────────────────────────────────────────────────────────────[0m
+
+
+## Examples
+
+```bash
+# Validate with epubcheck and show warnings
+epub-mechanic validate --spec-check --show-warnings --dir ~/Books/EPUB
+
+# Run accessibility checks
+epub-mechanic validate --spec-check --accessibility --dir ~/Books/EPUB
+
+# Extract metadata to JSON files
+epub-mechanic validate --extract-metadata json --dir ~/Books/EPUB
+
+# Repair EPUB metadata after a scan
+epub-mechanic repair --fix-metadata --dir ~/Books/EPUB
+```

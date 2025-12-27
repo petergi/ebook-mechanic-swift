@@ -49,15 +49,14 @@ final class ExternalToolRunnerTests: XCTestCase {
         setenv("PATH", (tempDir.path + ":" + oldPath).cString(using: .utf8), 1)
         defer { setenv("PATH", oldPath.cString(using: .utf8), 1) }
 
-        let toolRunner = ExternalToolRunner()
-        let (exitCode, stdout, stderr) = try await toolRunner.run(
-            executableURL: URL(fileURLWithPath: "/usr/bin/env"),
-            arguments: [toolName]
+        let (stdout, stderr, exitCode) = try await ExternalToolRunner.run(
+            toolName: toolName,
+            arguments: []
         )
 
-        XCTAssertEqual(exitCode, 0)
         XCTAssertEqual(stdout.trimmingCharacters(in: .whitespacesAndNewlines), expectedStdout)
         XCTAssertEqual(stderr.trimmingCharacters(in: .whitespacesAndNewlines), expectedStderr)
+        XCTAssertEqual(exitCode, 0)
     }
 
     func testNonZeroExitCode() async throws {
@@ -81,40 +80,79 @@ final class ExternalToolRunnerTests: XCTestCase {
         setenv("PATH", (tempDir.path + ":" + oldPath).cString(using: .utf8), 1)
         defer { setenv("PATH", oldPath.cString(using: .utf8), 1) }
 
-        let toolRunner = ExternalToolRunner()
-        let (exitCode, stdout, stderr) = try await toolRunner.run(
-            executableURL: URL(fileURLWithPath: "/usr/bin/env"),
-            arguments: [toolName]
-        )
-
-        XCTAssertEqual(exitCode, expectedExitCode)
-        XCTAssertEqual(stdout.trimmingCharacters(in: .whitespacesAndNewlines), expectedStdout)
-        XCTAssertEqual(stderr.trimmingCharacters(in: .whitespacesAndNewlines), expectedStderr)
+        do {
+            _ = try await ExternalToolRunner.run(
+                toolName: toolName,
+                arguments: []
+            )
+            XCTFail("Expected ExternalToolRunnerError.executionFailed to be thrown")
+        } catch let error as ExternalToolRunner.ExternalToolRunnerError {
+            if case .executionFailed(let name, let code, let stderr) = error {
+                XCTAssertEqual(name, toolName)
+                XCTAssertEqual(code, expectedExitCode)
+                XCTAssertTrue(stderr.contains(expectedStderr))
+            } else {
+                XCTFail("Unexpected error type: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
     }
 
     func testToolNotFound() async throws {
         let nonExistentTool = "nonexistent_tool_\(UUID().uuidString)"
-        let toolRunner = ExternalToolRunner()
-        let (exitCode, stdout, stderr) = try await toolRunner.run(
-            executableURL: URL(fileURLWithPath: "/usr/bin/env"),
-            arguments: [nonExistentTool]
-        )
-
-        XCTAssertNotEqual(exitCode, 0)
-        XCTAssertTrue(stdout.isEmpty)
-        XCTAssertFalse(stderr.isEmpty)
+        do {
+            _ = try await ExternalToolRunner.run(toolName: nonExistentTool, arguments: [])
+            XCTFail("Expected ExternalToolRunnerError.toolNotFound to be thrown")
+        } catch let error as ExternalToolRunner.ExternalToolRunnerError {
+            if case .toolNotFound(let name) = error {
+                XCTAssertEqual(name, nonExistentTool)
+            } else {
+                XCTFail("Unexpected error type: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
     }
 
     func testTimeout() async throws {
-        let toolRunner = ExternalToolRunner()
-        let start = Date()
-        let (exitCode, _, _) = try await toolRunner.run(
-            executableURL: URL(fileURLWithPath: "/bin/sleep"),
-            arguments: ["1"]
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true, attributes: nil)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let toolName = "testtool_timeout"
+        _ = try createDummyExecutable(
+            named: toolName,
+            in: tempDir,
+            exitCode: 0,
+            delay: 2
         )
-        let duration = Date().timeIntervalSince(start)
-        XCTAssertEqual(exitCode, 0)
-        XCTAssertGreaterThanOrEqual(duration, 1.0)
+
+        let oldPath = ProcessInfo.processInfo.environment["PATH"] ?? ""
+        setenv("PATH", (tempDir.path + ":" + oldPath).cString(using: .utf8), 1)
+        defer { setenv("PATH", oldPath.cString(using: .utf8), 1) }
+
+        let timeout: TimeInterval = 0.5
+        let start = Date()
+        do {
+            _ = try await ExternalToolRunner.run(
+                toolName: toolName,
+                arguments: [],
+                timeout: timeout
+            )
+            XCTFail("Expected ExternalToolRunnerError.timeout to be thrown")
+        } catch let error as ExternalToolRunner.ExternalToolRunnerError {
+            if case .timeout(let name) = error {
+                XCTAssertEqual(name, toolName)
+                let duration = Date().timeIntervalSince(start)
+                XCTAssertGreaterThanOrEqual(duration, timeout)
+                XCTAssertLessThan(duration, timeout + 2.0)
+            } else {
+                XCTFail("Unexpected error type: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
     }
 
     func testIsCommandAvailable() async throws {

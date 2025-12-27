@@ -53,7 +53,8 @@ public struct ExternalValidators {
           message: item.message,
           filePath: item.file,
           lineNumber: item.line,
-          ruleId: item.id
+          ruleId: item.id,
+          context: item.suggestion
         )
         if item.severity == "ERROR" || item.severity == "FATAL" {
           errors.append(issue)

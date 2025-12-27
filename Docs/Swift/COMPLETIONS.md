@@ -10,7 +10,7 @@ Generate all completion scripts at once:
 make -f Makefile.swift completions
 ```
 
-This creates completion scripts in the `./completions/` directory.
+This creates completion scripts in the `./completions/` directory for the main CLI and the specialized EPUB/PDF CLIs.
 
 ## Installation
 
@@ -87,26 +87,31 @@ Or source it in your current session:
 You can also generate completion scripts individually:
 
 ```bash
-# Bash
-ebook-mechanic --generate-completion bash > ebook-mechanic.bash
+# Main CLI (ArgumentParser)
+ebook-mechanic --generate-completion-script bash > ebook-mechanic.bash
+ebook-mechanic --generate-completion-script zsh > _ebook-mechanic
+ebook-mechanic --generate-completion-script fish > ebook-mechanic.fish
 
-# Zsh
-ebook-mechanic --generate-completion zsh > _ebook-mechanic
+# Specialized CLIs (ArgumentParser)
+epub-mechanic --generate-completion-script bash > epub-mechanic.bash
+epub-mechanic --generate-completion-script zsh > _epub-mechanic
+epub-mechanic --generate-completion-script fish > epub-mechanic.fish
 
-# Fish
-ebook-mechanic --generate-completion fish > ebook-mechanic.fish
-
-# PowerShell
-ebook-mechanic --generate-completion powershell > ebook-mechanic.ps1
+pdf-mechanic --generate-completion-script bash > pdf-mechanic.bash
+pdf-mechanic --generate-completion-script zsh > _pdf-mechanic
+pdf-mechanic --generate-completion-script fish > pdf-mechanic.fish
 ```
+
+PowerShell completions are maintained as static `.ps1` files in `completions/`.
+The main CLI file is `completions/ebook-mechanic.ps1`.
 
 ## What Gets Completed
 
 The completion scripts provide intelligent suggestions for:
 
-- **All CLI options:** `-h`, `--help`, `--version`, `-d`, `--dir`, etc.
+- **All CLI options:** `-h`, `--help`, `--version`, `--report-formats`, `--external-tools`, etc.
 - **Directory paths:** When using `-d`/`--dir` or `-c`/`--corrupted-dir`
-- **Shell types:** When using `--generate-completion` (bash, zsh, fish, powershell)
+- **Shell types:** When using `--generate-completion-script` (bash, zsh, fish)
 - **Context-aware completion:** Different completions based on the previous argument
 
 ## Testing Completion

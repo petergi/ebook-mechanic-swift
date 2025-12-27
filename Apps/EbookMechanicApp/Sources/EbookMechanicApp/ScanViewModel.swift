@@ -2,56 +2,6 @@ import EbookMechanicCore
 import Foundation
 import SwiftUI
 
-/// Options that control how a scan operates.
-///
-/// Use `ScanOptions` to configure the behavior of a scan, including the root
-/// directory to scan, whether to attempt repairs, whether the run is a dry-run,
-/// and automation flags for moving corrupted files or deleting empty folders.
-///
-/// Example:
-/// ```swift
-/// var options = ScanOptions(directory: URL(fileURLWithPath: "/ebooks"))
-/// options.dryRun = true
-/// options.repair = false
-/// options.generateReport = true
-/// ```
-struct ScanOptions {
-  /// Root directory to scan.
-  var directory: URL
-  /// Name of the folder where corrupted files are moved when automation is enabled.
-  var corruptedDirectoryName: String = "CORRUPTED"
-  /// Whether to attempt to repair corrupted files after scanning.
-  var repair: Bool = false
-  /// If true, only performs corruption checks and skips empty-folder scanning.
-  var corruptionOnly: Bool = false
-  /// If true, only scans for empty folders and skips corruption checks.
-  var emptyFoldersOnly: Bool = false
-  /// When true, performs a simulation without writing changes to disk.
-  var dryRun: Bool = true
-  /// Automatically move corrupted files into `corruptedDirectoryName` when not a dry run.
-  var autoMoveCorrupted: Bool = false
-  /// Automatically delete empty folders when not a dry run.
-  var autoDeleteEmptyFolders: Bool = false
-  /// Generate a Markdown report summarizing the scan.
-  var generateReport: Bool = false
-  /// Normalize EPUB files into a canonical ZIP layout.
-  var normalizeEPUBs: Bool = false
-  /// Re-normalize EPUBs even if they appear already normalized.
-  var forceNormalize: Bool = false
-  /// Use epubcheck for EPUB validation.
-  var useExternalEPUBValidator: Bool = false
-  /// Use pdfcpu for PDF validation.
-  var useExternalPDFValidator: Bool = false
-  /// The maximum number of concurrent validations to run.
-  var maxConcurrentValidations: Int = 1
-  /// Whether to use the validation cache.
-  var useCache: Bool = true
-  /// Selected report formats to generate.
-  var selectedReportFormats: Set<ReportFormat> = [.markdown]
-  /// Whether to show performance metrics after the scan.
-  var showPerformanceMetrics: Bool = false
-}
-
 /// View model that orchestrates scanning and exposes UI-facing state.
 ///
 /// `ScanViewModel` performs scans using `EbookMechanicCore.FileScanner`, tracks
@@ -82,6 +32,12 @@ final class ScanViewModel: ObservableObject {
   @Published var statusMessages: [String] = []
   /// Location of the generated Markdown report, when `generateReport` is enabled.
   @Published var reportURLs: [URL]?
+  /// Validation results keyed by file URL.
+  @Published var validationResults: [URL: ValidationResult] = [:]
+  /// EPUB compliance details keyed by file URL.
+  @Published var epubComplianceResults: [URL: EPUBComplianceResult] = [:]
+  /// PDF structure details keyed by file URL.
+  @Published var pdfValidationResults: [URL: PDFValidationResult] = [:]
   @Published var errorMessage: String?
   @Published var performanceMetrics: PerformanceMetrics?
   private var scanTask: Task<Void, Never>?
@@ -89,15 +45,17 @@ final class ScanViewModel: ObservableObject {
 
   /// Files that passed structure validation but failed spec compliance
   var nonCompliantFiles: [ValidationResult] {
-    summary?.okFiles.filter { $0.status == .nonCompliant } ?? []
+    validationResults.values.filter { $0.status == .nonCompliant }
   }
 
   /// Files that have warnings but are otherwise valid
   var filesWithWarnings: [ValidationResult] {
-    summary?.okFiles.filter { result in
-      result.epubComplianceDetails?.hasWarnings == true
+    validationResults.values.filter { result in
+      let statusAllowsWarnings = result.status == .ok || result.status == .nonCompliant
+      guard statusAllowsWarnings else { return false }
+      return result.epubComplianceDetails?.hasWarnings == true
         || !(result.pdfValidationDetails?.streamErrors.isEmpty ?? true)
-    } ?? []
+    }
   }
 
   /// Errors that can occur during scan view model operations
@@ -123,6 +81,9 @@ final class ScanViewModel: ObservableObject {
     summary = nil
     statusMessages.removeAll()
     reportURLs = nil
+    validationResults = [:]
+    epubComplianceResults = [:]
+    pdfValidationResults = [:]
     errorMessage = nil
     performanceMetrics = nil
     progressHeadline = ""
@@ -204,13 +165,14 @@ final class ScanViewModel: ObservableObject {
     do {
       try Task.checkCancellation()
       let validator = FileValidator(
-        useExternalEPUBValidator: options.useExternalEPUBValidator,
-        useExternalPDFValidator: options.useExternalPDFValidator,
+        useExternalEPUBValidator: options.useExternalTools,
+        useExternalPDFValidator: options.useExternalTools,
         cacheSize: options.useCache ? 1000 : 0
       )
       let scanner = FileScanner(
         rootDirectory: options.directory,
         corruptedDirectoryName: options.corruptedDirectoryName,
+        reportFormats: Array(options.selectedReportFormats),
         maxConcurrentValidations: options.maxConcurrentValidations,
         validator: validator,
         scanControl: scanControl
@@ -256,6 +218,7 @@ final class ScanViewModel: ObservableObject {
         await MainActor.run {
           self.summary = result
           self.corruptedFiles = result.corruptedFiles
+          self.updateValidationCaches(using: result)
           self.statusMessages.append("Scanned \(result.totalFiles) files")
           if result.corruptedFiles.isEmpty {
             self.statusMessages.append("No corrupted files found")
@@ -277,11 +240,34 @@ final class ScanViewModel: ObservableObject {
               guard index < scanResult.corruptedFiles.count else { return nil }
               var file = scanResult.corruptedFiles[index]
               if result.fixed {
-                file = CorruptedFile(url: file.url, reason: "Fixed", size: file.size, status: .ok)
+                file = CorruptedFile(
+                  url: file.url,
+                  reason: "Fixed",
+                  size: file.size,
+                  status: .ok,
+                  validationLevel: file.validationLevel
+                )
               }
               return file
             }
             self.repairResults = repairs
+            if let scanResult {
+              self.updateValidationCaches(
+                using: ScanResult(
+                  totalFiles: scanResult.totalFiles,
+                  corruptedFiles: self.corruptedFiles,
+                  okFiles: scanResult.okFiles,
+                  breakdowns: scanResult.breakdowns,
+                  emptyFolders: scanResult.emptyFolders,
+                  totalFolders: scanResult.totalFolders,
+                  foldersWithEbooks: scanResult.foldersWithEbooks,
+                  totalProcessedFiles: scanResult.totalProcessedFiles,
+                  totalCorruptedFiles: scanResult.totalCorruptedFiles,
+                  totalWarnings: scanResult.totalWarnings,
+                  totalErrors: scanResult.totalErrors
+                )
+              )
+            }
           }
         }
 
@@ -338,7 +324,7 @@ final class ScanViewModel: ObservableObject {
         }
       }
 
-      if options.showPerformanceMetrics {
+      if options.showPerformanceStats {
         await scanControl?.waitIfPaused()
         try Task.checkCancellation()
         let metrics = await scanner.getPerformanceMetrics()
@@ -382,8 +368,8 @@ final class ScanViewModel: ObservableObject {
     // Use the FileScanner's generateReport method by creating a temporary scanner
     // with the formats we want to generate
     let validator = FileValidator(
-      useExternalEPUBValidator: options.useExternalEPUBValidator,
-      useExternalPDFValidator: options.useExternalPDFValidator,
+      useExternalEPUBValidator: options.useExternalTools,
+      useExternalPDFValidator: options.useExternalTools,
       cacheSize: options.useCache ? 1000 : 0
     )
     let scanner = FileScanner(
@@ -395,5 +381,34 @@ final class ScanViewModel: ObservableObject {
     )
 
     return try await scanner.generateReport(into: directory)
+  }
+
+  private func updateValidationCaches(using result: ScanResult) {
+    var results: [URL: ValidationResult] = [:]
+
+    for validation in result.okFiles {
+      results[validation.url] = validation
+    }
+
+    for (index, corrupted) in result.corruptedFiles.enumerated() {
+      if results[corrupted.url] == nil {
+        results[corrupted.url] = ValidationResult(
+          originalIndex: index,
+          url: corrupted.url,
+          size: corrupted.size,
+          isValid: false,
+          reason: corrupted.reason,
+          status: corrupted.status,
+          validationLevel: corrupted.validationLevel,
+          fingerprint: corrupted.fingerprint,
+          pdfValidationDetails: corrupted.pdfValidationDetails,
+          epubComplianceDetails: corrupted.epubComplianceDetails
+        )
+      }
+    }
+
+    validationResults = results
+    epubComplianceResults = results.compactMapValues { $0.epubComplianceDetails }
+    pdfValidationResults = results.compactMapValues { $0.pdfValidationDetails }
   }
 }
