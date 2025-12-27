@@ -196,9 +196,7 @@ private struct OPFDocumentNormalizer {
       package.firstChild(named: "metadata")
       ?? {
         let node = XMLElement(name: "metadata")
-        node.addNamespace(
-          XMLNode.namespace(withName: "dc", stringValue: "http://purl.org/dc/elements/1.1/")
-            as! XMLNode)
+        node.addNamespaceSafe(prefix: "dc", uri: "http://purl.org/dc/elements/1.1/")
         package.insertChild(node, at: 0)
         return node
       }()
@@ -268,19 +266,15 @@ private struct OPFDocumentBuilder {
 
   private static func makeBaseDocument() -> XMLDocument {
     let package = XMLElement(name: "package")
-    package.addAttribute(XMLNode.attribute(withName: "version", stringValue: "2.0") as! XMLNode)
-    package.addAttribute(
-      XMLNode.attribute(withName: "unique-identifier", stringValue: "BookId") as! XMLNode)
-    package.addNamespace(
-      XMLNode.namespace(withName: "", stringValue: "http://www.idpf.org/2007/opf") as! XMLNode)
-    package.addNamespace(
-      XMLNode.namespace(withName: "dc", stringValue: "http://purl.org/dc/elements/1.1/") as! XMLNode
-    )
+    package.addAttributeSafe(name: "version", value: "2.0")
+    package.addAttributeSafe(name: "unique-identifier", value: "BookId")
+    package.addNamespaceSafe(prefix: "", uri: "http://www.idpf.org/2007/opf")
+    package.addNamespaceSafe(prefix: "dc", uri: "http://purl.org/dc/elements/1.1/")
 
     let metadata = XMLElement(name: "metadata")
     let title = XMLElement(name: "dc:title", stringValue: "Untitled")
     let identifier = XMLElement(name: "dc:identifier", stringValue: UUID().uuidString)
-    identifier.addAttribute(XMLNode.attribute(withName: "id", stringValue: "BookId") as! XMLNode)
+    identifier.addAttributeSafe(name: "id", value: "BookId")
     metadata.addChild(title)
     metadata.addChild(identifier)
 
@@ -372,11 +366,9 @@ private struct ManifestInventory {
 
       let identifier = ManifestInventory.makeIdentifier(for: entryName, used: &usedIDs)
       let element = XMLElement(name: "item")
-      element.addAttribute(XMLNode.attribute(withName: "id", stringValue: identifier) as! XMLNode)
-      element.addAttribute(
-        XMLNode.attribute(withName: "href", stringValue: normalizedHref) as! XMLNode)
-      element.addAttribute(
-        XMLNode.attribute(withName: "media-type", stringValue: mediaType) as! XMLNode)
+      element.addAttributeSafe(name: "id", value: identifier)
+      element.addAttributeSafe(name: "href", value: normalizedHref)
+      element.addAttributeSafe(name: "media-type", value: mediaType)
       items.append(
         Item(
           id: identifier, href: normalizedHref, mediaType: mediaType, properties: nil,
@@ -418,7 +410,7 @@ private struct ManifestInventory {
 
     for id in htmlIDs where !seen.contains(id) {
       let itemref = XMLElement(name: "itemref")
-      itemref.addAttribute(XMLNode.attribute(withName: "idref", stringValue: id) as! XMLNode)
+      itemref.addAttributeSafe(name: "idref", value: id)
       nodes.append(itemref)
       seen.insert(id)
     }
@@ -576,11 +568,9 @@ extension OPFDocumentNormalizer {
     entries.append(ZipEntry(name: ncxPath, data: navContent, compressionMethod: 8))
 
     let element = XMLElement(name: "item")
-    element.addAttribute(XMLNode.attribute(withName: "id", stringValue: id) as! XMLNode)
-    element.addAttribute(XMLNode.attribute(withName: "href", stringValue: href) as! XMLNode)
-    element.addAttribute(
-      XMLNode.attribute(withName: "media-type", stringValue: "application/x-dtbncx+xml") as! XMLNode
-    )
+    element.addAttributeSafe(name: "id", value: id)
+    element.addAttributeSafe(name: "href", value: href)
+    element.addAttributeSafe(name: "media-type", value: "application/x-dtbncx+xml")
     manifest.items.append(
       ManifestInventory.Item(
         id: id, href: href, mediaType: "application/x-dtbncx+xml", properties: nil, element: element
@@ -681,11 +671,25 @@ extension XMLElement {
     if let existing = attribute(forName: name) {
       existing.stringValue = value
     } else {
-      addAttribute(XMLNode.attribute(withName: name, stringValue: value) as! XMLNode)
+      addAttributeSafe(name: name, value: value)
     }
   }
 
   fileprivate func replaceChildren(with nodes: [XMLNode]) {
     setChildren(nodes)
+  }
+
+  fileprivate func addAttributeSafe(name: String, value: String) {
+    guard let node = XMLNode.attribute(withName: name, stringValue: value) as? XMLNode else {
+      return
+    }
+    addAttribute(node)
+  }
+
+  fileprivate func addNamespaceSafe(prefix: String, uri: String) {
+    guard let node = XMLNode.namespace(withName: prefix, stringValue: uri) as? XMLNode else {
+      return
+    }
+    addNamespace(node)
   }
 }

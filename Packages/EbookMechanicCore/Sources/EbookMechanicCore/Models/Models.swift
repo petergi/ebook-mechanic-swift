@@ -227,33 +227,33 @@ public enum FingerprintResult: Sendable, Equatable, Codable {
     let kind = try container.decode(Kind.self, forKey: .type)
     switch kind {
     case .content:
-      let v = try container.decode(String.self, forKey: .value)
-      self = .content(v)
+      let value = try container.decode(String.self, forKey: .value)
+      self = .content(value)
     case .fileHash:
-      let v = try container.decode(String.self, forKey: .value)
-      self = .fileHash(v)
+      let value = try container.decode(String.self, forKey: .value)
+      self = .fileHash(value)
     case .encrypted:
       self = .encrypted
     case .unavailable:
-      let v = try container.decode(String.self, forKey: .value)
-      self = .unavailable(v)
+      let value = try container.decode(String.self, forKey: .value)
+      self = .unavailable(value)
     }
   }
 
   public func encode(to encoder: Encoder) throws {
     var container = encoder.container(keyedBy: CodingKeys.self)
     switch self {
-    case .content(let v):
+    case .content(let value):
       try container.encode(Kind.content, forKey: .type)
-      try container.encode(v, forKey: .value)
-    case .fileHash(let v):
+      try container.encode(value, forKey: .value)
+    case .fileHash(let value):
       try container.encode(Kind.fileHash, forKey: .type)
-      try container.encode(v, forKey: .value)
+      try container.encode(value, forKey: .value)
     case .encrypted:
       try container.encode(Kind.encrypted, forKey: .type)
-    case .unavailable(let v):
+    case .unavailable(let value):
       try container.encode(Kind.unavailable, forKey: .type)
-      try container.encode(v, forKey: .value)
+      try container.encode(value, forKey: .value)
     }
   }
 }

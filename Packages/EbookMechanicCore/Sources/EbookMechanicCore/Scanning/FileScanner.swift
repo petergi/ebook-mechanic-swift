@@ -53,6 +53,7 @@ public actor FileScanner {
 
   /// Performs a corruption scan across the root directory.
   @discardableResult
+  // swiftlint:disable:next function_body_length
   public func scanForCorruption(progress: ProgressHandler? = nil) async throws -> ScanResult {
     let startTime = Date()
     let scanControl = scanControl
@@ -375,6 +376,7 @@ public actor FileScanner {
   ///   - dryRun: If true, do not write changes; only report what would be changed.
   ///   - progress: Optional progress callback for UI/CLI.
   /// - Returns: A tuple of counts (normalized, skipped).
+  // swiftlint:disable:next function_body_length
   public func normalizeEPUBs(
     force: Bool = false, dryRun: Bool = true, progress: ProgressHandler? = nil
   ) async -> (normalized: Int, skipped: Int) {
