@@ -19,33 +19,30 @@ public struct ExternalValidators {
     let epubCheckVersion = await getEpubCheckVersion() ?? "Unknown"
 
     do {
-      var arguments = ["epubcheck", "-j"]
+      var arguments = ["epubcheck", path, "--json", "-"]
       if showWarnings {
         arguments.append("--warn")
       }
       if checkAccessibility {
         arguments.append("--usage")
       }
-      arguments.append(contentsOf: [path, "-"])
 
-      let (terminationStatus, stdout, stderr) = try await toolRunner.run(
+      let (_, stdout, stderr) = try await toolRunner.run(
         executableURL: URL(fileURLWithPath: "/usr/bin/env"),
         arguments: arguments
       )
       let output = stdout.isEmpty ? stderr : stdout
 
-      // Even with errors, epubcheck can exit with 0, so we need to parse the JSON.
-      // A non-zero exit code is a more severe failure.
-      if terminationStatus != 0 {
+      let jsonPayload = extractJSONPayload(from: output)
+      guard let jsonData = jsonPayload.data(using: .utf8) else {
         return ValidationResult(
           originalIndex: 0, url: url, size: size, isValid: false,
-          reason: "epubcheck tool failed to run: \(output)",
+          reason: "Failed to read epubcheck output.",
           status: ValidationStatus.validationError, validationLevel: .comprehensive)
       }
 
       let decoder = JSONDecoder()
-      let report = try decoder.decode(
-        EpubCheckReport.self, from: output.data(using: String.Encoding.utf8)!)
+      let report = try decoder.decode(EpubCheckReport.self, from: jsonData)
 
       var errors: [EPUBValidationIssue] = []
       var warnings: [EPUBValidationIssue] = []
@@ -60,7 +57,7 @@ public struct ExternalValidators {
         )
         if item.severity == "ERROR" || item.severity == "FATAL" {
           errors.append(issue)
-        } else if item.severity == "WARNING" {
+        } else if item.severity == "WARNING" || item.severity == "USAGE" {
           warnings.append(issue)
         }
       }
@@ -217,10 +214,18 @@ public struct ExternalValidators {
   }
 }
 
+private func extractJSONPayload(from output: String) -> String {
+  guard let start = output.firstIndex(of: "{"),
+        let end = output.lastIndex(of: "}") else {
+    return output.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+  }
+  return String(output[start...end])
+}
+
 // MARK: - EpubCheck JSON Structures
 
-private struct EpubCheckReport: Codable {
-  let checker: CheckerInfo
+private struct EpubCheckReport: Decodable {
+  let checker: CheckerInfo?
   let epubVersion: String?
   let publisher: String?
   let title: String?
@@ -228,20 +233,57 @@ private struct EpubCheckReport: Codable {
   let features: [String]?
   let accessibility: AccessibilityInfo?
   let messages: [Message]
+
+  private enum CodingKeys: String, CodingKey {
+    case checker
+    case epubVersion
+    case publisher
+    case title
+    case date
+    case features
+    case accessibility
+    case messages
+    case publication
+  }
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    checker = try container.decodeIfPresent(CheckerInfo.self, forKey: .checker)
+    publisher = try container.decodeIfPresent(String.self, forKey: .publisher)
+    title = try container.decodeIfPresent(String.self, forKey: .title)
+    date = try container.decodeIfPresent(String.self, forKey: .date)
+    features = try container.decodeIfPresent([String].self, forKey: .features)
+    accessibility = try container.decodeIfPresent(AccessibilityInfo.self, forKey: .accessibility)
+    messages = try container.decodeIfPresent([Message].self, forKey: .messages) ?? []
+
+    if let version = try container.decodeIfPresent(String.self, forKey: .epubVersion) {
+      epubVersion = version
+    } else if let publication = try container.decodeIfPresent(Publication.self, forKey: .publication) {
+      epubVersion = publication.ePubVersion
+    } else {
+      epubVersion = nil
+    }
+  }
 }
 
-private struct CheckerInfo: Codable {
-  let name: String
-  let version: String
-  let buildDate: String
+private struct CheckerInfo: Decodable {
+  let name: String?
+  let version: String?
+  let buildDate: String?
+  let checkerVersion: String?
+  let checkDate: String?
 }
 
-private struct AccessibilityInfo: Codable {
+private struct AccessibilityInfo: Decodable {
   let conformsTo: [String]
   let summary: String?
 }
 
-private struct Message: Codable {
+private struct Publication: Decodable {
+  let ePubVersion: String?
+}
+
+private struct Message: Decodable {
   let id: String
   let severity: String
   let file: String?
@@ -249,4 +291,46 @@ private struct Message: Codable {
   let col: Int?
   let message: String
   let suggestion: String?
+
+  private enum CodingKeys: String, CodingKey {
+    case id
+    case ID
+    case severity
+    case file
+    case line
+    case col
+    case message
+    case suggestion
+    case locations
+  }
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    id = try container.decodeIfPresent(String.self, forKey: .id)
+      ?? container.decode(String.self, forKey: .ID)
+    severity = try container.decode(String.self, forKey: .severity)
+    message = try container.decode(String.self, forKey: .message)
+    suggestion = try container.decodeIfPresent(String.self, forKey: .suggestion)
+
+    if let file = try container.decodeIfPresent(String.self, forKey: .file) {
+      self.file = file
+      line = try container.decodeIfPresent(Int.self, forKey: .line)
+      col = try container.decodeIfPresent(Int.self, forKey: .col)
+    } else if let locations = try container.decodeIfPresent([MessageLocation].self, forKey: .locations),
+              let firstLocation = locations.first {
+      self.file = firstLocation.path
+      line = firstLocation.line
+      col = firstLocation.column
+    } else {
+      file = nil
+      line = nil
+      col = nil
+    }
+  }
+}
+
+private struct MessageLocation: Decodable {
+  let path: String?
+  let line: Int?
+  let column: Int?
 }

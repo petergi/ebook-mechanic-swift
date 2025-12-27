@@ -74,7 +74,8 @@ final class PDFVerifierTests: XCTestCase {
 
     switch result {
     case .success(let validationResult):
-      XCTAssertTrue(validationResult.structureValid, "Invalid pages PDF may have valid structure")
+      XCTAssertFalse(
+        validationResult.structureValid, "Invalid pages PDF should have invalid structure")
       XCTAssertTrue(validationResult.xrefValid, "Invalid pages PDF may have valid xref")
       XCTAssertFalse(
         validationResult.pageTreeValid, "Invalid pages PDF should have invalid page tree")
@@ -93,8 +94,8 @@ final class PDFVerifierTests: XCTestCase {
 
     switch result {
     case .success(let validationResult):
-      XCTAssertTrue(
-        validationResult.structureValid, "Malformed stream PDF may have valid structure")
+      XCTAssertFalse(
+        validationResult.structureValid, "Malformed stream PDF should have invalid structure")
       XCTAssertTrue(validationResult.xrefValid, "Malformed stream PDF may have valid xref")
       XCTAssertTrue(validationResult.pageTreeValid, "Malformed stream PDF may have valid page tree")
       XCTAssertFalse(

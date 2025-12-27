@@ -5,59 +5,96 @@ struct PDFStructureValidator {
     do {
       let process = Process()
       process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-      process.arguments = ["pdfcpu", "validate", "-m", "json", url.path]
+      process.arguments = ["pdfcpu", "validate", "-m", "strict", url.path]
 
-      let pipe = Pipe()
-      process.standardOutput = pipe
-      process.standardError = pipe
+      let stdoutPipe = Pipe()
+      let stderrPipe = Pipe()
+      process.standardOutput = stdoutPipe
+      process.standardError = stderrPipe
 
       try process.run()
       process.waitUntilExit()
 
-      let data = pipe.fileHandleForReading.readDataToEndOfFile()
+      let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+      let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+      let stdout = String(data: stdoutData, encoding: .utf8) ?? ""
+      let stderr = String(data: stderrData, encoding: .utf8) ?? ""
 
       if process.terminationStatus == 0 {
-        let validationResult = try JSONDecoder().decode(PDFValidationResult.self, from: data)
+        let validationResult = PDFValidationResult(
+          structureValid: true,
+          xrefValid: true,
+          pageTreeValid: true,
+          streamErrors: [],
+          encryptionInfo: nil,
+          conformsToStandard: nil
+        )
         return .success(validationResult)
-      } else {
-        let output = String(data: data, encoding: .utf8) ?? ""
-        return .failure(PDFValidationError.cliError(output))
       }
+      let validationResult = parsePdfcpuOutput(
+        stdout: stdout,
+        stderr: stderr,
+        exitCode: process.terminationStatus
+      )
+      return .success(validationResult)
     } catch {
       return .failure(error)
     }
   }
   func parsePdfcpuOutput(stdout: String, stderr: String, exitCode: Int32) -> PDFValidationResult {
-    var structureValid = exitCode == 0
-    var xrefValid = exitCode == 0
-    var pageTreeValid = exitCode == 0
+    var xrefValid = true
+    var pageTreeValid = true
     var streamErrors: [String] = []
     var encryptionInfo: String?
     var conformsToStandard: String?
+    var reportedXrefError = false
+    var reportedPageTreeError = false
+    var reportedStreamError = false
 
     // Parse stderr for specific errors
-    let errorLines = stderr.components(separatedBy: .newlines)
+    let diagnostics = stderr.isEmpty ? stdout : stderr
+    let errorLines = diagnostics.components(separatedBy: .newlines)
     for line in errorLines {
       let lowercaseLine = line.lowercased()
 
       // Check for cross-reference table errors
-      if lowercaseLine.contains("xref") || lowercaseLine.contains("cross-reference") {
+      if lowercaseLine.contains("xref")
+        || lowercaseLine.contains("cross-reference")
+        || lowercaseLine.contains("xreftable")
+        || lowercaseLine.contains("startxref")
+        || lowercaseLine.contains("rootdict")
+        || lowercaseLine.contains("trailer")
+      {
         xrefValid = false
-        streamErrors.append("Cross-reference table error: \(line)")
+        if reportedXrefError == false {
+          streamErrors.append("Xref table is corrupt")
+          reportedXrefError = true
+        }
       }
 
       // Check for page tree errors
-      if lowercaseLine.contains("page tree") || lowercaseLine.contains("page object") {
+      if lowercaseLine.contains("page tree")
+        || lowercaseLine.contains("pagesdict")
+        || lowercaseLine.contains("missing \"pages\"")
+      {
         pageTreeValid = false
-        streamErrors.append("Page tree error: \(line)")
+        if reportedPageTreeError == false {
+          streamErrors.append("Invalid page tree structure")
+          reportedPageTreeError = true
+        }
       }
 
       // Check for stream errors
-      if lowercaseLine.contains("stream") && !lowercaseLine.contains("page tree") {
-        streamErrors.append("Stream error: \(line)")
-      }
       if lowercaseLine.contains("eof marker missing") {
-        streamErrors.append("Stream error: \(line)")
+        if reportedStreamError == false {
+          streamErrors.append("EOF marker missing")
+          reportedStreamError = true
+        }
+      } else if lowercaseLine.contains("stream") || lowercaseLine.contains("page content") {
+        if reportedStreamError == false {
+          streamErrors.append("Malformed stream content")
+          reportedStreamError = true
+        }
       }
 
       // Check for encryption information
@@ -88,7 +125,7 @@ struct PDFStructureValidator {
     }
 
     // Update overall structure validity based on specific checks
-    structureValid = xrefValid && pageTreeValid && streamErrors.isEmpty
+    let structureValid = xrefValid && pageTreeValid && streamErrors.isEmpty && exitCode == 0
 
     return PDFValidationResult(
       structureValid: structureValid,
