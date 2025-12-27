@@ -51,12 +51,10 @@
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES">
-      <CommandLineArguments>
-         <CommandLineArgument
-            argument = "app-run"
-            isEnabled = "YES">
-         </CommandLineArgument>
-      </CommandLineArguments>
+      <PathRunnable
+         runnableDebuggingMode = "0"
+         FilePath = "$(PROJECT_DIR)/.build/AppBundle/EbookMechanic.app/Contents/MacOS/EbookMechanicApp">
+      </PathRunnable>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
