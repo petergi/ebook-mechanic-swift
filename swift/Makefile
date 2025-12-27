@@ -201,8 +201,14 @@ build-app:
 	@echo "🔨 Building EbookMechanicApp..."
 	$(SPM_ENV) swift build --disable-sandbox --package-path EbookMechanicApp
 
+app-build: app-bundle-debug
+
 run-app:
 	$(SPM_ENV) swift run --disable-sandbox --package-path EbookMechanicApp EbookMechanicApp
+
+app-run: app-bundle-debug
+	@echo "🚀 Running EbookMechanicApp..."
+	@EbookMechanicApp/.build/AppBundle/$(APP_BUNDLE_NAME)/Contents/MacOS/EbookMechanicApp
 
 test-app:
 	@echo "🧪 Running EbookMechanicApp tests..."
@@ -485,6 +491,43 @@ uninstall:
 
 APP_BUNDLE_NAME ?= EbookMechanic.app
 APP_INSTALL_PATH ?= /Applications/$(APP_BUNDLE_NAME)
+
+app-bundle-debug: build-app
+	@echo "📦 Assembling debug app bundle..."
+	@set -euo pipefail; \
+	 BUNDLE_ROOT="EbookMechanicApp/.build/AppBundle"; \
+	 BIN="EbookMechanicApp/.build/debug/EbookMechanicApp"; \
+	 APP_DIR="$$BUNDLE_ROOT/$(APP_BUNDLE_NAME)"; \
+	 mkdir -p "$$APP_DIR/Contents/MacOS" "$$APP_DIR/Contents/Resources"; \
+	 printf '%s\n' \
+		'<?xml version="1.0" encoding="UTF-8"?>' \
+		'<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+		'<plist version="1.0">' \
+		'<dict>' \
+		'  <key>CFBundleDevelopmentRegion</key>' \
+		'  <string>en</string>' \
+		'  <key>CFBundleExecutable</key>' \
+		'  <string>EbookMechanicApp</string>' \
+		'  <key>CFBundleIdentifier</key>' \
+		'  <string>com.ebookmechanic.app</string>' \
+		'  <key>CFBundleInfoDictionaryVersion</key>' \
+		'  <string>6.0</string>' \
+		'  <key>CFBundleName</key>' \
+		'  <string>EbookMechanic</string>' \
+		'  <key>CFBundlePackageType</key>' \
+		'  <string>APPL</string>' \
+		'  <key>CFBundleShortVersionString</key>' \
+		'  <string>1.0</string>' \
+		'  <key>CFBundleVersion</key>' \
+		'  <string>1</string>' \
+		'  <key>LSMinimumSystemVersion</key>' \
+		'  <string>13.0</string>' \
+		'</dict>' \
+		'</plist>' \
+		> "$$APP_DIR/Contents/Info.plist"; \
+	 cp "$$BIN" "$$APP_DIR/Contents/MacOS/EbookMechanicApp"; \
+	 chmod +x "$$APP_DIR/Contents/MacOS/EbookMechanicApp"; \
+	 echo "✅ Debug app bundle at $$APP_DIR"
 
 install-app:
 	@echo "🔨 Building release build of EbookMechanicApp..."
