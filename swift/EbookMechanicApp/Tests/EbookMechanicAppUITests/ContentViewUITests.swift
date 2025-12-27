@@ -99,13 +99,16 @@ final class ContentViewUITests: XCTestCase {
     XCTAssertTrue(sut.testHooks.isProgressVisible)
     XCTAssertEqual(sut.testHooks.progressHeadline, "Scanning Files")
     XCTAssertEqual(sut.testHooks.progressDetail, "2/10")
-    XCTAssertEqual(sut.testHooks.runButtonTitle, "Working…")
+    XCTAssertEqual(sut.testHooks.runButtonTitle, "Cancel Scan")
+    XCTAssertTrue(sut.testHooks.pauseButtonVisible)
+    XCTAssertEqual(sut.testHooks.pauseButtonTitle, "Pause")
   }
 
   func testRunButtonShowsIdleStateWhenNotScanning() {
     let sut = makeSUT()
     XCTAssertEqual(sut.testHooks.runButtonTitle, "Run Scan")
     XCTAssertFalse(sut.testHooks.isProgressVisible)
+    XCTAssertFalse(sut.testHooks.pauseButtonVisible)
   }
 
   // MARK: - Helpers
@@ -115,7 +118,9 @@ final class ContentViewUITests: XCTestCase {
     options: ScanOptions? = nil,
     configureViewModel: ((ScanViewModel) -> Void)? = nil,
     onSelectDirectory: @escaping () -> Void = {},
-    onRunScan: @escaping () -> Void = {}
+    onRunScan: @escaping () -> Void = {},
+    onCancelScan: @escaping () -> Void = {},
+    onTogglePause: @escaping () -> Void = {}
   ) -> ContentView {
     let viewModel = ScanViewModel()
     configureViewModel?(viewModel)
@@ -128,7 +133,9 @@ final class ContentViewUITests: XCTestCase {
       selectedDirectory: selectedBox.binding,
       options: optionsBox.binding,
       onSelectDirectory: onSelectDirectory,
-      onRunScan: onRunScan
+      onRunScan: onRunScan,
+      onCancelScan: onCancelScan,
+      onTogglePause: onTogglePause
     )
   }
 }

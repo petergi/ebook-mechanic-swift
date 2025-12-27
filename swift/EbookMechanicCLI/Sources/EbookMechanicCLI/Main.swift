@@ -82,7 +82,7 @@ struct EbookMechanicCLI: ParsableCommand {
         let printer = ProgressPrinter(verbose: verbose)
 
         if emptyFoldersOnly {
-          let folders = try await scanner.scanForEmptyFolders(progress: printer.handle)
+          _ = try await scanner.scanForEmptyFolders(progress: printer.handle)
           printer.printHeader("Empty Folder Analysis")
           //reportEmptyFolders(folders, printer: printer)
           //try await handleEmptyFolderCleanup(configuration: self, scanner: scanner, result: folders, printer: printer)
@@ -109,7 +109,7 @@ struct EbookMechanicCLI: ParsableCommand {
         }
 
         if !corruptionOnly {
-          let folders = try await scanner.scanForEmptyFolders(progress: printer.handle)
+          _ = try await scanner.scanForEmptyFolders(progress: printer.handle)
           printer.printHeader("Folder Analysis")
           //reportEmptyFolders(folders, printer: printer)
           //try await handleEmptyFolderCleanup(configuration: self, scanner: scanner, result: folders, printer: printer)

@@ -22,7 +22,7 @@ struct EPUBReportFormatter {
             print("  - Has Warnings: \(compliance.hasWarnings)")
             print("  - Accessibility Conformance: \(compliance.conformsToAccessibility)")
             if !compliance.features.isEmpty {
-                print("  - Features: \(compliance.features.sorted().joined(separator: \", \"))")
+                print("  - Features: \(compliance.features.sorted().joined(separator: ", "))")
             }
             
             if !compliance.errors.isEmpty {

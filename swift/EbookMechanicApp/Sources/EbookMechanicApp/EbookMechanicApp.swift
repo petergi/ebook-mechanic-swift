@@ -41,7 +41,9 @@ struct EbookMechanicApp: App {
         selectedDirectory: $selectedDirectory,
         options: $options,
         onSelectDirectory: selectDirectory,
-        onRunScan: runScan
+        onRunScan: runScan,
+        onCancelScan: cancelScan,
+        onTogglePause: togglePause
       )
       .frame(minWidth: 900, minHeight: 600)
       .alert(
@@ -88,8 +90,18 @@ struct EbookMechanicApp: App {
   ///
   /// - SeeAlso: `selectDirectory()`
   private func runScan() {
-    Task {
-      await viewModel.runScan(options: options)
+    viewModel.startScan(options: options)
+  }
+
+  private func cancelScan() {
+    viewModel.cancelScan()
+  }
+
+  private func togglePause() {
+    if viewModel.isPaused {
+      viewModel.resumeScan()
+    } else {
+      viewModel.pauseScan()
     }
   }
 }

@@ -13,6 +13,7 @@ public actor FileScanner {
   private let reportFormats: [ReportFormat]
   private let maxConcurrentValidations: Int
   private let validationBatchSize: Int
+  private let scanControl: ScanControl?
 
   private struct ValidationOutcome {
     let validation: ValidationResult
@@ -34,7 +35,8 @@ public actor FileScanner {
     maxConcurrentValidations: Int = ProcessInfo.processInfo.activeProcessorCount,
     validationBatchSize: Int? = nil,
     validator: FileValidator,
-    repairer: FileRepairer? = nil
+    repairer: FileRepairer? = nil,
+    scanControl: ScanControl? = nil
   ) {
     self.rootDirectory = rootDirectory
     self.corruptedDirectoryName = corruptedDirectoryName
@@ -44,12 +46,14 @@ public actor FileScanner {
     self.validationBatchSize = validationBatchSize ?? maxConcurrentValidations * 2
     self.validator = validator
     self.repairer = repairer ?? FileRepairer(fileManager: fileManager, validator: validator)
+    self.scanControl = scanControl
   }
 
   /// Performs a corruption scan across the root directory.
   @discardableResult
   public func scanForCorruption(progress: ProgressHandler? = nil) async throws -> ScanResult {
     let startTime = Date()
+    let scanControl = scanControl
     let enumerator = fileManager.enumerator(
       at: rootDirectory,
       includingPropertiesForKeys: [.isRegularFileKey, .isDirectoryKey, .fileSizeKey],
@@ -65,6 +69,8 @@ public actor FileScanner {
     var selectedFiles: [URL] = []
 
     while let fileURL = enumerator.nextObject() as? URL {
+      await scanControl?.waitIfPaused()
+      try Task.checkCancellation()
       if fileURL.standardizedFileURL.path.hasPrefix(corruptedDirURL.path) {
         enumerator.skipDescendants()
         continue
@@ -91,22 +97,26 @@ public actor FileScanner {
     var externalToolCalls = 0
     var cacheHits = 0
 
-    await withThrowingTaskGroup(of: ValidationOutcome.self) { group in
+    try await withThrowingTaskGroup(of: ValidationOutcome.self) { group in
       var filesToProcess = selectedFiles.map { (false, $0) }  // (isSubmitted, fileURL)
       var submittedCount = 0
       var completedCount = 0
 
       // Function to submit a new task if available and within batch limit
-      func submitNextTask() async {
+      func submitNextTask() async throws {
         guard submittedCount < selectedFiles.count else { return }
 
         if let indexToSubmit = filesToProcess.firstIndex(where: { !$0.0 }) {
+          await scanControl?.waitIfPaused()
+          try Task.checkCancellation()
           filesToProcess[indexToSubmit].0 = true
           submittedCount += 1
 
           let fileURL = filesToProcess[indexToSubmit].1
 
           group.addTask {
+            await scanControl?.waitIfPaused()
+            try Task.checkCancellation()
             await semaphore.wait()  // Wait for a slot in the concurrency limit
 
             let concurrentCount = await self.maxConcurrentValidations - semaphore.currentCount
@@ -156,12 +166,14 @@ public actor FileScanner {
 
       // Initially fill the task group up to the batch size
       for _ in 0..<min(validationBatchSize, selectedFiles.count) {
-        await submitNextTask()
+        try await submitNextTask()
       }
 
       // Process results as they come and submit new tasks
       do {
         for try await outcome in group {
+          await scanControl?.waitIfPaused()
+          try Task.checkCancellation()
           validatedFiles.append(outcome.validation)
           completedCount += 1
           if outcome.cacheHit {
@@ -182,9 +194,13 @@ public actor FileScanner {
               concurrentValidationCount: concurrentCount
             ))
 
-          await submitNextTask()  // Submit a new task to keep the pipeline full
+          try await submitNextTask()  // Submit a new task to keep the pipeline full
         }
       } catch {
+        if error is CancellationError {
+          group.cancelAll()
+          throw error
+        }
         // Handle or propagate the error
         print("Error during validation: \(error)")
       }
@@ -229,7 +245,7 @@ public actor FileScanner {
 
   /// Scans for directories that do not contain any supported ebook files.
   @discardableResult
-  public func scanForEmptyFolders(progress: ProgressHandler? = nil) throws -> ScanResult {
+  public func scanForEmptyFolders(progress: ProgressHandler? = nil) async throws -> ScanResult {
     let enumerator = fileManager.enumerator(
       at: rootDirectory, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles]
     )
@@ -241,7 +257,9 @@ public actor FileScanner {
 
     var directories: [URL] = []
 
-    for case let url as URL in enumerator {
+    while let next = enumerator.nextObject() as? URL {
+      await scanControl?.waitIfPaused()
+      let url = next
       if url.standardizedFileURL == rootDirectory.standardizedFileURL {
         continue
       }
@@ -265,7 +283,9 @@ public actor FileScanner {
     result.foldersWithEbooks = 0
 
     for (index, directoryURL) in directories.enumerated() {
-      let containsEbook = try directoryContainsEbookFiles(directoryURL)
+      await scanControl?.waitIfPaused()
+      try Task.checkCancellation()
+      let containsEbook = try await directoryContainsEbookFiles(directoryURL)
       if containsEbook {
         result.foldersWithEbooks += 1
       } else {
@@ -286,7 +306,7 @@ public actor FileScanner {
   }
 
   /// Moves the corrupted files recorded in `lastResult` into the dedicated corrupted directory.
-  public func moveCorruptedFiles(progress: ProgressHandler? = nil) throws {
+  public func moveCorruptedFiles(progress: ProgressHandler? = nil) async throws {
     let corruptedDirURL = rootDirectory.appendingPathComponent(
       corruptedDirectoryName, isDirectory: true)
     try fileManager.createDirectory(
@@ -295,6 +315,8 @@ public actor FileScanner {
     let rootComponents = rootDirectory.resolvingSymlinksInPath().pathComponents
 
     for (index, corrupted) in lastResult.corruptedFiles.enumerated() {
+      await scanControl?.waitIfPaused()
+      try Task.checkCancellation()
       let fileComponents = corrupted.url.resolvingSymlinksInPath().pathComponents
       guard fileComponents.starts(with: rootComponents) else { continue }
       let relativeComponents = fileComponents.dropFirst(rootComponents.count)
@@ -318,8 +340,10 @@ public actor FileScanner {
   }
 
   /// Deletes empty folders recorded in `lastResult`.
-  public func deleteEmptyFolders(progress: ProgressHandler? = nil) throws {
+  public func deleteEmptyFolders(progress: ProgressHandler? = nil) async throws {
     for (index, folder) in lastResult.emptyFolders.enumerated() {
+      await scanControl?.waitIfPaused()
+      try Task.checkCancellation()
       try? fileManager.removeItem(at: folder)
       progress?(
         ProgressEvent(
@@ -386,6 +410,8 @@ public actor FileScanner {
     }
 
     for (index, url) in epubs.enumerated() {
+      await scanControl?.waitIfPaused()
+      if Task.isCancelled { return (normalized, skipped) }
       progress?(
         ProgressEvent(
           stage: .normalizingFiles, completed: index, total: epubs.count,
@@ -519,6 +545,8 @@ public actor FileScanner {
     var repairedCount = 0
 
     for (index, corrupted) in lastResult.corruptedFiles.enumerated() {
+      await scanControl?.waitIfPaused()
+      if Task.isCancelled { break }
       progress?(
         ProgressEvent(
           stage: .repairingFiles,
@@ -547,11 +575,13 @@ public actor FileScanner {
   }
 
   /// Generates a Markdown report summarising the scan.
-  public func generateReport(into directory: URL) throws -> [URL] {
+  public func generateReport(into directory: URL) async throws -> [URL] {
     var generatedReportURLs: [URL] = []
     let timestamp = ISO8601DateFormatter.threadLocalString()
 
     for format in reportFormats {
+      await scanControl?.waitIfPaused()
+      try Task.checkCancellation()
       let reportFileName = "ebook_mechanic_report_\(timestamp).\(format.rawValue)"
       let reportURL = directory.appendingPathComponent(reportFileName)
 
@@ -570,7 +600,7 @@ public actor FileScanner {
     return performanceMetrics
   }
 
-  private func directoryContainsEbookFiles(_ url: URL) throws -> Bool {
+  private func directoryContainsEbookFiles(_ url: URL) async throws -> Bool {
     guard
       let enumerator = fileManager.enumerator(
         at: url, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles])
@@ -578,7 +608,10 @@ public actor FileScanner {
       return false
     }
 
-    for case let fileURL as URL in enumerator {
+    while let next = enumerator.nextObject() as? URL {
+      await scanControl?.waitIfPaused()
+      try Task.checkCancellation()
+      let fileURL = next
       let values = try fileURL.resourceValues(forKeys: [.isRegularFileKey])
       if values.isRegularFile == true, EbookFileType(pathExtension: fileURL.pathExtension) != nil {
         return true

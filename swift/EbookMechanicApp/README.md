@@ -11,6 +11,8 @@ The EbookMechanicApp provides a graphical interface for the EbookMechanic toolki
 - 🎨 **Beautiful SwiftUI Interface** - Gradient-backed design with modern aesthetics
 - 📂 **Native Directory Picker** - `NSOpenPanel` integration for file selection
 - 📊 **Real-Time Progress** - Live progress bars during scanning and operations
+- ⏯️ **Pause/Resume Scans** - Temporarily pause a scan and continue later
+- ⏹️ **Cancelable Scans** - Stop an in-flight scan from the primary controls
 - 🎚️ **Toggle Controls** - Easy switches for repair, dry-run, and confirmation settings
 - 📋 **Scrollable Results** - View lists of corrupted files and empty folders
 - 🔄 **Observable State** - Reactive updates using SwiftUI's state management
@@ -114,9 +116,12 @@ open EbookMechanicApp/.build/debug/EbookMechanicApp.app
    - Toggle "Confirm actions" for interactive prompts
 
 3. **Start Scan**
-   - Click "Start Scan" button
-   - Watch real-time progress bar
-   - View status messages
+   - Click "Run Scan" to begin
+   - Watch real-time progress updates
+   - View status messages as the scan progresses
+   - Click "Pause" to temporarily halt processing
+   - Click "Resume" to continue from where you paused
+   - Click "Cancel Scan" to stop a scan in progress
 
 4. **Review Results**
    - Scroll through "Corrupted Files" list

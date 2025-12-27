@@ -23,6 +23,9 @@
     let autoMoveToggleDisabled: Bool
     let autoDeleteToggleDisabled: Bool
     let runButtonTitle: String
+    let pauseButtonTitle: String?
+    let pauseButtonVisible: Bool
+    let pauseButtonDisabled: Bool
   }
 
   extension ContentView {
@@ -45,7 +48,12 @@
         emptyFoldersOnlyToggleDisabled: viewModel.isScanning,
         autoMoveToggleDisabled: viewModel.isScanning || options.dryRun,
         autoDeleteToggleDisabled: viewModel.isScanning || options.dryRun,
-        runButtonTitle: viewModel.isScanning ? "Working…" : "Run Scan"
+        runButtonTitle: viewModel.isScanning
+          ? (viewModel.isCancelling ? "Cancelling…" : "Cancel Scan")
+          : "Run Scan",
+        pauseButtonTitle: viewModel.isScanning ? (viewModel.isPaused ? "Resume" : "Pause") : nil,
+        pauseButtonVisible: viewModel.isScanning,
+        pauseButtonDisabled: viewModel.isCancelling
       )
     }
   }

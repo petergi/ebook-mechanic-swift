@@ -102,7 +102,7 @@ struct ProgressPrinter: @unchecked Sendable {
     sink(text)
   }
 
-  private static func defaultSink(_ text: String) {
+  private static let defaultSink: @Sendable (String) -> Void = { text in
     print(text)
   }
 }

@@ -62,6 +62,10 @@ struct ScanOptions {
 final class ScanViewModel: ObservableObject {
   /// Indicates whether a scan is currently in progress.
   @Published var isScanning: Bool = false
+  /// Indicates whether a cancellation request is in progress.
+  @Published var isCancelling: Bool = false
+  /// Indicates whether a scan is currently paused.
+  @Published var isPaused: Bool = false
   /// High-level progress message (e.g., current phase).
   @Published var progressHeadline: String = ""
   /// Detailed progress message (e.g., current file or counts).
@@ -78,6 +82,8 @@ final class ScanViewModel: ObservableObject {
   @Published var reportURLs: [URL]?
   @Published var errorMessage: String?
   @Published var performanceMetrics: PerformanceMetrics?
+  private var scanTask: Task<Void, Never>?
+  private var scanControl: ScanControl?
 
   /// Files that passed structure validation but failed spec compliance
   var nonCompliantFiles: [ValidationResult] {
@@ -118,6 +124,55 @@ final class ScanViewModel: ObservableObject {
     performanceMetrics = nil
     progressHeadline = ""
     progressDetail = ""
+    isPaused = false
+  }
+
+  /// Starts a scan in a cancellable task.
+  func startScan(options: ScanOptions) {
+    guard !isScanning else { return }
+    scanTask?.cancel()
+    scanTask = Task { [weak self] in
+      guard let self else { return }
+      await self.runScan(options: options)
+      await MainActor.run {
+        self.scanTask = nil
+      }
+    }
+  }
+
+  /// Cancels an in-flight scan.
+  func cancelScan() {
+    guard isScanning else { return }
+    isCancelling = true
+    isPaused = false
+    progressHeadline = "Cancelling"
+    progressDetail = "Stopping current scan..."
+    Task { [scanControl] in
+      await scanControl?.resume()
+    }
+    scanTask?.cancel()
+  }
+
+  /// Pauses an in-flight scan.
+  func pauseScan() {
+    guard isScanning, !isPaused else { return }
+    isPaused = true
+    progressHeadline = "Paused"
+    progressDetail = "Scan paused"
+    Task { [scanControl] in
+      await scanControl?.pause()
+    }
+  }
+
+  /// Resumes a paused scan.
+  func resumeScan() {
+    guard isScanning, isPaused else { return }
+    isPaused = false
+    progressHeadline = "Resuming"
+    progressDetail = "Continuing scan..."
+    Task { [scanControl] in
+      await scanControl?.resume()
+    }
   }
 
   /// Runs a scan with the provided options.
@@ -132,9 +187,18 @@ final class ScanViewModel: ObservableObject {
     guard !isScanning else { return }
     reset()
     isScanning = true
-    defer { isScanning = false }
+    isCancelling = false
+    isPaused = false
+    scanControl = ScanControl()
+    defer {
+      isScanning = false
+      isCancelling = false
+      isPaused = false
+      scanControl = nil
+    }
 
     do {
+      try Task.checkCancellation()
       let validator = FileValidator(
         useExternalEPUBValidator: options.useExternalEPUBValidator,
         useExternalPDFValidator: options.useExternalPDFValidator,
@@ -144,7 +208,8 @@ final class ScanViewModel: ObservableObject {
         rootDirectory: options.directory,
         corruptedDirectoryName: options.corruptedDirectoryName,
         maxConcurrentValidations: options.maxConcurrentValidations,
-        validator: validator
+        validator: validator,
+        scanControl: scanControl
       )
 
       let progressHandler: FileScanner.ProgressHandler = { [weak self] event in
@@ -181,6 +246,8 @@ final class ScanViewModel: ObservableObject {
 
       var scanResult: ScanResult?
       if !options.emptyFoldersOnly {
+        await scanControl?.waitIfPaused()
+        try Task.checkCancellation()
         let result = try await scanner.scanForCorruption(progress: progressHandler)
         await MainActor.run {
           self.summary = result
@@ -195,6 +262,8 @@ final class ScanViewModel: ObservableObject {
         scanResult = result
 
         if options.repair, let scanResult, !scanResult.corruptedFiles.isEmpty {
+          await scanControl?.waitIfPaused()
+          try Task.checkCancellation()
           let (repairs, repairedCount) = await scanner.repairCorruptedFiles(
             progress: progressHandler)
           await MainActor.run {
@@ -212,6 +281,8 @@ final class ScanViewModel: ObservableObject {
         }
 
         if !options.dryRun, scanResult?.corruptedFiles.isEmpty == false, options.autoMoveCorrupted {
+          await scanControl?.waitIfPaused()
+          try Task.checkCancellation()
           try await scanner.moveCorruptedFiles(progress: progressHandler)
           await MainActor.run {
             self.statusMessages.append("Moved corrupted files to \(options.corruptedDirectoryName)")
@@ -219,6 +290,8 @@ final class ScanViewModel: ObservableObject {
         }
 
         if options.normalizeEPUBs {
+          await scanControl?.waitIfPaused()
+          try Task.checkCancellation()
           let (normalized, skipped) = await scanner.normalizeEPUBs(
             force: options.forceNormalize, dryRun: options.dryRun, progress: progressHandler)
           await MainActor.run {
@@ -229,6 +302,8 @@ final class ScanViewModel: ObservableObject {
       }
 
       if !options.corruptionOnly {
+        await scanControl?.waitIfPaused()
+        try Task.checkCancellation()
         let folderResult = try await scanner.scanForEmptyFolders(progress: progressHandler)
         await MainActor.run {
           self.emptyFolders = folderResult.emptyFolders
@@ -237,6 +312,8 @@ final class ScanViewModel: ObservableObject {
         }
 
         if !options.dryRun, !folderResult.emptyFolders.isEmpty, options.autoDeleteEmptyFolders {
+          await scanControl?.waitIfPaused()
+          try Task.checkCancellation()
           try await scanner.deleteEmptyFolders(progress: progressHandler)
           await MainActor.run {
             self.statusMessages.append("Deleted \(folderResult.emptyFolders.count) empty folder(s)")
@@ -245,6 +322,8 @@ final class ScanViewModel: ObservableObject {
       }
 
       if options.generateReport {
+        await scanControl?.waitIfPaused()
+        try Task.checkCancellation()
         let urls = try await scanner.generateReport(into: options.directory)
         await MainActor.run {
           self.reportURLs = urls
@@ -255,6 +334,8 @@ final class ScanViewModel: ObservableObject {
       }
 
       if options.showPerformanceMetrics {
+        await scanControl?.waitIfPaused()
+        try Task.checkCancellation()
         let metrics = await scanner.getPerformanceMetrics()
         await MainActor.run {
           self.performanceMetrics = metrics
@@ -262,6 +343,12 @@ final class ScanViewModel: ObservableObject {
       }
 
       await MainActor.run {
+        self.progressHeadline = ""
+        self.progressDetail = ""
+      }
+    } catch is CancellationError {
+      await MainActor.run {
+        self.statusMessages.append("Scan cancelled")
         self.progressHeadline = ""
         self.progressDetail = ""
       }

@@ -20,6 +20,10 @@ struct ContentView: View {
   var onSelectDirectory: () -> Void
   /// Action to start a scan with the current options.
   var onRunScan: () -> Void
+  /// Action to cancel an in-flight scan.
+  var onCancelScan: () -> Void
+  /// Action to pause or resume an in-flight scan.
+  var onTogglePause: () -> Void
 
   var body: some View {
     ZStack {
@@ -149,16 +153,42 @@ struct ContentView: View {
 
         Spacer()
 
+        if viewModel.isScanning {
+          Button {
+            onTogglePause()
+          } label: {
+            Label(
+              viewModel.isPaused ? "Resume" : "Pause",
+              systemImage: viewModel.isPaused ? "play.fill" : "pause.fill"
+            )
+            .frame(minWidth: 120)
+          }
+          .disabled(viewModel.isCancelling)
+          .buttonStyle(.bordered)
+        }
+
         Button {
-          onRunScan()
+          if viewModel.isScanning {
+            onCancelScan()
+          } else {
+            onRunScan()
+          }
         } label: {
+          let buttonTitle =
+            viewModel.isScanning
+            ? (viewModel.isCancelling ? "Cancelling…" : "Cancel Scan")
+            : "Run Scan"
+          let buttonIcon =
+            viewModel.isScanning
+            ? (viewModel.isCancelling ? "hourglass" : "xmark.circle")
+            : "play.fill"
           Label(
-            viewModel.isScanning ? "Working…" : "Run Scan",
-            systemImage: viewModel.isScanning ? "hourglass" : "play.fill"
+            buttonTitle,
+            systemImage: buttonIcon
           )
           .frame(minWidth: 160)
         }
-        .disabled(viewModel.isScanning)
+        .disabled(viewModel.isCancelling)
         .buttonStyle(.borderedProminent)
       }
     }
@@ -336,7 +366,9 @@ struct ContentView: View {
     selectedDirectory: .constant(home),
     options: options,
     onSelectDirectory: {},
-    onRunScan: {}
+    onRunScan: {},
+    onCancelScan: {},
+    onTogglePause: {}
   )
   .frame(width: 1000, height: 700)
 }
