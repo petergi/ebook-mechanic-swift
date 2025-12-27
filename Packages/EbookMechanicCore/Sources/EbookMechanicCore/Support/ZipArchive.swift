@@ -412,8 +412,8 @@ private func _compressDeflate(_ data: Data) throws -> Data {
 
 private enum CRC32 {
   private static let table: [UInt32] = {
-    (0..<256).map { i -> UInt32 in
-      var crc = UInt32(i)
+    (0..<256).map { index -> UInt32 in
+      var crc = UInt32(index)
       for _ in 0..<8 {
         if crc & 1 == 1 {
           crc = 0xEDB8_8320 ^ (crc >> 1)

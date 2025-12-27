@@ -50,139 +50,190 @@ struct HTMLValidator {
   }
 
   private func validateHTMLEntry(_ entry: ZipEntry, issues: inout [ValidationIssue]) {
-    // Check if file can be parsed as UTF-8
     guard let content = String(data: entry.data, encoding: .utf8) else {
-      issues.append(
-        ValidationIssue(
-          file: entry.name,
-          severity: .error,
-          message: "Cannot decode as UTF-8"
-        ))
+      appendIssue(
+        file: entry.name,
+        severity: .error,
+        message: "Cannot decode as UTF-8",
+        issues: &issues
+      )
       return
     }
 
-    // Check for minimum content
     if content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-      issues.append(
-        ValidationIssue(
-          file: entry.name,
-          severity: .warning,
-          message: "File is empty or contains only whitespace"
-        ))
+      appendIssue(
+        file: entry.name,
+        severity: .warning,
+        message: "File is empty or contains only whitespace",
+        issues: &issues
+      )
       return
     }
 
-    // Try to parse as XML (XHTML should be well-formed XML)
     do {
       let document = try XMLDocument(data: entry.data, options: [.documentTidyHTML])
-
-      // Check for required HTML structure elements
-      guard let root = document.rootElement() else {
-        issues.append(
-          ValidationIssue(
-            file: entry.name,
-            severity: .error,
-            message: "No root element found"
-          ))
-        return
-      }
-
-      // Validate root element is <html>
-      if root.name?.lowercased() != "html" {
-        issues.append(
-          ValidationIssue(
-            file: entry.name,
-            severity: .warning,
-            message: "Root element is not <html>, found: <\(root.name ?? "unknown")>"
-          ))
-      }
-
-      // Check for <head> element
-      let headElements = root.elements(forName: "head")
-      if headElements.isEmpty {
-        issues.append(
-          ValidationIssue(
-            file: entry.name,
-            severity: .warning,
-            message: "Missing <head> element"
-          ))
-      }
-
-      // Check for <body> element
-      let bodyElements = root.elements(forName: "body")
-      if bodyElements.isEmpty {
-        issues.append(
-          ValidationIssue(
-            file: entry.name,
-            severity: .warning,
-            message: "Missing <body> element"
-          ))
-      }
-
-      // Check for DOCTYPE
-      if content.range(of: "<!doctype", options: [.caseInsensitive]) == nil {
-        issues.append(
-          ValidationIssue(
-            file: entry.name,
-            severity: .warning,
-            message: "Missing DOCTYPE declaration"
-          ))
-      }
-
-      // Check for xmlns attribute (required for XHTML)
-      if entry.name.lowercased().hasSuffix(".xhtml") {
-        if let xmlns = root.attribute(forName: "xmlns")?.stringValue {
-          if xmlns != "http://www.w3.org/1999/xhtml" {
-            issues.append(
-              ValidationIssue(
-                file: entry.name,
-                severity: .warning,
-                message: "Invalid XHTML namespace: \(xmlns)"
-              ))
-          }
-        } else {
-          issues.append(
-            ValidationIssue(
-              file: entry.name,
-              severity: .warning,
-              message: "XHTML file missing xmlns attribute"
-            ))
-        }
-      }
-
-      // Validate character encoding declaration
-      if let head = headElements.first {
-        let metaElements = head.elements(forName: "meta")
-        let hasCharsetDeclaration = metaElements.contains { meta in
-          if let charset = meta.attribute(forName: "charset")?.stringValue {
-            return !charset.isEmpty
-          }
-          if let httpEquiv = meta.attribute(forName: "http-equiv")?.stringValue,
-            httpEquiv.lowercased() == "content-type"
-          {
-            return true
-          }
-          return false
-        }
-
-        if !hasCharsetDeclaration {
-          issues.append(
-            ValidationIssue(
-              file: entry.name,
-              severity: .warning,
-              message: "Missing character encoding declaration in <head>"
-            ))
-        }
-      }
-
+      validateDocument(
+        document,
+        content: content,
+        entry: entry,
+        issues: &issues
+      )
     } catch {
-      // XML parsing failed
-      issues.append(
-        ValidationIssue(
-          file: entry.name,
-          severity: .error,
-          message: "Not well-formed XML/XHTML: \(error.localizedDescription)"
-        ))
+      appendIssue(
+        file: entry.name,
+        severity: .error,
+        message: "Not well-formed XML/XHTML: \(error.localizedDescription)",
+        issues: &issues
+      )
     }
+  }
+
+  private func validateDocument(
+    _ document: XMLDocument,
+    content: String,
+    entry: ZipEntry,
+    issues: inout [ValidationIssue]
+  ) {
+    guard let root = document.rootElement() else {
+      appendIssue(
+        file: entry.name,
+        severity: .error,
+        message: "No root element found",
+        issues: &issues
+      )
+      return
+    }
+
+    validateRoot(root, entry: entry, issues: &issues)
+    let headElements = root.elements(forName: "head")
+    let bodyElements = root.elements(forName: "body")
+    validateStructure(
+      headElements: headElements,
+      bodyElements: bodyElements,
+      entry: entry,
+      issues: &issues
+    )
+    validateDoctype(content, entry: entry, issues: &issues)
+    validateXHTMLNamespace(root, entry: entry, issues: &issues)
+    validateCharsetDeclaration(
+      headElements: headElements,
+      entry: entry,
+      issues: &issues
+    )
+  }
+
+  private func validateRoot(
+    _ root: XMLElement,
+    entry: ZipEntry,
+    issues: inout [ValidationIssue]
+  ) {
+    guard root.name?.lowercased() != "html" else { return }
+    appendIssue(
+      file: entry.name,
+      severity: .warning,
+      message: "Root element is not <html>, found: <\(root.name ?? "unknown")>",
+      issues: &issues
+    )
+  }
+
+  private func validateStructure(
+    headElements: [XMLElement],
+    bodyElements: [XMLElement],
+    entry: ZipEntry,
+    issues: inout [ValidationIssue]
+  ) {
+    if headElements.isEmpty {
+      appendIssue(
+        file: entry.name,
+        severity: .warning,
+        message: "Missing <head> element",
+        issues: &issues
+      )
+    }
+
+    if bodyElements.isEmpty {
+      appendIssue(
+        file: entry.name,
+        severity: .warning,
+        message: "Missing <body> element",
+        issues: &issues
+      )
+    }
+  }
+
+  private func validateDoctype(
+    _ content: String,
+    entry: ZipEntry,
+    issues: inout [ValidationIssue]
+  ) {
+    guard content.range(of: "<!doctype", options: [.caseInsensitive]) == nil else { return }
+    appendIssue(
+      file: entry.name,
+      severity: .warning,
+      message: "Missing DOCTYPE declaration",
+      issues: &issues
+    )
+  }
+
+  private func validateXHTMLNamespace(
+    _ root: XMLElement,
+    entry: ZipEntry,
+    issues: inout [ValidationIssue]
+  ) {
+    guard entry.name.lowercased().hasSuffix(".xhtml") else { return }
+    if let xmlns = root.attribute(forName: "xmlns")?.stringValue {
+      if xmlns != "http://www.w3.org/1999/xhtml" {
+        appendIssue(
+          file: entry.name,
+          severity: .warning,
+          message: "Invalid XHTML namespace: \(xmlns)",
+          issues: &issues
+        )
+      }
+    } else {
+      appendIssue(
+        file: entry.name,
+        severity: .warning,
+        message: "XHTML file missing xmlns attribute",
+        issues: &issues
+      )
+    }
+  }
+
+  private func validateCharsetDeclaration(
+    headElements: [XMLElement],
+    entry: ZipEntry,
+    issues: inout [ValidationIssue]
+  ) {
+    guard let head = headElements.first else { return }
+    let metaElements = head.elements(forName: "meta")
+    let hasCharsetDeclaration = metaElements.contains { meta in
+      if let charset = meta.attribute(forName: "charset")?.stringValue {
+        return !charset.isEmpty
+      }
+      if let httpEquiv = meta.attribute(forName: "http-equiv")?.stringValue,
+        httpEquiv.lowercased() == "content-type"
+      {
+        return true
+      }
+      return false
+    }
+
+    guard !hasCharsetDeclaration else { return }
+    appendIssue(
+      file: entry.name,
+      severity: .warning,
+      message: "Missing character encoding declaration in <head>",
+      issues: &issues
+    )
+  }
+
+  private func appendIssue(
+    file: String,
+    severity: ValidationIssue.Severity,
+    message: String,
+    issues: inout [ValidationIssue]
+  ) {
+    issues.append(ValidationIssue(file: file, severity: severity, message: message))
   }
 }

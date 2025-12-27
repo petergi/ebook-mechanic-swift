@@ -10,15 +10,43 @@ public struct MarkdownReportGenerator: Sendable {
     corruptedDirectoryName: String,
     repairs: [RepairResult] = []
   ) throws -> String {
-
     let builder = MarkdownBuilder()
+    appendHeader(
+      builder: builder,
+      rootDirectory: rootDirectory,
+      corruptedDirectoryName: corruptedDirectoryName
+    )
+    appendCorruptionSummary(builder: builder, result: result)
+    appendEmptyFolderSummary(builder: builder, result: result)
+    appendCorruptedFilesDetails(
+      builder: builder,
+      result: result,
+      rootDirectory: rootDirectory
+    )
+    try appendEmptyFoldersDetails(
+      builder: builder,
+      result: result,
+      rootDirectory: rootDirectory
+    )
+    appendRepairAttempts(builder: builder, repairs: repairs, rootDirectory: rootDirectory)
+    appendFooter(builder: builder)
+    return builder.contents
+  }
+
+  private func appendHeader(
+    builder: MarkdownBuilder,
+    rootDirectory: URL,
+    corruptedDirectoryName: String
+  ) {
     builder.appendLine("# EbookMechanic Report")
     builder.appendEmptyLine()
     builder.appendLine("**Report Date:** \(DateFormatter.humanReadable.string(from: Date()))  ")
     builder.appendLine("**Root Directory:** `\(rootDirectory.path)`  ")
     builder.appendLine("**Corrupted Files Directory:** `\(corruptedDirectoryName)`")
     builder.appendLine("\n---\n")
+  }
 
+  private func appendCorruptionSummary(builder: MarkdownBuilder, result: ScanResult) {
     builder.appendLine("## Corruption Scan Summary\n")
     builder.appendLine("- **Total files scanned:** \(result.totalFiles)")
     builder.appendLine("- **Total corrupted files:** \(result.corruptedFiles.count)\n")
@@ -34,117 +62,142 @@ public struct MarkdownReportGenerator: Sendable {
         "| \(type.fileExtension.uppercased()) | \(breakdown.corrupted) | \(breakdown.total) | \(validationLevel) | \(status) |"
       )
     }
+  }
 
+  private func appendEmptyFolderSummary(builder: MarkdownBuilder, result: ScanResult) {
     builder.appendLine("\n## Empty Folders Summary\n")
     builder.appendLine("- **Total folders scanned:** \(result.totalFolders)")
     builder.appendLine("- **Folders with ebooks:** \(result.foldersWithEbooks)")
     builder.appendLine("- **Folders without ebooks:** \(result.emptyFolders.count)\n")
+  }
 
-    func relativePath(for url: URL) -> String {
-      url.path.replacingOccurrences(of: rootDirectory.path, with: "").trimmingCharacters(
-        in: CharacterSet(charactersIn: "/"))
-    }
-
-    if !result.corruptedFiles.isEmpty {
-      builder.appendLine("---\n")
-      builder.appendLine("## Corrupted Files Details\n")
-      let grouped = Dictionary(
-        grouping: result.corruptedFiles,
-        by: { EbookFileType(pathExtension: $0.url.pathExtension) ?? .pdf })
-      for type in EbookFileType.allCases {
-        guard let files = grouped[type], !files.isEmpty else { continue }
-        builder.appendLine("### \(type.fileExtension.uppercased()) Files\n")
-        for file in files {
-          let relative = relativePath(for: file.url)
-          let statusEmoji = statusEmoji(for: file.status)
-          builder.appendLine("#### \(statusEmoji) `\(relative)`\n")
-          builder.appendLine("- **Size:** \(ByteCountFormatter.readableString(from: file.size))")
-          builder.appendLine("- **Reason:** \(file.reason)")
-          builder.appendLine("- **Validation Level:** \(file.validationLevel.rawValue.uppercased())")
-
-          if let pdfDetails = file.pdfValidationDetails {
-            builder.appendLine("- **PDF Structure Validation:**")
-            builder.appendLine(
-              "  - Structure: \(pdfDetails.structureValid ? "✅ Valid" : "❌ Invalid")")
-            builder.appendLine(
-              "  - Cross-Reference Table: \(pdfDetails.xrefValid ? "✅ Valid" : "❌ Invalid")")
-            builder.appendLine(
-              "  - Page Tree: \(pdfDetails.pageTreeValid ? "✅ Valid" : "❌ Invalid")")
-            if !pdfDetails.streamErrors.isEmpty {
-              builder.appendLine(
-                "  - Stream Errors: \(pdfDetails.streamErrors.joined(separator: ", "))")
-            }
-            if let encryption = pdfDetails.encryptionInfo {
-              builder.appendLine("  - Encryption: \(encryption)")
-            }
-            if let conforms = pdfDetails.conformsToStandard {
-              builder.appendLine("  - Conforms To: \(conforms)")
-            }
-          }
-
-          if let epubDetails = file.epubComplianceDetails {
-            builder.appendLine("- **EPUB Compliance Details:**")
-            appendEpubComplianceDetails(epubDetails, builder: builder)
-          }
-          builder.appendEmptyLine()
-        }
-      }
-    } else {
+  private func appendCorruptedFilesDetails(
+    builder: MarkdownBuilder,
+    result: ScanResult,
+    rootDirectory: URL
+  ) {
+    guard !result.corruptedFiles.isEmpty else {
       builder.appendLine("---\n")
       builder.appendLine("## ✅ No Corrupted Files Found\n")
-    }
-
-    if !result.emptyFolders.isEmpty {
-      builder.appendLine("---\n")
-      builder.appendLine("## Folders Without Ebooks\n")
-      for folder in result.emptyFolders {
-        let relative = relativePath(for: folder)
-        builder.appendLine("### `\(relative)`\n")
-        if let contents = try? FileManager.default.contentsOfDirectory(atPath: folder.path),
-          !contents.isEmpty
-        {
-          builder.appendLine("**Contents:** \(contents.count) items\n")
-          for (idx, item) in contents.enumerated() where idx < 5 {
-            builder.appendLine("- `\(item)`")
-          }
-          if contents.count > 5 {
-            builder.appendLine("- *... and \(contents.count - 5) more items*\n")
-          } else {
-            builder.appendEmptyLine()
-          }
-        } else {
-          builder.appendLine("**Status:** Empty folder\n")
-        }
-      }
-    } else if result.totalFolders > 0 {
-      builder.appendLine("---\n")
-      builder.appendLine("## ✅ No Empty Folders Found\n")
-    }
-
-    if !repairs.isEmpty {
-      builder.appendLine("---\n")
-      builder.appendLine("## Repair Attempts\n")
-      for (index, repair) in repairs.enumerated() {
-        let label: String
-        if repair.fixed {
-          label = "Fixed"
-        } else if repair.success {
-          label = "No change"
-        } else {
-          label = "Failed"
-        }
-        let icon: String = repair.fixed ? "✅" : (repair.success ? "ℹ️" : "❌")
-        let path = repair.fileURL.map { "`\(relativePath(for: $0))`" } ?? "*Unknown file*"
-        builder.appendLine("### \(icon) Attempt \(index + 1): \(label)")
-        builder.appendLine("- **File:** \(path)")
-        builder.appendLine("- **Details:** \(repair.message)\n")
-      }
+      return
     }
 
     builder.appendLine("---\n")
-    builder.appendLine("*Report generated by EbookMechanic*\n")
+    builder.appendLine("## Corrupted Files Details\n")
+    let grouped = Dictionary(
+      grouping: result.corruptedFiles,
+      by: { EbookFileType(pathExtension: $0.url.pathExtension) ?? .pdf })
+    for type in EbookFileType.allCases {
+      guard let files = grouped[type], !files.isEmpty else { continue }
+      builder.appendLine("### \(type.fileExtension.uppercased()) Files\n")
+      for file in files {
+        let relative = relativePath(for: file.url, rootDirectory: rootDirectory)
+        let statusEmoji = statusEmoji(for: file.status)
+        builder.appendLine("#### \(statusEmoji) `\(relative)`\n")
+        builder.appendLine("- **Size:** \(ByteCountFormatter.readableString(from: file.size))")
+        builder.appendLine("- **Reason:** \(file.reason)")
+        builder.appendLine("- **Validation Level:** \(file.validationLevel.rawValue.uppercased())")
 
-    return builder.contents
+        if let pdfDetails = file.pdfValidationDetails {
+          builder.appendLine("- **PDF Structure Validation:**")
+          builder.appendLine(
+            "  - Structure: \(pdfDetails.structureValid ? "✅ Valid" : "❌ Invalid")")
+          builder.appendLine(
+            "  - Cross-Reference Table: \(pdfDetails.xrefValid ? "✅ Valid" : "❌ Invalid")")
+          builder.appendLine(
+            "  - Page Tree: \(pdfDetails.pageTreeValid ? "✅ Valid" : "❌ Invalid")")
+          if !pdfDetails.streamErrors.isEmpty {
+            builder.appendLine(
+              "  - Stream Errors: \(pdfDetails.streamErrors.joined(separator: ", "))")
+          }
+          if let encryption = pdfDetails.encryptionInfo {
+            builder.appendLine("  - Encryption: \(encryption)")
+          }
+          if let conforms = pdfDetails.conformsToStandard {
+            builder.appendLine("  - Conforms To: \(conforms)")
+          }
+        }
+
+        if let epubDetails = file.epubComplianceDetails {
+          builder.appendLine("- **EPUB Compliance Details:**")
+          appendEpubComplianceDetails(epubDetails, builder: builder)
+        }
+        builder.appendEmptyLine()
+      }
+    }
+  }
+
+  private func appendEmptyFoldersDetails(
+    builder: MarkdownBuilder,
+    result: ScanResult,
+    rootDirectory: URL
+  ) throws {
+    if result.emptyFolders.isEmpty {
+      if result.totalFolders > 0 {
+        builder.appendLine("---\n")
+        builder.appendLine("## ✅ No Empty Folders Found\n")
+      }
+      return
+    }
+
+    builder.appendLine("---\n")
+    builder.appendLine("## Folders Without Ebooks\n")
+    for folder in result.emptyFolders {
+      let relative = relativePath(for: folder, rootDirectory: rootDirectory)
+      builder.appendLine("### `\(relative)`\n")
+      if let contents = try? FileManager.default.contentsOfDirectory(atPath: folder.path),
+        !contents.isEmpty
+      {
+        builder.appendLine("**Contents:** \(contents.count) items\n")
+        for (idx, item) in contents.enumerated() where idx < 5 {
+          builder.appendLine("- `\(item)`")
+        }
+        if contents.count > 5 {
+          builder.appendLine("- *... and \(contents.count - 5) more items*\n")
+        } else {
+          builder.appendEmptyLine()
+        }
+      } else {
+        builder.appendLine("**Status:** Empty folder\n")
+      }
+    }
+  }
+
+  private func appendRepairAttempts(
+    builder: MarkdownBuilder,
+    repairs: [RepairResult],
+    rootDirectory: URL
+  ) {
+    guard !repairs.isEmpty else { return }
+    builder.appendLine("---\n")
+    builder.appendLine("## Repair Attempts\n")
+    for (index, repair) in repairs.enumerated() {
+      let label: String
+      if repair.fixed {
+        label = "Fixed"
+      } else if repair.success {
+        label = "No change"
+      } else {
+        label = "Failed"
+      }
+      let icon: String = repair.fixed ? "✅" : (repair.success ? "ℹ️" : "❌")
+      let path =
+        repair.fileURL.map { "`\(relativePath(for: $0, rootDirectory: rootDirectory))`" }
+        ?? "*Unknown file*"
+      builder.appendLine("### \(icon) Attempt \(index + 1): \(label)")
+      builder.appendLine("- **File:** \(path)")
+      builder.appendLine("- **Details:** \(repair.message)\n")
+    }
+  }
+
+  private func appendFooter(builder: MarkdownBuilder) {
+    builder.appendLine("---\n")
+    builder.appendLine("*Report generated by EbookMechanic*\n")
+  }
+
+  private func relativePath(for url: URL, rootDirectory: URL) -> String {
+    url.path.replacingOccurrences(of: rootDirectory.path, with: "").trimmingCharacters(
+      in: CharacterSet(charactersIn: "/"))
   }
 }
 
