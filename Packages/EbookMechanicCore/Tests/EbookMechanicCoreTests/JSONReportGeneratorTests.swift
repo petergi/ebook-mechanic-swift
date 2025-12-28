@@ -27,7 +27,7 @@ final class JSONReportGeneratorTests: XCTestCase {
       corruptedFiles: [corruptedFile1, corruptedFile2],
       breakdowns: [
         .epub: FormatBreakdown(total: 1, corrupted: 1),
-        .pdf: FormatBreakdown(total: 1, corrupted: 1),
+        .pdf: FormatBreakdown(total: 1, corrupted: 1)
       ],
       emptyFolders: [mockRootDirectory.appendingPathComponent("empty/folder")],
       totalFolders: 1,
@@ -38,7 +38,7 @@ final class JSONReportGeneratorTests: XCTestCase {
       RepairResult(
         success: true, message: "Fixed mimetype", fixed: true, fileURL: corruptedFile1.url),
       RepairResult(
-        success: false, message: "Could not fix PDF", fixed: false, fileURL: corruptedFile2.url),
+        success: false, message: "Could not fix PDF", fixed: false, fileURL: corruptedFile2.url)
     ]
   }
 

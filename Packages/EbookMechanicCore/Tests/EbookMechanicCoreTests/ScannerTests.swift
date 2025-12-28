@@ -34,7 +34,10 @@ final class ScannerTests: XCTestCase {
     XCTAssertEqual(
       foldersResult.foldersWithEbooks,
       foldersResult.totalFolders - 1,
-      "Folders with ebooks: \(foldersResult.foldersWithEbooks), total: \(foldersResult.totalFolders), empty: \(foldersResult.emptyFolders.count)"
+      """
+      Folders with ebooks: \(foldersResult.foldersWithEbooks), total: \(foldersResult.totalFolders), \
+      empty: \(foldersResult.emptyFolders.count)
+      """
     )
 
     try await scanner.moveCorruptedFiles()

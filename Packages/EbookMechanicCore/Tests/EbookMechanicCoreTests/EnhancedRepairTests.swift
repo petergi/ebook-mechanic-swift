@@ -190,7 +190,7 @@ final class EnhancedRepairTests: XCTestCase {
     let epubURL = tempDirectory.appendingPathComponent("test.epub")
     try TestFixtures.createEPUBWithOnlyContent(at: epubURL)
 
-    let _ = await repairer.repair(url: epubURL)
+    _ = await repairer.repair(url: epubURL)
 
     // Backup should be cleaned up after successful repair
     let backupURL = epubURL.appendingPathExtension("backup")
@@ -206,7 +206,7 @@ final class EnhancedRepairTests: XCTestCase {
     try Data("This is not a ZIP file at all".utf8).write(to: epubURL)
 
     let originalData = try Data(contentsOf: epubURL)
-    let _ = await repairer.repair(url: epubURL)
+    _ = await repairer.repair(url: epubURL)
 
     // Verify original file is unchanged
     let finalData = try Data(contentsOf: epubURL)

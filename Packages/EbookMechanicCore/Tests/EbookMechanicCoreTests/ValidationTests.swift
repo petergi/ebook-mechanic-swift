@@ -47,7 +47,7 @@ final class ValidationTests: XCTestCase {
     XCTAssertEqual(lateMimeResult.reason, "mimetype must be first entry")
 
     let notZip = tempDir.appendingPathComponent("not_zip.epub")
-    try "This is not a ZIP file".data(using: .utf8)!.write(to: notZip)
+    try Data("This is not a ZIP file".utf8).write(to: notZip)
     let invalidZip = await validator.validate(url: notZip, as: .epub)
     XCTAssertFalse(invalidZip.isValid)
     XCTAssertTrue(

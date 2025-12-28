@@ -11,7 +11,7 @@ enum TestFixtures {
       ZipEntry(name: "content.opf", data: createMinimalOPF(), compressionMethod: 8),
       ZipEntry(
         name: "chapter1.html", data: Data("<html><body>Chapter 1</body></html>".utf8),
-        compressionMethod: 8),
+        compressionMethod: 8)
     ])
     try archive.write(to: url)
   }
@@ -30,7 +30,7 @@ enum TestFixtures {
       ZipEntry(name: "mimetype", data: Data("text/plain".utf8)),
       ZipEntry(
         name: "META-INF/container.xml",
-        data: Data("<?xml version=\"1.0\"?><container></container>".utf8)),
+        data: Data("<?xml version=\"1.0\"?><container></container>".utf8))
     ])
     try archive.write(to: url)
   }
@@ -54,7 +54,7 @@ enum TestFixtures {
       ZipEntry(name: "content.xhtml", data: Data("<html></html>".utf8), compressionMethod: 8),
       ZipEntry(
         name: "META-INF/container.xml", data: Data(validContainerXML.utf8), compressionMethod: 8),
-      ZipEntry(name: "mimetype", data: Data("application/epub+zip".utf8), compressionMethod: 8),
+      ZipEntry(name: "mimetype", data: Data("application/epub+zip".utf8), compressionMethod: 8)
     ])
     try archive.write(to: url)
   }
@@ -88,7 +88,7 @@ enum TestFixtures {
       ZipEntry(
         name: "OEBPS/Text/chapter1.xhtml", data: Data("Chapter 1".utf8), compressionMethod: 8),
       ZipEntry(
-        name: "OEBPS/Images/cover.jpg", data: Data([0xFF, 0xD8, 0xFF, 0xD9]), compressionMethod: 8),
+        name: "OEBPS/Images/cover.jpg", data: Data([0xFF, 0xD8, 0xFF, 0xD9]), compressionMethod: 8)
     ]
 
     try ZipArchive(entries: entries).write(to: url)

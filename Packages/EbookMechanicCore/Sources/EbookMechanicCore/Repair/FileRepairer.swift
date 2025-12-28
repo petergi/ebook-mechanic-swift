@@ -164,18 +164,15 @@ public struct FileRepairer: @unchecked Sendable {
       func createMinimalOPF(htmlFiles: [ZipEntry]) -> Data {
         let package = XMLElement(name: "package")
         if let versionAttribute = XMLNode.attribute(withName: "version", stringValue: "2.0")
-          as? XMLNode
-        {
+          as? XMLNode {
           package.addAttribute(versionAttribute)
         }
         if let idAttribute = XMLNode.attribute(withName: "unique-identifier", stringValue: "BookId")
-          as? XMLNode
-        {
+          as? XMLNode {
           package.addAttribute(idAttribute)
         }
         if let namespace = XMLNode.namespace(withName: "", stringValue: "http://www.idpf.org/2007/opf")
-          as? XMLNode
-        {
+          as? XMLNode {
           package.addNamespace(namespace)
         }
 
@@ -206,8 +203,7 @@ public struct FileRepairer: @unchecked Sendable {
             item.addAttribute(attribute)
           }
           if let attribute = XMLNode.attribute(withName: "href", stringValue: htmlFile.name)
-            as? XMLNode
-          {
+            as? XMLNode {
             item.addAttribute(attribute)
           }
           if let attribute = XMLNode.attribute(

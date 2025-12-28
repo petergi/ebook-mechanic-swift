@@ -27,7 +27,7 @@ final class CSVReportGeneratorTests: XCTestCase {
       corruptedFiles: [corruptedFile1, corruptedFile2],
       breakdowns: [
         .epub: FormatBreakdown(total: 1, corrupted: 1),
-        .pdf: FormatBreakdown(total: 1, corrupted: 1),
+        .pdf: FormatBreakdown(total: 1, corrupted: 1)
       ],
       emptyFolders: [mockRootDirectory.appendingPathComponent("empty/folder")],
       totalFolders: 1,
@@ -39,7 +39,7 @@ final class CSVReportGeneratorTests: XCTestCase {
         success: true, message: "Fixed mimetype", fixed: true, fileURL: corruptedFile1.url),
       RepairResult(
         success: false, message: "Could not fix PDF: reason, with \"quotes\"", fixed: false,
-        fileURL: corruptedFile2.url),
+        fileURL: corruptedFile2.url)
     ]
   }
 

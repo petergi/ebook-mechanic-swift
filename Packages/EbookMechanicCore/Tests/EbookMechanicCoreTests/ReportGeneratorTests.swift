@@ -2,6 +2,7 @@ import XCTest
 
 @testable import EbookMechanicCore
 
+// swiftlint:disable type_body_length
 final class ReportGeneratorTests: XCTestCase {
   func testReportGenerationProducesFile() throws {
     let tempDir = try temporaryRoot()
@@ -14,11 +15,11 @@ final class ReportGeneratorTests: XCTestCase {
           size: 5120, status: .corrupt),
         CorruptedFile(
           url: tempDir.appendingPathComponent("Broken/book2.pdf"), reason: "Missing %%EOF marker",
-          size: 8096, status: .corrupt),
+          size: 8096, status: .corrupt)
       ],
       breakdowns: [
         .epub: FormatBreakdown(total: 1, corrupted: 1),
-        .pdf: FormatBreakdown(total: 1, corrupted: 1),
+        .pdf: FormatBreakdown(total: 1, corrupted: 1)
       ],
       emptyFolders: [tempDir.appendingPathComponent("Empty")],
       totalFolders: 3,
@@ -66,7 +67,7 @@ final class ReportGeneratorTests: XCTestCase {
     let result = ScanResult(
       totalFiles: 10,
       emptyFolders: [
-        tempDir.appendingPathComponent("Empty1"), tempDir.appendingPathComponent("Empty2"),
+        tempDir.appendingPathComponent("Empty1"), tempDir.appendingPathComponent("Empty2")
       ],
       totalFolders: 5,
       foldersWithEbooks: 3
@@ -121,14 +122,14 @@ final class ReportGeneratorTests: XCTestCase {
           status: .corrupt),
         CorruptedFile(
           url: tempDir.appendingPathComponent("book.pdf"), reason: "Bad PDF", size: 5120,
-          status: .corrupt),
+          status: .corrupt)
       ],
       breakdowns: [
         .epub: FormatBreakdown(total: 2, corrupted: 1),
         .mobi: FormatBreakdown(total: 2, corrupted: 1),
         .azw3: FormatBreakdown(total: 2, corrupted: 1),
         .azw4: FormatBreakdown(total: 2, corrupted: 1),
-        .pdf: FormatBreakdown(total: 2, corrupted: 1),
+        .pdf: FormatBreakdown(total: 2, corrupted: 1)
       ],
       totalFolders: 5,
       foldersWithEbooks: 5
@@ -163,11 +164,11 @@ final class ReportGeneratorTests: XCTestCase {
           status: .corrupt),
         CorruptedFile(
           url: tempDir.appendingPathComponent("book2.pdf"), reason: "Bad", size: 2048,
-          status: .corrupt),
+          status: .corrupt)
       ],
       breakdowns: [
         .epub: FormatBreakdown(total: 10, corrupted: 3),
-        .pdf: FormatBreakdown(total: 10, corrupted: 2),
+        .pdf: FormatBreakdown(total: 10, corrupted: 2)
       ],
       totalFolders: 5,
       foldersWithEbooks: 5
@@ -326,3 +327,4 @@ final class ReportGeneratorTests: XCTestCase {
     return url
   }
 }
+// swiftlint:enable type_body_length

@@ -18,8 +18,13 @@ final class ParallelValidationTests: XCTestCase {
 
     override func setUpWithError() throws {
         try super.setUpWithError()
-        testDirectory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: testDirectory, withIntermediateDirectories: true, attributes: nil)
+        testDirectory = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(
+            at: testDirectory,
+            withIntermediateDirectories: true,
+            attributes: nil
+        )
     }
 
     override func tearDownWithError() throws {
@@ -32,11 +37,19 @@ final class ParallelValidationTests: XCTestCase {
 
         for index in 0..<fileCount {
             let fileURL = testDirectory.appendingPathComponent("file\(index).epub")
-            FileManager.default.createFile(atPath: fileURL.path, contents: Data("test".utf8), attributes: nil)
+            FileManager.default.createFile(
+                atPath: fileURL.path,
+                contents: Data("test".utf8),
+                attributes: nil
+            )
         }
 
         let validator = FileValidator()
-        let scanner = FileScanner(rootDirectory: testDirectory, maxConcurrentValidations: 4, validator: validator)
+        let scanner = FileScanner(
+            rootDirectory: testDirectory,
+            maxConcurrentValidations: 4,
+            validator: validator
+        )
         let result = try await scanner.scanForCorruption()
         XCTAssertEqual(result.totalFiles, fileCount)
         XCTAssertEqual(result.corruptedFiles.count, fileCount)
@@ -48,11 +61,19 @@ final class ParallelValidationTests: XCTestCase {
 
         for index in 0..<fileCount {
             let fileURL = testDirectory.appendingPathComponent("file\(index).epub")
-            FileManager.default.createFile(atPath: fileURL.path, contents: Data("test".utf8), attributes: nil)
+            FileManager.default.createFile(
+                atPath: fileURL.path,
+                contents: Data("test".utf8),
+                attributes: nil
+            )
         }
 
         let validator = FileValidator()
-        let scanner = FileScanner(rootDirectory: testDirectory, maxConcurrentValidations: maxConcurrentValidations, validator: validator)
+        let scanner = FileScanner(
+            rootDirectory: testDirectory,
+            maxConcurrentValidations: maxConcurrentValidations,
+            validator: validator
+        )
 
         let collector = ProgressCollector()
         let progressHandler: FileScanner.ProgressHandler = { event in
@@ -81,11 +102,19 @@ final class ParallelValidationTests: XCTestCase {
 
         for index in 0..<fileCount {
             let fileURL = testDirectory.appendingPathComponent("file\(index).epub")
-            FileManager.default.createFile(atPath: fileURL.path, contents: Data("test".utf8), attributes: nil)
+            FileManager.default.createFile(
+                atPath: fileURL.path,
+                contents: Data("test".utf8),
+                attributes: nil
+            )
         }
 
         let validator = FileValidator()
-        let scanner = FileScanner(rootDirectory: testDirectory, maxConcurrentValidations: 4, validator: validator)
+        let scanner = FileScanner(
+            rootDirectory: testDirectory,
+            maxConcurrentValidations: 4,
+            validator: validator
+        )
         _ = try await scanner.scanForCorruption()
         let firstMetrics = await scanner.performanceMetrics
         XCTAssertEqual(firstMetrics.cacheHitRate, 0)
@@ -95,7 +124,7 @@ final class ParallelValidationTests: XCTestCase {
         XCTAssertGreaterThan(secondMetrics.cacheHitRate, 0)
 
         let fileURL = testDirectory.appendingPathComponent("file0.epub")
-        try "modified".data(using: .utf8)?.write(to: fileURL)
+        try Data("modified".utf8).write(to: fileURL)
 
         _ = try await scanner.scanForCorruption()
         let thirdMetrics = await scanner.performanceMetrics
