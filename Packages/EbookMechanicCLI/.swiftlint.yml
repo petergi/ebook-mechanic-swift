@@ -1,3 +1,7 @@
 excluded:
   - .build
   - .build/checkouts
+blanket_disable_command:
+  allowed_rules:
+    - trailing_comma
+    - file_length

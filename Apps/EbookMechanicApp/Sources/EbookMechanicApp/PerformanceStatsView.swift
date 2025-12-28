@@ -56,14 +56,17 @@ struct PerformanceStatsView: View {
               .scaleEffect(0.8)
               .frame(maxWidth: .infinity, alignment: .center)
               Text(
-                "A ratio closer to 1.0 indicates better utilization of parallel processing capabilities. A value above 1.0 may indicate overhead from parallelization for very fast tasks."
+                "A ratio closer to 1.0 indicates better utilization of parallel processing "
+                  + "capabilities. A value above 1.0 may indicate overhead from "
+                  + "parallelization for very fast tasks."
               )
               .font(.caption)
               .foregroundColor(.secondary)
             }
           } else {
             Text(
-              "No performance metrics available. Run a scan with 'Show Performance Stats' enabled."
+              "No performance metrics available. Run a scan with "
+                + "'Show Performance Stats' enabled."
             )
             .foregroundColor(.secondary)
           }

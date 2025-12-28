@@ -1,3 +1,9 @@
 excluded:
   - .build
   - .build/checkouts
+blanket_disable_command:
+  allowed_rules:
+    - cyclomatic_complexity
+    - file_length
+    - function_body_length
+    - type_body_length

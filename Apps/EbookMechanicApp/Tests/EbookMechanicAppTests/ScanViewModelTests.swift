@@ -55,7 +55,7 @@ final class ScanViewModelTests: XCTestCase {
       reason: "Spec issue",
       status: .nonCompliant
     )
-    let ok = ValidationResult(
+    let okResult = ValidationResult(
       originalIndex: 1,
       url: URL(fileURLWithPath: "/tmp/ok.epub"),
       size: 456,
@@ -66,13 +66,14 @@ final class ScanViewModelTests: XCTestCase {
 
     viewModel.validationResults = [
       nonCompliant.url: nonCompliant,
-      ok.url: ok,
+      okResult.url: okResult
     ]
 
     XCTAssertEqual(viewModel.nonCompliantFiles, [nonCompliant])
   }
 
   @MainActor
+  // swiftlint:disable:next function_body_length
   func testFilesWithWarningsFilter() {
     let viewModel = ScanViewModel()
     let epubComplianceJSON = """
@@ -125,7 +126,7 @@ final class ScanViewModelTests: XCTestCase {
 
     viewModel.validationResults = [
       epubWarning.url: epubWarning,
-      pdfWarning.url: pdfWarning,
+      pdfWarning.url: pdfWarning
     ]
 
     XCTAssertEqual(viewModel.filesWithWarnings.count, 2)

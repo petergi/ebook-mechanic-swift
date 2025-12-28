@@ -3,6 +3,19 @@ import Foundation
 
 struct PDFReportFormatter {
   func printValidationResults(for result: ValidationResult) async {
+    printHeader(for: result)
+    if let pdfDetails = result.pdfValidationDetails {
+      printPdfDetails(pdfDetails)
+    }
+
+    let info = await ExternalValidators.getPdfInfo(at: result.url.path)
+    if !info.isEmpty {
+      printPdfInfo(info, fallbackConformance: result.pdfValidationDetails?.conformsToStandard)
+    }
+    print("--------------------------------------------------")
+  }
+
+  private func printHeader(for result: ValidationResult) {
     print("🔍 Validation Result for: \(result.url.lastPathComponent)")
     print("--------------------------------------------------")
     print("Is Valid: \(result.isValid)")
@@ -13,64 +26,62 @@ struct PDFReportFormatter {
       print("Fingerprint: \(fingerprint.description)")
     }
     print("Reason: \(result.reason)")
+  }
 
-    if let pdfDetails = result.pdfValidationDetails {
-      print("\n📄 PDF Validation Details:")
-      print("  - Structure Valid: \(pdfDetails.structureValid)")
-      print("  - XRef Valid: \(pdfDetails.xrefValid)")
-      print("  - Page Tree Valid: \(pdfDetails.pageTreeValid)")
+  private func printPdfDetails(_ pdfDetails: PDFValidationResult) {
+    print("\n📄 PDF Validation Details:")
+    print("  - Structure Valid: \(pdfDetails.structureValid)")
+    print("  - XRef Valid: \(pdfDetails.xrefValid)")
+    print("  - Page Tree Valid: \(pdfDetails.pageTreeValid)")
 
-      if let encryption = pdfDetails.encryptionInfo {
-        print("  - Encryption: \(encryption)")
-      }
-
-      if let standard = pdfDetails.conformsToStandard {
-        print("  - Conforms to Standard: \(standard)")
-      }
-
-      if !pdfDetails.streamErrors.isEmpty {
-        print("\n  🚨 Stream Errors:")
-        for error in pdfDetails.streamErrors {
-          print("    - \(error)")
-        }
-      }
+    if let encryption = pdfDetails.encryptionInfo {
+      print("  - Encryption: \(encryption)")
     }
 
-    let info = await ExternalValidators.getPdfInfo(at: result.url.path)
-    if !info.isEmpty {
-      print("\n📘 PDF Info:")
-      if let version = info["PDFVersion"] ?? info["Version"] ?? info["PDFVersionString"] {
-        printValue("  - PDF Version", version)
-      }
-      if let pageCount = info["Pages"] ?? info["PageCount"] {
-        printValue("  - Page Count", pageCount)
-      }
-      if let features = info["Features"] ?? info["FeatureSet"] {
-        printValue("  - Features", features)
-      }
-      if let formFields = info["FormFields"] ?? info["Fields"] ?? info["AcroForm"] {
-        printValue("  - Form Fields", formFields)
-      }
-      if let annotations = info["Annotations"] ?? info["AnnotationCount"] {
-        printValue("  - Annotations", annotations)
-      }
-      if let encrypted = info["Encrypted"] ?? info["Encryption"] {
-        printValue("  - Encrypted", encrypted)
-      }
-      if let permissions = info["Permissions"] as? [String: Any] {
-        print("  - Permissions:")
-        for key in permissions.keys.sorted() {
-          let value = permissions[key] ?? "Unknown"
-          print("    • \(key): \(formatValue(value))")
-        }
-      }
-      if let conformance = info["Conformance"] ?? info["PDF/A"] ?? info["PDFX"] {
-        printValue("  - Conformance", conformance)
-      } else if let standard = result.pdfValidationDetails?.conformsToStandard {
-        printValue("  - Conformance", standard)
+    if let standard = pdfDetails.conformsToStandard {
+      print("  - Conforms to Standard: \(standard)")
+    }
+
+    if !pdfDetails.streamErrors.isEmpty {
+      print("\n  🚨 Stream Errors:")
+      for error in pdfDetails.streamErrors {
+        print("    - \(error)")
       }
     }
-    print("--------------------------------------------------")
+  }
+
+  private func printPdfInfo(_ info: [String: Any], fallbackConformance: String?) {
+    print("\n📘 PDF Info:")
+    if let version = info["PDFVersion"] ?? info["Version"] ?? info["PDFVersionString"] {
+      printValue("  - PDF Version", version)
+    }
+    if let pageCount = info["Pages"] ?? info["PageCount"] {
+      printValue("  - Page Count", pageCount)
+    }
+    if let features = info["Features"] ?? info["FeatureSet"] {
+      printValue("  - Features", features)
+    }
+    if let formFields = info["FormFields"] ?? info["Fields"] ?? info["AcroForm"] {
+      printValue("  - Form Fields", formFields)
+    }
+    if let annotations = info["Annotations"] ?? info["AnnotationCount"] {
+      printValue("  - Annotations", annotations)
+    }
+    if let encrypted = info["Encrypted"] ?? info["Encryption"] {
+      printValue("  - Encrypted", encrypted)
+    }
+    if let permissions = info["Permissions"] as? [String: Any] {
+      print("  - Permissions:")
+      for key in permissions.keys.sorted() {
+        let value = permissions[key] ?? "Unknown"
+        print("    • \(key): \(formatValue(value))")
+      }
+    }
+    if let conformance = info["Conformance"] ?? info["PDF/A"] ?? info["PDFX"] {
+      printValue("  - Conformance", conformance)
+    } else if let standard = fallbackConformance {
+      printValue("  - Conformance", standard)
+    }
   }
 
   private func printValue(_ label: String, _ value: Any) {

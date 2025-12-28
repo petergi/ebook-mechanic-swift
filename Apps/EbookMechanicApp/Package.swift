@@ -10,7 +10,7 @@ let package = Package(
   ],
   dependencies: [
     .package(path: "../../Packages/EbookMechanicCore"),
-    .package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.1.0"),
+    .package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.1.0")
   ],
   targets: [
     .executableTarget(
@@ -29,7 +29,7 @@ let package = Package(
     .testTarget(
       name: "EbookMechanicAppUITests",
       dependencies: ["EbookMechanicApp"]
-    ),
+    )
   ],
   swiftLanguageModes: [.v6]
 )

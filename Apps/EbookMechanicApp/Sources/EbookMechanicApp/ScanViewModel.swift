@@ -2,6 +2,7 @@ import EbookMechanicCore
 import Foundation
 import SwiftUI
 
+// swiftlint:disable file_length type_body_length
 /// View model that orchestrates scanning and exposes UI-facing state.
 ///
 /// `ScanViewModel` performs scans using `EbookMechanicCore.FileScanner`, tracks
@@ -139,6 +140,7 @@ final class ScanViewModel: ObservableObject {
     }
   }
 
+  // swiftlint:disable cyclomatic_complexity function_body_length
   /// Runs a scan with the provided options.
   ///
   /// This method coordinates file and folder scanning via `FileScanner`, updates
@@ -147,7 +149,6 @@ final class ScanViewModel: ObservableObject {
   ///
   /// - Parameter options: The configuration that controls scanning behavior.
   /// - Important: This method is `async` and should be awaited from an asynchronous context.
-  // swiftlint:disable:next cyclomatic_complexity function_body_length
   func runScan(options: ScanOptions) async {
     guard !isScanning else { return }
     reset()
@@ -235,8 +236,7 @@ final class ScanViewModel: ObservableObject {
             progress: progressHandler)
           await MainActor.run {
             self.statusMessages.append("Repair attempts: \(repairs.count), fixed: \(repairedCount)")
-            self.corruptedFiles = repairs.enumerated().compactMap {
-              (index, result) -> CorruptedFile? in
+            self.corruptedFiles = repairs.enumerated().compactMap { index, result in
               guard index < scanResult.corruptedFiles.count else { return nil }
               var file = scanResult.corruptedFiles[index]
               if result.fixed {
@@ -346,6 +346,7 @@ final class ScanViewModel: ObservableObject {
       }
     }
   }
+  // swiftlint:enable cyclomatic_complexity function_body_length
 
   /// Generates reports in the specified formats and returns their URLs.
   ///
@@ -356,8 +357,7 @@ final class ScanViewModel: ObservableObject {
   /// - Returns: Array of URLs pointing to the generated report files
   /// - Throws: ScanViewModelError.noScanData if no scan has been performed
   func generateReport(into directory: URL, options: ScanOptions, formats: Set<ReportFormat>)
-    async throws -> [URL]
-  {
+    async throws -> [URL] {
     guard summary != nil else {
       throw ScanViewModelError.noScanData
     }
@@ -387,21 +387,20 @@ final class ScanViewModel: ObservableObject {
       results[validation.url] = validation
     }
 
-    for (index, corrupted) in result.corruptedFiles.enumerated() {
-      if results[corrupted.url] == nil {
-        results[corrupted.url] = ValidationResult(
-          originalIndex: index,
-          url: corrupted.url,
-          size: corrupted.size,
-          isValid: false,
-          reason: corrupted.reason,
-          status: corrupted.status,
-          validationLevel: corrupted.validationLevel,
-          fingerprint: corrupted.fingerprint,
-          pdfValidationDetails: corrupted.pdfValidationDetails,
-          epubComplianceDetails: corrupted.epubComplianceDetails
-        )
-      }
+    for (index, corrupted) in result.corruptedFiles.enumerated()
+      where results[corrupted.url] == nil {
+      results[corrupted.url] = ValidationResult(
+        originalIndex: index,
+        url: corrupted.url,
+        size: corrupted.size,
+        isValid: false,
+        reason: corrupted.reason,
+        status: corrupted.status,
+        validationLevel: corrupted.validationLevel,
+        fingerprint: corrupted.fingerprint,
+        pdfValidationDetails: corrupted.pdfValidationDetails,
+        epubComplianceDetails: corrupted.epubComplianceDetails
+      )
     }
 
     validationResults = results
@@ -409,3 +408,4 @@ final class ScanViewModel: ObservableObject {
     pdfValidationResults = results.compactMapValues { $0.pdfValidationDetails }
   }
 }
+// swiftlint:enable file_length type_body_length

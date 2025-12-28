@@ -127,8 +127,7 @@ struct EbookMechanicApp: App {
     options.showPerformanceStats = showPerformanceStatsByDefault
     options.maxConcurrentValidations = defaultConcurrencyLevel
     if let decoded = try? JSONDecoder().decode(
-      Set<ReportFormat>.self, from: defaultReportFormatsData)
-    {
+      Set<ReportFormat>.self, from: defaultReportFormatsData) {
       options.selectedReportFormats = decoded
     }
   }

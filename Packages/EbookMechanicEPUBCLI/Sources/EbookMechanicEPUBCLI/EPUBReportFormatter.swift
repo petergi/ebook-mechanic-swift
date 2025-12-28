@@ -13,7 +13,7 @@ struct EPUBReportFormatter {
             print("Fingerprint: \(fingerprint.description)")
         }
         print("Reason: \(result.reason)")
-        
+
         if let compliance = result.epubComplianceDetails {
             print("\n📚 EPUB Compliance Details:")
             print("  - EPUB Version: \(compliance.epubVersion)")
@@ -24,12 +24,12 @@ struct EPUBReportFormatter {
             if !compliance.features.isEmpty {
                 print("  - Features: \(compliance.features.sorted().joined(separator: ", "))")
             }
-            
+
             if !compliance.errors.isEmpty {
                 print("\n  🚨 Errors:")
                 printGroupedIssues(compliance.errors)
             }
-            
+
             if !compliance.warnings.isEmpty {
                 print("\n  ⚠️ Warnings:")
                 printGroupedIssues(compliance.warnings)

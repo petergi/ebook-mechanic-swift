@@ -47,8 +47,7 @@ struct SettingsView: View {
 
   private func loadDefaultFormats() {
     if let decoded = try? JSONDecoder().decode(
-      Set<ReportFormat>.self, from: defaultReportFormatsData)
-    {
+      Set<ReportFormat>.self, from: defaultReportFormatsData) {
       selectedDefaultFormats = decoded
     }
   }

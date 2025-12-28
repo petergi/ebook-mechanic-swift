@@ -18,7 +18,8 @@ struct InstallToolsView: View {
           .fontWeight(.bold)
 
         Text(
-          "Some advanced validation and repair features require external command-line tools. Please install them to enable full functionality."
+          "Some advanced validation and repair features require external command-line tools. "
+            + "Please install them to enable full functionality."
         )
         .font(.body)
         .multilineTextAlignment(.center)

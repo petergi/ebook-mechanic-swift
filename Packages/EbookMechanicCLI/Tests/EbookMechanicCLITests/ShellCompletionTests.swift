@@ -2,6 +2,7 @@ import XCTest
 
 @testable import EbookMechanicCLI
 
+// swiftlint:disable type_body_length
 final class ShellCompletionTests: XCTestCase {
 
   // MARK: - ShellType Tests
@@ -81,7 +82,7 @@ final class ShellCompletionTests: XCTestCase {
       "--quiet",
       "--report",
       "--normalize-epubs",
-      "--force-normalize",
+      "--force-normalize"
     ]
 
     for flag in requiredFlags {
@@ -137,7 +138,7 @@ final class ShellCompletionTests: XCTestCase {
       "--dry-run",
       "--no-confirm",
       "--quiet",
-      "--report",
+      "--report"
     ]
 
     for flag in requiredFlags {
@@ -192,7 +193,7 @@ final class ShellCompletionTests: XCTestCase {
       "-l dry-run",
       "-l no-confirm",
       "-l quiet",
-      "-l report",
+      "-l report"
     ]
 
     for flag in requiredFlags {
@@ -256,7 +257,7 @@ final class ShellCompletionTests: XCTestCase {
       "'--dry-run'",
       "'--no-confirm'",
       "'--quiet'",
-      "'--report'",
+      "'--report'"
     ]
 
     for flag in requiredFlags {
@@ -340,7 +341,7 @@ final class ShellCompletionTests: XCTestCase {
       "-l dir",
       "-l repair",
       "-l dry-run",
-      "-l quiet",
+      "-l quiet"
     ]
     for expectation in fishExpectations {
       XCTAssertTrue(fishOutput.contains(expectation), "Fish missing: \(expectation)")
@@ -372,3 +373,4 @@ final class ShellCompletionTests: XCTestCase {
     return String(data: data, encoding: .utf8) ?? ""
   }
 }
+// swiftlint:enable type_body_length

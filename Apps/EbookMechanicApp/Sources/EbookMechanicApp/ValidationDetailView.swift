@@ -52,7 +52,8 @@ struct ValidationDetailView: View {
       InfoRow(label: "File Path", value: validationResult.url.path)
       InfoRow(
         label: "Size",
-        value: ByteCountFormatter.string(fromByteCount: validationResult.size, countStyle: .file))
+        value: ByteCountFormatter.string(
+          fromByteCount: validationResult.size, countStyle: .file))
       InfoRow(label: "Status", value: validationResult.status.rawValue.capitalized)
       if let fingerprint = validationResult.fingerprint {
         InfoRow(label: "Fingerprint", value: fingerprint.description)
@@ -121,7 +122,9 @@ struct EPUBDetailsView: View {
                 Spacer()
                 CopyButton(text: error.message)
               }
-              Text("File: \(error.filePath ?? "N/A"), Line: \(error.lineNumber ?? 0)")
+              Text(
+                "File: \(error.filePath ?? "N/A"), Line: \(error.lineNumber ?? 0)"
+              )
                 .font(.caption)
                 .foregroundColor(.red)
               if let context = error.context, !context.isEmpty {
@@ -144,7 +147,9 @@ struct EPUBDetailsView: View {
                 Spacer()
                 CopyButton(text: warning.message)
               }
-              Text("File: \(warning.filePath ?? "N/A"), Line: \(warning.lineNumber ?? 0)")
+              Text(
+                "File: \(warning.filePath ?? "N/A"), Line: \(warning.lineNumber ?? 0)"
+              )
                 .font(.caption)
                 .foregroundColor(.orange)
               if let context = warning.context, !context.isEmpty {
@@ -227,8 +232,18 @@ struct CopyButton: View {
 //        epubComplianceDetails: EPUBComplianceResult(
 //            isCompliant: false,
 //            hasWarnings: true,
-//            errors: [EPUBValidationIssue(severity: "ERROR", message: "Mimetype not found", filePath: "mimetype", lineNumber: 0)],
-//            warnings: [EPUBValidationIssue(severity: "WARNING", message: "Image resolution too low", filePath: "images/cover.jpg", lineNumber: 10)],
+//            errors: [
+//                EPUBValidationIssue(
+//                    severity: "ERROR", message: "Mimetype not found", filePath: "mimetype",
+//                    lineNumber: 0
+//                )
+//            ],
+//            warnings: [
+//                EPUBValidationIssue(
+//                    severity: "WARNING", message: "Image resolution too low",
+//                    filePath: "images/cover.jpg", lineNumber: 10
+//                )
+//            ],
 //            epubVersion: "3.0",
 //            epubcheckVersion: "4.2.0",
 //            conformsToAccessibility: false

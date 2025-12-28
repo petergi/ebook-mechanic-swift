@@ -70,7 +70,7 @@ final class ContentViewUITests: XCTestCase {
           status: .corrupt),
         CorruptedFile(
           url: URL(fileURLWithPath: "/tmp/bad2.pdf"), reason: "Missing EOF", size: 20,
-          status: .corrupt),
+          status: .corrupt)
       ]
     }
 
@@ -82,7 +82,7 @@ final class ContentViewUITests: XCTestCase {
     let sut = makeSUT { viewModel in
       viewModel.emptyFolders = [
         URL(fileURLWithPath: "/tmp/EmptyFolderA"),
-        URL(fileURLWithPath: "/tmp/EmptyFolderB"),
+        URL(fileURLWithPath: "/tmp/EmptyFolderB")
       ]
     }
 

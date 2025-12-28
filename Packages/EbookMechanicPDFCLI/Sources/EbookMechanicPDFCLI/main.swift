@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import ArgumentParser
 import EbookMechanicCore
 import Foundation
@@ -44,12 +45,12 @@ extension EbookMechanicPDFCLI {
       completion: .list(["json", "yaml"]))
     var extractMetadata: String?
 
-    // swiftlint:disable:next cyclomatic_complexity function_body_length
     func run() throws {
       let group = DispatchGroup()
       group.enter()
 
       Task {
+        defer { group.leave() }
         do {
           let rootURL = URL(fileURLWithPath: dir).resolvingSymlinksInPath()
           let scanner = FileScanner(
@@ -58,114 +59,179 @@ extension EbookMechanicPDFCLI {
 
           print("📂 Scanning directory: \(dir)")
 
-          let result = try await scanner.scanForCorruption { event in
-            if isVerbose {
-              switch event.stage {
-              case .scanningFiles:
-                print("🔎 Scanning for PDF files...")
-              case .validatingFile(let url):
-                let ext = url.pathExtension.lowercased()
-                if ext == "pdf" || ext == "azw4" {
-                  print("  Validating: \(url.lastPathComponent)")
-                }
-              default:
-                break
-              }
-            }
-          }
-
-          let pdfFiles = result.corruptedFiles.filter {
-            let ext = $0.url.pathExtension.lowercased()
-            return ext == "pdf" || ext == "azw4"
-          }
+          let result = try await scanner.scanForCorruption(
+            progress: makeValidationProgressHandler(verbose: isVerbose))
+          let pdfFiles = filterPdfCorrupted(from: result.corruptedFiles)
+          let pdfValidations = filterPdfValidations(from: result.okFiles)
           let formatter = PDFReportFormatter()
 
-          if structureCheck {
-            for file in result.okFiles.filter({
-              let ext = $0.url.pathExtension.lowercased()
-              return ext == "pdf" || ext == "azw4"
-            }) {
-              let validationResult = await ExternalValidators.validatePdf(at: file.url.path)
-              await formatter.printValidationResults(for: validationResult)
-            }
-          } else if showStreams {
-            for file in result.okFiles.filter({
-              let ext = $0.url.pathExtension.lowercased()
-              return ext == "pdf" || ext == "azw4"
-            }) {
-              let streamInfo = await ExternalValidators.getPdfStreamInfo(at: file.url.path)
-              print("\n📊 Stream analysis for \(file.url.lastPathComponent):")
-              print(streamInfo)
-            }
-          } else if encryptionInfo {
-            for file in result.okFiles.filter({
-              let ext = $0.url.pathExtension.lowercased()
-              return ext == "pdf" || ext == "azw4"
-            }) {
-              let encryption = await ExternalValidators.getPdfEncryptionInfo(at: file.url.path)
-              print("\n🔒 Encryption details for \(file.url.lastPathComponent):")
-              print(encryption)
-            }
-          } else if let extractOption = extractMetadata {
-            for file in result.okFiles.filter({
-              let ext = $0.url.pathExtension.lowercased()
-              return ext == "pdf" || ext == "azw4"
-            }) {
-              do {
-                try await extractPDFMetadata(at: file.url, format: extractOption)
-              } catch {
-                print("✗ Failed to extract metadata from \(file.url.lastPathComponent): \(error)")
-              }
-            }
-          } else if let extractOption = extract {
-            for file in result.okFiles.filter({
-              let ext = $0.url.pathExtension.lowercased()
-              return ext == "pdf" || ext == "azw4"
-            }) {
-              let metadata = await ExternalValidators.getPdfInfo(at: file.url.path)
-              let outputURL = file.url.deletingPathExtension().appendingPathExtension(
-                "metadata.json")
-
-              var outputData: [String: Any] = [:]
-              switch extractOption {
-              case "info":
-                outputData = metadata
-              case "pages":
-                outputData["pageCount"] = metadata["Pages"] ?? 0
-              case "permissions":
-                outputData["permissions"] = metadata["Permissions"] ?? "None"
-              default:
-                outputData = metadata
-              }
-
-              do {
-                let jsonData = try JSONSerialization.data(
-                  withJSONObject: outputData, options: [.prettyPrinted])
-                try jsonData.write(to: outputURL)
-                print("✓ Saved metadata: \(outputURL.lastPathComponent)")
-              } catch {
-                print("✗ Failed to save metadata: \(error)")
-              }
-            }
-          } else {
-            for file in pdfFiles {
-              let validationResult = ValidationResult(
-                originalIndex: 0, url: file.url, size: file.size, isValid: false,
-                reason: file.reason, status: file.status, fingerprint: file.fingerprint,
-                pdfValidationDetails: file.pdfValidationDetails,
-                epubComplianceDetails: file.epubComplianceDetails)
-              await formatter.printValidationResults(for: validationResult)
-            }
-          }
+          await handleValidationMode(
+            mode: validationMode(),
+            pdfValidations: pdfValidations,
+            corruptedFiles: pdfFiles,
+            formatter: formatter
+          )
 
           print("✅ PDF Mechanic validation completed successfully")
         } catch {
           print("❌ Error: \(error)")
         }
-        group.leave()
       }
 
       group.wait()
+    }
+
+    private func validationMode() -> PDFValidationMode {
+      if structureCheck {
+        return .structure
+      }
+      if showStreams {
+        return .streams
+      }
+      if encryptionInfo {
+        return .encryption
+      }
+      if let extractMetadata {
+        return .extractMetadata(extractMetadata)
+      }
+      if let extract {
+        return .extract(extract)
+      }
+      return .corrupted
+    }
+
+    private func makeValidationProgressHandler(verbose: Bool) -> FileScanner.ProgressHandler {
+      { event in
+        guard verbose else { return }
+        switch event.stage {
+        case .scanningFiles:
+          print("🔎 Scanning for PDF files...")
+        case .validatingFile(let url):
+          if isPdfFile(url) {
+            print("  Validating: \(url.lastPathComponent)")
+          }
+        default:
+          break
+        }
+      }
+    }
+
+    private func isPdfFile(_ url: URL) -> Bool {
+      let ext = url.pathExtension.lowercased()
+      return ext == "pdf" || ext == "azw4"
+    }
+
+    private func filterPdfValidations(from files: [ValidationResult]) -> [ValidationResult] {
+      files.filter { isPdfFile($0.url) }
+    }
+
+    private func filterPdfCorrupted(from files: [CorruptedFile]) -> [CorruptedFile] {
+      files.filter { isPdfFile($0.url) }
+    }
+
+    private func handleValidationMode(
+      mode: PDFValidationMode,
+      pdfValidations: [ValidationResult],
+      corruptedFiles: [CorruptedFile],
+      formatter: PDFReportFormatter
+    ) async {
+      switch mode {
+      case .structure:
+        await validateStructure(for: pdfValidations, formatter: formatter)
+      case .streams:
+        await printStreamInfo(for: pdfValidations)
+      case .encryption:
+        await printEncryptionInfo(for: pdfValidations)
+      case .extractMetadata(let format):
+        await extractMetadata(for: pdfValidations, format: format)
+      case .extract(let option):
+        await extractInfo(for: pdfValidations, option: option)
+      case .corrupted:
+        await printCorruptionResults(for: corruptedFiles, formatter: formatter)
+      }
+    }
+
+    private func validateStructure(
+      for files: [ValidationResult],
+      formatter: PDFReportFormatter
+    ) async {
+      for file in files {
+        let validationResult = await ExternalValidators.validatePdf(at: file.url.path)
+        await formatter.printValidationResults(for: validationResult)
+      }
+    }
+
+    private func printStreamInfo(for files: [ValidationResult]) async {
+      for file in files {
+        let streamInfo = await ExternalValidators.getPdfStreamInfo(at: file.url.path)
+        print("\n📊 Stream analysis for \(file.url.lastPathComponent):")
+        print(streamInfo)
+      }
+    }
+
+    private func printEncryptionInfo(for files: [ValidationResult]) async {
+      for file in files {
+        let encryption = await ExternalValidators.getPdfEncryptionInfo(at: file.url.path)
+        print("\n🔒 Encryption details for \(file.url.lastPathComponent):")
+        print(encryption)
+      }
+    }
+
+    private func extractMetadata(for files: [ValidationResult], format: String) async {
+      for file in files {
+        do {
+          try await extractPDFMetadata(at: file.url, format: format)
+        } catch {
+          print("✗ Failed to extract metadata from \(file.url.lastPathComponent): \(error)")
+        }
+      }
+    }
+
+    private func extractInfo(for files: [ValidationResult], option: String) async {
+      for file in files {
+        let metadata = await ExternalValidators.getPdfInfo(at: file.url.path)
+        let outputData = metadataForExtractOption(option, metadata: metadata)
+        let outputURL = file.url.deletingPathExtension().appendingPathExtension("metadata.json")
+
+        do {
+          let jsonData = try JSONSerialization.data(
+            withJSONObject: outputData, options: [.prettyPrinted])
+          try jsonData.write(to: outputURL)
+          print("✓ Saved metadata: \(outputURL.lastPathComponent)")
+        } catch {
+          print("✗ Failed to save metadata: \(error)")
+        }
+      }
+    }
+
+    private func metadataForExtractOption(
+      _ option: String,
+      metadata: [String: Any]
+    ) -> [String: Any] {
+      switch option {
+      case "info":
+        return metadata
+      case "pages":
+        return ["pageCount": metadata["Pages"] ?? 0]
+      case "permissions":
+        return ["permissions": metadata["Permissions"] ?? "None"]
+      default:
+        return metadata
+      }
+    }
+
+    private func printCorruptionResults(
+      for files: [CorruptedFile],
+      formatter: PDFReportFormatter
+    ) async {
+      for file in files {
+        let validationResult = ValidationResult(
+          originalIndex: 0, url: file.url, size: file.size, isValid: false,
+          reason: file.reason, status: file.status, fingerprint: file.fingerprint,
+          pdfValidationDetails: file.pdfValidationDetails,
+          epubComplianceDetails: file.epubComplianceDetails)
+        await formatter.printValidationResults(for: validationResult)
+      }
     }
 
     private func extractPDFMetadata(at url: URL, format: String) async throws {
@@ -219,6 +285,7 @@ extension EbookMechanicPDFCLI {
       group.enter()
 
       Task {
+        defer { group.leave() }
         do {
           let rootURL = URL(fileURLWithPath: dir).resolvingSymlinksInPath()
           let scanner = FileScanner(
@@ -230,82 +297,114 @@ extension EbookMechanicPDFCLI {
           print("🔧 Repair mode: enabled")
           print("🔍 Dry run: \(isDryRun ? "yes" : "no")")
 
-          let result = try await scanner.scanForCorruption { event in
-            if isVerbose {
-              switch event.stage {
-              case .scanningFiles:
-                print("🔎 Scanning for PDF files...")
-              case .validatingFile(let url):
-                let ext = url.pathExtension.lowercased()
-                if ext == "pdf" || ext == "azw4" {
-                  print("  Validating: \(url.lastPathComponent)")
-                }
-              case .repairingFiles:
-                print("🔧 Repairing PDF files...")
-              default:
-                break
-              }
-            }
-          }
+          let result = try await scanner.scanForCorruption(
+            progress: makeRepairProgressHandler(verbose: isVerbose))
+          let pdfFiles = filterPdfCorrupted(from: result.corruptedFiles)
+          let pdfValidations = filterPdfValidations(from: result.okFiles)
 
-          let pdfFiles = result.corruptedFiles.filter {
-            let ext = $0.url.pathExtension.lowercased()
-            return ext == "pdf" || ext == "azw4"
-          }
-
-          if optimize {
-            for file in result.okFiles.filter({
-              let ext = $0.url.pathExtension.lowercased()
-              return ext == "pdf" || ext == "azw4"
-            }) {
-              if !isDryRun {
-                let optimizedURL = file.url.deletingPathExtension().appendingPathExtension(
-                  "optimized.pdf")
-                let (success, output) = await ExternalValidators.optimizePDF(
-                  at: file.url.path, outputPath: optimizedURL.path)
-                if success {
-                  print(
-                    "✅ Optimized \(file.url.lastPathComponent) → \(optimizedURL.lastPathComponent)")
-                } else {
-                  print("❌ Failed to optimize \(file.url.lastPathComponent): \(output)")
-                }
-              } else {
-                let optimizedURL = file.url.deletingPathExtension().appendingPathExtension(
-                  "optimized.pdf")
-                print(
-                  "DRY RUN: Would optimize \(file.url.lastPathComponent) → \(optimizedURL.lastPathComponent)"
-                )
-              }
-            }
-          }
-
-          if !isDryRun && !pdfFiles.isEmpty {
-            let (_, repairedCount) = await scanner.repairCorruptedFiles { event in
-              if isVerbose {
-                switch event.stage {
-                case .repairingFiles:
-                  print("  🔧 Repairing: \(event.currentItem)")
-                default:
-                  break
-                }
-              }
-            }
-            print("📈 Repair Summary: \(repairedCount) files repaired.")
-          }
+          await optimizeFilesIfNeeded(files: pdfValidations, isDryRun: isDryRun)
+          await repairCorruptedFilesIfNeeded(
+            scanner: scanner,
+            files: pdfFiles,
+            isDryRun: isDryRun,
+            verbose: isVerbose
+          )
 
           print("✅ PDF Mechanic repair completed successfully")
         } catch {
           print("❌ Error: \(error)")
         }
-        group.leave()
       }
 
       group.wait()
+    }
+
+    private func makeRepairProgressHandler(verbose: Bool) -> FileScanner.ProgressHandler {
+      { event in
+        guard verbose else { return }
+        switch event.stage {
+        case .scanningFiles:
+          print("🔎 Scanning for PDF files...")
+        case .validatingFile(let url):
+          if isPdfFile(url) {
+            print("  Validating: \(url.lastPathComponent)")
+          }
+        case .repairingFiles:
+          print("🔧 Repairing PDF files...")
+        default:
+          break
+        }
+      }
+    }
+
+    private func isPdfFile(_ url: URL) -> Bool {
+      let ext = url.pathExtension.lowercased()
+      return ext == "pdf" || ext == "azw4"
+    }
+
+    private func filterPdfValidations(from files: [ValidationResult]) -> [ValidationResult] {
+      files.filter { isPdfFile($0.url) }
+    }
+
+    private func filterPdfCorrupted(from files: [CorruptedFile]) -> [CorruptedFile] {
+      files.filter { isPdfFile($0.url) }
+    }
+
+    private func optimizeFilesIfNeeded(files: [ValidationResult], isDryRun: Bool) async {
+      guard optimize else { return }
+
+      for file in files {
+        let optimizedURL = file.url.deletingPathExtension().appendingPathExtension("optimized.pdf")
+        if isDryRun {
+          print(
+            "DRY RUN: Would optimize \(file.url.lastPathComponent) → \(optimizedURL.lastPathComponent)"
+          )
+          continue
+        }
+
+        let (success, output) = await ExternalValidators.optimizePDF(
+          at: file.url.path, outputPath: optimizedURL.path)
+        if success {
+          print(
+            "✅ Optimized \(file.url.lastPathComponent) → \(optimizedURL.lastPathComponent)")
+        } else {
+          print("❌ Failed to optimize \(file.url.lastPathComponent): \(output)")
+        }
+      }
+    }
+
+    private func repairCorruptedFilesIfNeeded(
+      scanner: FileScanner,
+      files: [CorruptedFile],
+      isDryRun: Bool,
+      verbose: Bool
+    ) async {
+      guard !isDryRun, !files.isEmpty else { return }
+
+      let (_, repairedCount) = await scanner.repairCorruptedFiles { event in
+        guard verbose else { return }
+        switch event.stage {
+        case .repairingFiles:
+          print("  🔧 Repairing: \(event.currentItem)")
+        default:
+          break
+        }
+      }
+      print("📈 Repair Summary: \(repairedCount) files repaired.")
     }
   }
 }
 
 EbookMechanicPDFCLI.main()
+
+private enum PDFValidationMode {
+  case structure
+  case streams
+  case encryption
+  case extractMetadata(String)
+  case extract(String)
+  case corrupted
+}
 
 private enum YAMLSerializer {
   static func serialize(_ value: Any) -> String {
@@ -353,3 +452,4 @@ private enum YAMLSerializer {
     return value
   }
 }
+// swiftlint:enable file_length

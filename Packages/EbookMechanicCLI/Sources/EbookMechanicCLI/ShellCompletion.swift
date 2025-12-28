@@ -121,7 +121,7 @@ Register-ArgumentCompleter -Native -CommandName ebook-mechanic -ScriptBlock {
       "--no-cache",
       "--performance-stats",
       "--normalize-epubs",
-      "--force-normalize",
+      "--force-normalize"
     ]
   }
 
@@ -150,7 +150,7 @@ Register-ArgumentCompleter -Native -CommandName ebook-mechanic -ScriptBlock {
       "'--no-cache[Disable validation cache]'",
       "'--performance-stats[Print performance metrics]'",
       "'--normalize-epubs[Normalize EPUB files]'",
-      "'--force-normalize[Force EPUB normalization]'",
+      "'--force-normalize[Force EPUB normalization]'"
     ]
   }
 
@@ -175,7 +175,7 @@ Register-ArgumentCompleter -Native -CommandName ebook-mechanic -ScriptBlock {
       "complete -c ebook-mechanic -l no-cache -d 'Disable validation cache'",
       "complete -c ebook-mechanic -l performance-stats -d 'Print performance metrics'",
       "complete -c ebook-mechanic -l normalize-epubs -d 'Normalize EPUB files'",
-      "complete -c ebook-mechanic -l force-normalize -d 'Force EPUB normalization'",
+      "complete -c ebook-mechanic -l force-normalize -d 'Force EPUB normalization'"
     ]
   }
 
@@ -199,7 +199,7 @@ Register-ArgumentCompleter -Native -CommandName ebook-mechanic -ScriptBlock {
       "'--no-cache'",
       "'--performance-stats'",
       "'--normalize-epubs'",
-      "'--force-normalize'",
+      "'--force-normalize'"
     ]
   }
 }

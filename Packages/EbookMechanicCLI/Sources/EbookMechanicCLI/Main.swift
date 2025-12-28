@@ -72,6 +72,7 @@ struct EbookMechanicCLI: ParsableCommand {
   @Flag(name: .long, help: "Show performance statistics at the end of the scan.")
   var performanceStats: Bool = false
 
+  // swiftlint:disable:next function_body_length
   func run() throws {
     let group = DispatchGroup()
     group.enter()
@@ -103,8 +104,9 @@ struct EbookMechanicCLI: ParsableCommand {
         if emptyFoldersOnly {
           _ = try await scanner.scanForEmptyFolders(progress: printer.handle)
           printer.printHeader("Empty Folder Analysis")
-          //reportEmptyFolders(folders, printer: printer)
-          //try await handleEmptyFolderCleanup(configuration: self, scanner: scanner, result: folders, printer: printer)
+          // reportEmptyFolders(folders, printer: printer)
+          // try await handleEmptyFolderCleanup(
+          //   configuration: self, scanner: scanner, result: folders, printer: printer)
           group.leave()
           return
         }
@@ -131,12 +133,13 @@ struct EbookMechanicCLI: ParsableCommand {
         if !corruptionOnly {
           _ = try await scanner.scanForEmptyFolders(progress: printer.handle)
           printer.printHeader("Folder Analysis")
-          //reportEmptyFolders(folders, printer: printer)
-          //try await handleEmptyFolderCleanup(configuration: self, scanner: scanner, result: folders, printer: printer)
+          // reportEmptyFolders(folders, printer: printer)
+          // try await handleEmptyFolderCleanup(
+          //   configuration: self, scanner: scanner, result: folders, printer: printer)
         }
 
         if !dryRun {
-          //try await handleCorruptedMoves(configuration: self, scanner: scanner, printer: printer)
+          // try await handleCorruptedMoves(configuration: self, scanner: scanner, printer: printer)
         } else {
           printer.printInfo("Dry run enabled – no files were moved or deleted.")
         }
@@ -190,6 +193,7 @@ struct EbookMechanicCLI: ParsableCommand {
     }
   }
 
+  // swiftlint:disable:next cyclomatic_complexity
   private func printEpubComplianceSummary(_ result: ScanResult, printer: ProgressPrinter) {
     let epubOkFiles = result.okFiles.filter {
       $0.url.pathExtension.lowercased() == "epub"

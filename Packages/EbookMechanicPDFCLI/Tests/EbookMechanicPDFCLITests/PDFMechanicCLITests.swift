@@ -9,7 +9,7 @@ struct EbookMechanicPDFCLITests {
     let candidates = [
       ".build/arm64-apple-macosx/debug/EbookMechanicPDFCLI",
       ".build/x86_64-apple-macosx/debug/EbookMechanicPDFCLI",
-      ".build/debug/EbookMechanicPDFCLI",
+      ".build/debug/EbookMechanicPDFCLI"
     ]
 
     for candidate in candidates {
@@ -68,7 +68,7 @@ struct EbookMechanicPDFCLITests {
     try writeValidPDF(named: "ok.pdf", in: tempDir)
 
     let output = try runCLI(with: [
-      "repair", "--optimize", "--dry-run", "--dir", tempDir.path,
+      "repair", "--optimize", "--dry-run", "--dir", tempDir.path
     ])
 
     #expect(output.contains("DRY RUN: Would optimize"))
@@ -81,7 +81,7 @@ struct EbookMechanicPDFCLITests {
     try writeValidPDF(named: "ok.pdf", in: tempDir)
 
     let output = try runCLI(with: [
-      "validate", "--structure-check", "--dir", tempDir.path,
+      "validate", "--structure-check", "--dir", tempDir.path
     ])
 
     #expect(output.contains("Validation Result for"))
@@ -95,7 +95,7 @@ struct EbookMechanicPDFCLITests {
     let pdfURL = try writeValidPDF(named: "ok.pdf", in: tempDir)
 
     let output = try runCLI(with: [
-      "validate", "--extract-metadata", "json", "--dir", tempDir.path,
+      "validate", "--extract-metadata", "json", "--dir", tempDir.path
     ])
 
     let metadataURL = pdfURL.deletingPathExtension().appendingPathExtension("metadata.json")

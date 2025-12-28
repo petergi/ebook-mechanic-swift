@@ -7,7 +7,7 @@ final class CLIHelpTests: XCTestCase {
     let candidates = [
       ".build/arm64-apple-macosx/debug/EbookMechanicCLI",
       ".build/x86_64-apple-macosx/debug/EbookMechanicCLI",
-      ".build/debug/EbookMechanicCLI",
+      ".build/debug/EbookMechanicCLI"
     ]
 
     for candidate in candidates {
@@ -55,7 +55,7 @@ final class CLIHelpTests: XCTestCase {
     let output = try runCLI(with: [
       "--dry-run",
       "--corruption-only",
-      "--dir", tempDir.path,
+      "--dir", tempDir.path
     ])
 
     XCTAssertTrue(output.contains("Dry run enabled"))

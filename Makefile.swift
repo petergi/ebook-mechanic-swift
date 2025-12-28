@@ -673,11 +673,11 @@ lint:
 	@if command -v swiftlint >/dev/null 2>&1; then \
 		mkdir -p .lint-tmp .lint-cache; \
 		echo "🔍 Linting Swift code..."; \
-		( cd Packages/EbookMechanicCore && TMPDIR="$(CURDIR)/.lint-tmp" XDG_CACHE_HOME="$(CURDIR)/.lint-cache" SWIFTLINT_CACHE_PATH="$(CURDIR)/.lint-cache" swiftlint ); \
-		( cd Packages/EbookMechanicCLI && TMPDIR="$(CURDIR)/.lint-tmp" XDG_CACHE_HOME="$(CURDIR)/.lint-cache" SWIFTLINT_CACHE_PATH="$(CURDIR)/.lint-cache" swiftlint ); \
-		( cd Apps/EbookMechanicApp && TMPDIR="$(CURDIR)/.lint-tmp" XDG_CACHE_HOME="$(CURDIR)/.lint-cache" SWIFTLINT_CACHE_PATH="$(CURDIR)/.lint-cache" swiftlint ); \
-		( cd Packages/EbookMechanicEPUBCLI && TMPDIR="$(CURDIR)/.lint-tmp" XDG_CACHE_HOME="$(CURDIR)/.lint-cache" SWIFTLINT_CACHE_PATH="$(CURDIR)/.lint-cache" swiftlint ); \
-		( cd Packages/EbookMechanicPDFCLI && TMPDIR="$(CURDIR)/.lint-tmp" XDG_CACHE_HOME="$(CURDIR)/.lint-cache" SWIFTLINT_CACHE_PATH="$(CURDIR)/.lint-cache" swiftlint ); \
+		( cd Packages/EbookMechanicCore && TMPDIR="$(CURDIR)/.lint-tmp" XDG_CACHE_HOME="$(CURDIR)/.lint-cache" SWIFTLINT_CACHE_PATH="$(CURDIR)/.lint-cache" swiftlint --cache-path "$(CURDIR)/.lint-cache" --no-cache ); \
+		( cd Packages/EbookMechanicCLI && TMPDIR="$(CURDIR)/.lint-tmp" XDG_CACHE_HOME="$(CURDIR)/.lint-cache" SWIFTLINT_CACHE_PATH="$(CURDIR)/.lint-cache" swiftlint --cache-path "$(CURDIR)/.lint-cache" --no-cache ); \
+		( cd Apps/EbookMechanicApp && TMPDIR="$(CURDIR)/.lint-tmp" XDG_CACHE_HOME="$(CURDIR)/.lint-cache" SWIFTLINT_CACHE_PATH="$(CURDIR)/.lint-cache" swiftlint --cache-path "$(CURDIR)/.lint-cache" --no-cache ); \
+		( cd Packages/EbookMechanicEPUBCLI && TMPDIR="$(CURDIR)/.lint-tmp" XDG_CACHE_HOME="$(CURDIR)/.lint-cache" SWIFTLINT_CACHE_PATH="$(CURDIR)/.lint-cache" swiftlint --cache-path "$(CURDIR)/.lint-cache" --no-cache ); \
+		( cd Packages/EbookMechanicPDFCLI && TMPDIR="$(CURDIR)/.lint-tmp" XDG_CACHE_HOME="$(CURDIR)/.lint-cache" SWIFTLINT_CACHE_PATH="$(CURDIR)/.lint-cache" swiftlint --cache-path "$(CURDIR)/.lint-cache" --no-cache ); \
 		echo "✅ Lint check passed!"; \
 	else \
 		echo "❌ SwiftLint not found. Install with:"; \

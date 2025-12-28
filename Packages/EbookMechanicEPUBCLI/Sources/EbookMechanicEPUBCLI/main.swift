@@ -51,55 +51,25 @@ extension EbookMechanicEPUBCLI {
 
           print("📂 Scanning directory: \(dir)")
 
-          let result = try await scanner.scanForCorruption { event in
-            if isVerbose {
-              switch event.stage {
-              case .scanningFiles:
-                print("🔎 Scanning for EPUB files...")
-              case .validatingFile(let url):
-                if url.pathExtension.lowercased() == "epub" {
-                  print("  Validating: \(url.lastPathComponent)")
-                }
-              default:
-                break
-              }
-            }
-          }
-
-          let epubFiles = result.corruptedFiles.filter {
-            $0.url.pathExtension.lowercased() == "epub"
-          }
+          let result = try await scanner.scanForCorruption(
+            progress: makeValidationProgressHandler(verbose: isVerbose))
+          let epubFiles = filterEpubCorrupted(from: result.corruptedFiles)
+          let epubValidations = filterEpubValidations(from: result.okFiles)
           let formatter = EPUBReportFormatter()
 
           if specCheck {
-            for file in result.okFiles.filter({ $0.url.pathExtension.lowercased() == "epub" }) {
-              let validationResult = await ExternalValidators.validateEpub(
-                at: file.url.path,
-                showWarnings: showWarnings,
-                checkAccessibility: accessibility
-              )
-              formatter.printValidationResults(for: validationResult)
-            }
+            await validateWithSpecCheck(
+              files: epubValidations,
+              formatter: formatter
+            )
           } else {
-            for file in epubFiles {
-              let validationResult = ValidationResult(
-                originalIndex: 0, url: file.url, size: file.size, isValid: false,
-                reason: file.reason, status: file.status, fingerprint: file.fingerprint,
-                pdfValidationDetails: file.pdfValidationDetails,
-                epubComplianceDetails: file.epubComplianceDetails)
-              formatter.printValidationResults(for: validationResult)
-            }
+            printCorruptionResults(for: epubFiles, formatter: formatter)
           }
 
-          if let format = extractMetadata {
-            for file in result.okFiles.filter({ $0.url.pathExtension.lowercased() == "epub" }) {
-              do {
-                try await extractEPUBMetadata(at: file.url, format: format)
-              } catch {
-                print("Failed to extract metadata from \(file.url.lastPathComponent): \(error)")
-              }
-            }
-          }
+          await extractMetadataIfNeeded(
+            from: epubValidations,
+            format: extractMetadata
+          )
 
           print("✅ EPUB Mechanic validation completed successfully")
         } catch {
@@ -111,13 +81,80 @@ extension EbookMechanicEPUBCLI {
       group.wait()
     }
 
+    private func makeValidationProgressHandler(verbose: Bool) -> FileScanner.ProgressHandler {
+      { event in
+        guard verbose else { return }
+        switch event.stage {
+        case .scanningFiles:
+          print("🔎 Scanning for EPUB files...")
+        case .validatingFile(let url):
+          if url.pathExtension.lowercased() == "epub" {
+            print("  Validating: \(url.lastPathComponent)")
+          }
+        default:
+          break
+        }
+      }
+    }
+
+    private func filterEpubCorrupted(from files: [CorruptedFile]) -> [CorruptedFile] {
+      files.filter { $0.url.pathExtension.lowercased() == "epub" }
+    }
+
+    private func filterEpubValidations(from files: [ValidationResult]) -> [ValidationResult] {
+      files.filter { $0.url.pathExtension.lowercased() == "epub" }
+    }
+
+    private func validateWithSpecCheck(
+      files: [ValidationResult],
+      formatter: EPUBReportFormatter
+    ) async {
+      for file in files {
+        let validationResult = await ExternalValidators.validateEpub(
+          at: file.url.path,
+          showWarnings: showWarnings,
+          checkAccessibility: accessibility
+        )
+        formatter.printValidationResults(for: validationResult)
+      }
+    }
+
+    private func printCorruptionResults(
+      for files: [CorruptedFile],
+      formatter: EPUBReportFormatter
+    ) {
+      for file in files {
+        let validationResult = ValidationResult(
+          originalIndex: 0, url: file.url, size: file.size, isValid: false,
+          reason: file.reason, status: file.status, fingerprint: file.fingerprint,
+          pdfValidationDetails: file.pdfValidationDetails,
+          epubComplianceDetails: file.epubComplianceDetails
+        )
+        formatter.printValidationResults(for: validationResult)
+      }
+    }
+
+    private func extractMetadataIfNeeded(
+      from files: [ValidationResult],
+      format: String?
+    ) async {
+      guard let format else { return }
+
+      for file in files {
+        do {
+          try await extractEPUBMetadata(at: file.url, format: format)
+        } catch {
+          print("Failed to extract metadata from \(file.url.lastPathComponent): \(error)")
+        }
+      }
+    }
+
     private func extractEPUBMetadata(at url: URL, format: String) async throws {
-      // TODO: Implement full metadata extraction once ZipArchive is made public
-      // For now, create a placeholder implementation
+      // Placeholder: full metadata extraction requires ZipArchive access.
       let metadata: [String: String] = [
         "title": url.deletingPathExtension().lastPathComponent,
         "format": "EPUB",
-        "note": "Full metadata extraction requires ZipArchive access",
+        "note": "Full metadata extraction requires ZipArchive access"
       ]
 
       let outputURL = url.deletingPathExtension().appendingPathExtension("metadata.\(format)")
@@ -135,11 +172,6 @@ extension EbookMechanicEPUBCLI {
       }
 
       print("✓ Saved metadata: \(outputURL.lastPathComponent)")
-    }
-
-    enum EPUBError: Error {
-      case missingOPF
-      case invalidOPF
     }
   }
 
@@ -177,56 +209,22 @@ extension EbookMechanicEPUBCLI {
           print("🔧 Repair mode: enabled")
           print("🔍 Dry run: \(isDryRun ? "yes" : "no")")
 
-          let result = try await scanner.scanForCorruption { event in
-            if isVerbose {
-              switch event.stage {
-              case .scanningFiles:
-                print("🔎 Scanning for EPUB files...")
-              case .validatingFile(let url):
-                if url.pathExtension.lowercased() == "epub" {
-                  print("  Validating: \(url.lastPathComponent)")
-                }
-              case .repairingFiles:
-                print("🔧 Repairing EPUB files...")
-              default:
-                break
-              }
-            }
-          }
+          let result = try await scanner.scanForCorruption(
+            progress: makeRepairProgressHandler(verbose: isVerbose))
+          let epubFiles = filterEpubCorrupted(from: result.corruptedFiles)
+          let epubValidations = filterEpubValidations(from: result.okFiles)
 
-          let epubFiles = result.corruptedFiles.filter {
-            $0.url.pathExtension.lowercased() == "epub"
-          }
+          await repairCorruptedFilesIfNeeded(
+            scanner: scanner,
+            files: epubFiles,
+            isDryRun: isDryRun,
+            verbose: isVerbose
+          )
 
-          if !isDryRun && !epubFiles.isEmpty {
-            let (_, repairedCount) = await scanner.repairCorruptedFiles { event in
-              if isVerbose {
-                switch event.stage {
-                case .repairingFiles:
-                  print("  🔧 Repairing: \(event.currentItem)")
-                default:
-                  break
-                }
-              }
-            }
-            print("📈 Repair Summary: \(repairedCount) files repaired.")
-          }
-
-          if fixMetadata && !isDryRun {
-            print("🔧 Fixing metadata in EPUB files...")
-            for file in result.okFiles.filter({ $0.url.pathExtension.lowercased() == "epub" }) {
-              do {
-                let result = try await repairEPUBMetadata(at: file.url)
-                if result.fixed {
-                  print("✓ Fixed metadata: \(file.url.lastPathComponent)")
-                } else {
-                  print("• No metadata updates needed: \(file.url.lastPathComponent)")
-                }
-              } catch {
-                print("✗ Failed to fix metadata for \(file.url.lastPathComponent): \(error)")
-              }
-            }
-          }
+          await repairMetadataIfNeeded(
+            files: epubValidations,
+            isDryRun: isDryRun
+          )
 
           print("✅ EPUB Mechanic repair completed successfully")
         } catch {
@@ -238,14 +236,76 @@ extension EbookMechanicEPUBCLI {
       group.wait()
     }
 
+    private func makeRepairProgressHandler(verbose: Bool) -> FileScanner.ProgressHandler {
+      { event in
+        guard verbose else { return }
+        switch event.stage {
+        case .scanningFiles:
+          print("🔎 Scanning for EPUB files...")
+        case .validatingFile(let url):
+          if url.pathExtension.lowercased() == "epub" {
+            print("  Validating: \(url.lastPathComponent)")
+          }
+        case .repairingFiles:
+          print("🔧 Repairing EPUB files...")
+        default:
+          break
+        }
+      }
+    }
+
+    private func filterEpubCorrupted(from files: [CorruptedFile]) -> [CorruptedFile] {
+      files.filter { $0.url.pathExtension.lowercased() == "epub" }
+    }
+
+    private func filterEpubValidations(from files: [ValidationResult]) -> [ValidationResult] {
+      files.filter { $0.url.pathExtension.lowercased() == "epub" }
+    }
+
+    private func repairCorruptedFilesIfNeeded(
+      scanner: FileScanner,
+      files: [CorruptedFile],
+      isDryRun: Bool,
+      verbose: Bool
+    ) async {
+      guard !isDryRun, !files.isEmpty else { return }
+
+      let (_, repairedCount) = await scanner.repairCorruptedFiles { event in
+        guard verbose else { return }
+        switch event.stage {
+        case .repairingFiles:
+          print("  🔧 Repairing: \(event.currentItem)")
+        default:
+          break
+        }
+      }
+      print("📈 Repair Summary: \(repairedCount) files repaired.")
+    }
+
+    private func repairMetadataIfNeeded(
+      files: [ValidationResult],
+      isDryRun: Bool
+    ) async {
+      guard fixMetadata, !isDryRun else { return }
+
+      print("🔧 Fixing metadata in EPUB files...")
+      for file in files {
+        do {
+          let result = try await repairEPUBMetadata(at: file.url)
+          if result.fixed {
+            print("✓ Fixed metadata: \(file.url.lastPathComponent)")
+          } else {
+            print("• No metadata updates needed: \(file.url.lastPathComponent)")
+          }
+        } catch {
+          print("✗ Failed to fix metadata for \(file.url.lastPathComponent): \(error)")
+        }
+      }
+    }
+
     private func repairEPUBMetadata(at url: URL) async throws -> RepairResult {
       let repairer = EPUBMetadataRepairer()
       return try repairer.repair(at: url)
-    }
-
-    enum EPUBError: Error {
-      case missingOPF
-      case invalidOPF
     }
   }
 }

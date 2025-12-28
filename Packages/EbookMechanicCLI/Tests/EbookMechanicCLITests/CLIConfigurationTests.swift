@@ -2,7 +2,7 @@ import XCTest
 
 @testable import EbookMechanicCLI
 
-// swiftlint:disable type_body_length
+// swiftlint:disable type_body_length file_length trailing_comma
 
 final class CLIConfigurationTests: XCTestCase {
   func testDefaultsWhenNoArgumentsProvided() throws {

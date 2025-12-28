@@ -4,6 +4,7 @@ import XCTest
 
 @testable import EbookMechanicCLI
 
+// swiftlint:disable type_body_length
 final class ProgressPrinterTests: XCTestCase {
 
   // MARK: - Initialization Tests
@@ -271,7 +272,7 @@ final class ProgressPrinterTests: XCTestCase {
     let (printer, hooks) = ProgressPrinter.makeTestable(verbose: true)
     let results = [
       RepairResult(success: true, message: "Added EOF marker", fixed: true),
-      RepairResult(success: true, message: "Fixed mimetype", fixed: true),
+      RepairResult(success: true, message: "Fixed mimetype", fixed: true)
     ]
 
     printer.printRepairSummary(results: results, repairedCount: 2)
@@ -285,7 +286,7 @@ final class ProgressPrinterTests: XCTestCase {
     let results = [
       RepairResult(success: true, message: "Repaired", fixed: true),
       RepairResult(success: true, message: "Already valid", fixed: false),
-      RepairResult(success: false, message: "Cannot repair MOBI", fixed: false),
+      RepairResult(success: false, message: "Cannot repair MOBI", fixed: false)
     ]
 
     printer.printRepairSummary(results: results, repairedCount: 1)
@@ -356,7 +357,9 @@ final class ProgressPrinterTests: XCTestCase {
     }
   }
 }
+// swiftlint:enable type_body_length
 
+// swiftlint:disable:next function_parameter_count
 private func makePerformanceMetrics(
   filesPerSecond: Double,
   totalValidationTime: TimeInterval,
@@ -375,7 +378,7 @@ private func makePerformanceMetrics(
     "parallelEfficiencyRatio": parallelEfficiencyRatio,
     "validationTimeByFormat": validationTimeByFormat.map {
       ["key": $0.key.rawValue, "value": $0.value]
-    },
+    }
   ]
   let data = try JSONSerialization.data(withJSONObject: json, options: [])
   return try JSONDecoder().decode(PerformanceMetrics.self, from: data)

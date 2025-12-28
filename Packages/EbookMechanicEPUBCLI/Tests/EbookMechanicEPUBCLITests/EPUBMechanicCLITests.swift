@@ -10,7 +10,7 @@ struct EbookMechanicEPUBCLITests {
     let candidates = [
       ".build/arm64-apple-macosx/debug/EbookMechanicEPUBCLI",
       ".build/x86_64-apple-macosx/debug/EbookMechanicEPUBCLI",
-      ".build/debug/EbookMechanicEPUBCLI",
+      ".build/debug/EbookMechanicEPUBCLI"
     ]
 
     for candidate in candidates {
@@ -69,7 +69,7 @@ struct EbookMechanicEPUBCLITests {
   func testSpecCheck() throws {
     let output = try runCLI(with: [
       "validate", "--spec-check", "--dir",
-      epubFixturesDirectory().path,
+      epubFixturesDirectory().path
     ])
     #expect(output.contains("validation completed successfully"))
   }
@@ -86,7 +86,7 @@ struct EbookMechanicEPUBCLITests {
     try FileManager.default.copyItem(at: testFilePath, to: tempFilePath)
 
     let output = try runCLI(with: [
-      "repair", "--fix-metadata", "--dir", tempFilePath.deletingLastPathComponent().path,
+      "repair", "--fix-metadata", "--dir", tempFilePath.deletingLastPathComponent().path
     ])
     #expect(output.contains("repair completed successfully"))
 
@@ -102,7 +102,7 @@ struct EbookMechanicEPUBCLITests {
   func testAccessibility() throws {
     let output = try runCLI(with: [
       "validate", "--spec-check", "--accessibility", "--dir",
-      epubFixturesDirectory().path,
+      epubFixturesDirectory().path
     ])
     #expect(output.contains("validation completed successfully"))
   }
@@ -114,7 +114,7 @@ struct EbookMechanicEPUBCLITests {
 
     let output = try runCLI(with: [
       "validate", "--extract-metadata", "json", "--dir",
-      testFilePath.deletingLastPathComponent().path,
+      testFilePath.deletingLastPathComponent().path
     ])
     if output.contains("Saved metadata") {
       let metadataURL = testFilePath.deletingPathExtension().appendingPathExtension("metadata.json")

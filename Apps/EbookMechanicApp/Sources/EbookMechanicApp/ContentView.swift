@@ -1,15 +1,12 @@
+// swiftlint:disable file_length
 import EbookMechanicCore
-/// The primary SwiftUI view for the EbookMechanic app.
-///
-/// `ContentView` presents controls to configure `ScanOptions`, triggers scans via
-/// callbacks, and renders progress and results from a bound `ScanViewModel`.
 import SwiftUI
 
+// swiftlint:disable type_body_length
 /// Main application UI for configuring and running scans.
 ///
 /// Bindings allow `ContentView` to modify `ScanOptions` and the selected directory
 /// while delegating actions via `onSelectDirectory` and `onRunScan` closures.
-// swiftlint:disable type_body_length
 struct ContentView: View {
   /// Source of truth for scan progress and results.
   @ObservedObject var viewModel: ScanViewModel
@@ -507,11 +504,11 @@ struct ContentView: View {
 // swiftlint:enable type_body_length
 
 #Preview("ContentView") {
-  let vm = ScanViewModel()
+  let previewViewModel = ScanViewModel()
   let home = FileManager.default.homeDirectoryForCurrentUser
   let options = ScanOptions(directory: home)
   return ContentView(
-    viewModel: vm,
+    viewModel: previewViewModel,
     selectedDirectory: .constant(home),
     options: options,
     onSelectDirectory: {},
@@ -521,3 +518,4 @@ struct ContentView: View {
   )
   .frame(width: 1000, height: 700)
 }
+// swiftlint:enable file_length
