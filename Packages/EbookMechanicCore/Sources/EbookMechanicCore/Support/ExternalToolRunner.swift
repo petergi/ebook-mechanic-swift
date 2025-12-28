@@ -14,6 +14,23 @@ actor ExecutionLock {
   }
 }
 
+final class ContinuationGate: @unchecked Sendable {
+  private let lock = NSLock()
+  private var didResume = false
+
+  func tryResume() -> Bool {
+    lock.lock()
+    defer { lock.unlock() }
+
+    if didResume {
+      return false
+    }
+
+    didResume = true
+    return true
+  }
+}
+
 actor ExternalToolRunner {
   enum ExternalToolRunnerError: Error, LocalizedError {
     case toolNotFound(String)
@@ -69,18 +86,13 @@ actor ExternalToolRunner {
       process.standardOutput = stdoutPipe
       process.standardError = stderrPipe
 
-      let lock = NSLock()
-      var didResume = false
+      let gate = ContinuationGate()
 
       let timeoutWorkItem: DispatchWorkItem? = timeout.map { timeout in
         let item = DispatchWorkItem {
-          lock.lock()
-          if didResume {
-            lock.unlock()
+          if !gate.tryResume() {
             return
           }
-          didResume = true
-          lock.unlock()
 
           if process.isRunning {
             process.terminate()
@@ -99,13 +111,9 @@ actor ExternalToolRunner {
         let stdout = String(data: stdoutData, encoding: .utf8) ?? ""
         let stderr = String(data: stderrData, encoding: .utf8) ?? ""
 
-        lock.lock()
-        if didResume {
-          lock.unlock()
+        if !gate.tryResume() {
           return
         }
-        didResume = true
-        lock.unlock()
 
         timeoutWorkItem?.cancel()
         continuation.resume(returning: (process.terminationStatus, stdout, stderr))
