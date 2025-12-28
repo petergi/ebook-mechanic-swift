@@ -2,3 +2,14 @@ excluded:
   - .build
   - .build/checkouts
   - EbookMechanicCore_backup
+blanket_disable_command:
+  allowed_rules:
+    - cyclomatic_complexity
+    - file_length
+    - function_body_length
+    - function_parameter_count
+    - identifier_name
+    - large_tuple
+    - nesting
+    - opening_brace
+    - type_body_length
