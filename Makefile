@@ -114,6 +114,7 @@ help:
 	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "docs-serve" "Serve documentation at http://localhost:8080"
 	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "wiki" "Generate and publish GitHub wiki"
 	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "wiki-generate" "Stage wiki content in .wiki-staging"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "wiki-update" "Generate and push wiki content to the GitHub wiki repo"
 	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "wiki-clean" "Remove local wiki working directories"
 	@echo ""
 	@echo "$(COLOR_CYAN)🧹 Maintenance:$(COLOR_RESET)"
