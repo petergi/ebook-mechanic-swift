@@ -15,6 +15,7 @@
 		sample-library \
 		benchmark \
 		docs docs-all docs-swift docs-serve \
+		wiki wiki-generate wiki-update wiki-clean \
 		swift-% \
 		completion-install
 
@@ -111,6 +112,9 @@ help:
 	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "docs-all" "Generate all documentation with details"
 	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "docs-swift" "Generate Swift DocC documentation"
 	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "docs-serve" "Serve documentation at http://localhost:8080"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "wiki" "Generate and publish GitHub wiki"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "wiki-generate" "Stage wiki content in .wiki-staging"
+	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "wiki-clean" "Remove local wiki working directories"
 	@echo ""
 	@echo "$(COLOR_CYAN)🧹 Maintenance:$(COLOR_RESET)"
 	@printf "  $(COLOR_BLUE)%-35s$(COLOR_RESET) %s\n" "clean" "Clean build artifacts (all languages)"
@@ -509,6 +513,23 @@ docs-serve:
 		echo ""; \
 		$(MAKE) docs-swift && $(MAKE) -f $(SWIFT_MAKEFILE) docc-serve; \
 	fi
+
+# ==================== Wiki ====================
+
+## wiki: Generate and publish GitHub wiki
+wiki: wiki-update
+
+## wiki-generate: Stage wiki content in .wiki-staging
+wiki-generate:
+	@$(SCRIPTS_DIR)/wiki-generate.sh
+
+## wiki-update: Generate and push wiki content to the GitHub wiki repo
+wiki-update:
+	@$(SCRIPTS_DIR)/wiki-update.sh
+
+## wiki-clean: Remove local wiki working directories
+wiki-clean:
+	@rm -rf .wiki .wiki-staging
 
 # ==================== Clean Targets ====================
 

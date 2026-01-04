@@ -285,6 +285,16 @@ make docs
 make docc-serve          # http://localhost:8080
 ```
 
+### Wiki
+
+```bash
+# Generate and publish the GitHub wiki
+make wiki
+
+# Generate wiki content without pushing
+make wiki-generate
+```
+
 ## Shell Completion
 
 All implementations support shell completion for Bash, Zsh, Fish, and PowerShell:
