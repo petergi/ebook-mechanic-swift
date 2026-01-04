@@ -1,4 +1,8 @@
-# 📚 EbookMechanic
+# 📚 EbookMechanic (swift)
+
+
+** This was an attempt at testing and learning something new while addressing a trivial problem of mine: If you use this, it **might** work, or it **might** cause the extinction of the long-fingered Aye-aye from Madagascar. You've been warned! **
+
 
 A comprehensive, ebook library management toolkit for validating, repairing, and organizing ebook collections.
 
